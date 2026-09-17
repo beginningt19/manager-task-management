@@ -4,6 +4,7 @@ import App from './App'
 import MessagingMailboxHost from './MessagingMailboxHost'
 import RecurrenceCalendarHints from './RecurrenceCalendarHints'
 import './styles.css'
+import './manager-theme.css'
 
 // Checklist display normalization is kept here so all checklist views share the same empty-value behavior.
 const normalizeChecklistEmptyDisplays = (root: ParentNode = document) => {
