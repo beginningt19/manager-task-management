@@ -15,6 +15,7 @@ export interface Profile {
   id: string
   display_name: string
   role: Role
+  display_role: string | null
   is_active: boolean
   created_at: string
   updated_at: string
