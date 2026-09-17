@@ -1,0 +1,206 @@
+import { useCallback, useEffect, useMemo, useState } from 'react'
+import { createPortal } from 'react-dom'
+import { supabase } from './lib/supabase'
+import './recurrence-calendar-hints.css'
+
+type RecurrenceRow = {
+  id: string
+  description: string
+  frequency: 'daily' | 'weekly' | 'monthly'
+  next_due_at: string
+  lead_days: number
+  month_day: number | null
+  is_active: boolean
+}
+
+type CalendarTarget = {
+  key: string
+  target: HTMLElement
+}
+
+const DAY_MS = 24 * 60 * 60 * 1000
+
+const dateKeyFromCalendarTitle = (value: string | null) => {
+  if (!value) return null
+  const match = value.match(/^(\d{2})\.(\d{2})\.(\d{4})$/)
+  if (!match) return null
+  return `${match[3]}-${match[2]}-${match[1]}`
+}
+
+const sofiaDateKey = (value: string) => {
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return null
+  const parts = new Intl.DateTimeFormat('en', {
+    timeZone: 'Europe/Sofia',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).formatToParts(date)
+  const year = parts.find((part) => part.type === 'year')?.value
+  const month = parts.find((part) => part.type === 'month')?.value
+  const day = parts.find((part) => part.type === 'day')?.value
+  return year && month && day ? `${year}-${month}-${day}` : null
+}
+
+const parseKey = (key: string) => {
+  const [year, month, day] = key.split('-').map(Number)
+  return { year, month, day }
+}
+
+const addDays = (key: string, days: number) => {
+  const { year, month, day } = parseKey(key)
+  const next = new Date(Date.UTC(year, month - 1, day) + days * DAY_MS)
+  return `${next.getUTCFullYear()}-${String(next.getUTCMonth() + 1).padStart(2, '0')}-${String(next.getUTCDate()).padStart(2, '0')}`
+}
+
+const nextMonthlyKey = (key: string, monthDay: number) => {
+  const { year, month } = parseKey(key)
+  const nextMonthIndex = month
+  const nextYear = year + Math.floor(nextMonthIndex / 12)
+  const normalizedMonthIndex = nextMonthIndex % 12
+  const lastDay = new Date(Date.UTC(nextYear, normalizedMonthIndex + 1, 0)).getUTCDate()
+  const day = Math.min(monthDay, lastDay)
+  return `${nextYear}-${String(normalizedMonthIndex + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`
+}
+
+const nextOccurrenceKey = (recurrence: RecurrenceRow, currentKey: string) => {
+  if (recurrence.frequency === 'daily') return addDays(currentKey, 1)
+  if (recurrence.frequency === 'weekly') return addDays(currentKey, 7)
+  if (recurrence.frequency === 'monthly' && recurrence.month_day) return nextMonthlyKey(currentKey, recurrence.month_day)
+  return null
+}
+
+const leadLabel = (days: number) => days === 1 ? '1 ден' : `${days} дни`
+
+const collectCalendarTargets = (): CalendarTarget[] => {
+  return Array.from(document.querySelectorAll<HTMLButtonElement>('.calendar-date-button'))
+    .map((button) => {
+      const key = dateKeyFromCalendarTitle(button.title)
+      const day = button.closest<HTMLElement>('.calendar-day')
+      const target = day?.querySelector<HTMLElement>('.calendar-day-tasks') || null
+      return key && target ? { key, target } : null
+    })
+    .filter((item): item is CalendarTarget => Boolean(item))
+}
+
+const sameTargets = (left: CalendarTarget[], right: CalendarTarget[]) =>
+  left.length === right.length && left.every((item, index) => item.key === right[index]?.key && item.target === right[index]?.target)
+
+const buildOccurrences = (recurrences: RecurrenceRow[], targets: CalendarTarget[]) => {
+  const byDay = new Map<string, RecurrenceRow[]>()
+  if (targets.length === 0) return byDay
+
+  const keys = targets.map((item) => item.key).sort()
+  const minKey = keys[0]
+  const maxKey = keys[keys.length - 1]
+
+  for (const recurrence of recurrences) {
+    let key = sofiaDateKey(recurrence.next_due_at)
+    let guard = 0
+
+    while (key && key < minKey && guard < 500) {
+      key = nextOccurrenceKey(recurrence, key)
+      guard += 1
+    }
+
+    while (key && key <= maxKey && guard < 560) {
+      if (key >= minKey) {
+        const bucket = byDay.get(key) || []
+        bucket.push(recurrence)
+        byDay.set(key, bucket)
+      }
+      key = nextOccurrenceKey(recurrence, key)
+      guard += 1
+    }
+  }
+
+  for (const items of byDay.values()) {
+    items.sort((a, b) => a.description.localeCompare(b.description, 'bg-BG'))
+  }
+
+  return byDay
+}
+
+function RecurrencePreview({ items }: { items: RecurrenceRow[] }) {
+  return (
+    <div className="calendar-recurrence-preview">
+      {items.slice(0, 2).map((item) => (
+        <div
+          key={item.id}
+          className="calendar-recurrence-hint"
+          title={`Предстоящо повторение: ${item.description}\nЗадачата ще се генерира ${leadLabel(item.lead_days)} по-рано.`}
+        >
+          ↻ Предстои · {item.description}
+        </div>
+      ))}
+      {items.length > 2 && (
+        <div
+          className="calendar-recurrence-more"
+          title={items.slice(2).map((item) => item.description).join('\n')}
+        >
+          +{items.length - 2} повторения
+        </div>
+      )}
+    </div>
+  )
+}
+
+export default function RecurrenceCalendarHints() {
+  const [recurrences, setRecurrences] = useState<RecurrenceRow[]>([])
+  const [targets, setTargets] = useState<CalendarTarget[]>([])
+
+  const loadRecurrences = useCallback(async () => {
+    const { data, error } = await supabase
+      .from('task_recurrences')
+      .select('id,description,frequency,next_due_at,lead_days,month_day,is_active')
+      .eq('is_active', true)
+      .order('next_due_at')
+
+    if (!error) setRecurrences((data || []) as RecurrenceRow[])
+  }, [])
+
+  useEffect(() => {
+    void supabase.auth.getSession().then(({ data }) => {
+      if (data.session) void loadRecurrences()
+    })
+
+    const { data: authListener } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (session) void loadRecurrences()
+      else setRecurrences([])
+    })
+
+    const channel = supabase
+      .channel('calendar-recurrence-hints')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'task_recurrences' }, () => void loadRecurrences())
+      .subscribe()
+
+    return () => {
+      authListener.subscription.unsubscribe()
+      void supabase.removeChannel(channel)
+    }
+  }, [loadRecurrences])
+
+  useEffect(() => {
+    const refreshTargets = () => {
+      const next = collectCalendarTargets()
+      setTargets((current) => sameTargets(current, next) ? current : next)
+    }
+
+    refreshTargets()
+    const timer = window.setInterval(refreshTargets, 500)
+    return () => window.clearInterval(timer)
+  }, [])
+
+  const occurrences = useMemo(() => buildOccurrences(recurrences, targets), [recurrences, targets])
+
+  return (
+    <>
+      {targets.map(({ key, target }) => {
+        const items = occurrences.get(key) || []
+        return items.length > 0
+          ? createPortal(<RecurrencePreview items={items} />, target, `recurrence-${key}`)
+          : null
+      })}
+    </>
+  )
+}

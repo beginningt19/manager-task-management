@@ -1,0 +1,34 @@
+.calendar-recurrence-preview {
+  display: grid;
+  gap: 4px;
+  margin-bottom: 4px;
+  order: -1;
+}
+
+.calendar-recurrence-hint {
+  min-width: 0;
+  padding: 4px 7px;
+  border: 1px dashed rgba(15, 118, 110, .34);
+  border-radius: 7px;
+  background: rgba(230, 245, 242, .56);
+  color: #47706b;
+  font-size: 8px;
+  font-weight: 700;
+  line-height: 1.25;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  opacity: .86;
+}
+
+.calendar-recurrence-more {
+  padding: 1px 6px;
+  color: var(--muted, #6b7b82);
+  font-size: 8px;
+  font-weight: 700;
+}
+
+.calendar-day.outside-month .calendar-recurrence-hint,
+.calendar-day.outside-month .calendar-recurrence-more {
+  opacity: .46;
+}
