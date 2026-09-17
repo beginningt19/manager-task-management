@@ -331,7 +331,7 @@ function App() {
         <div className="brand">
           <span className="brand-mark" aria-hidden="true">✓</span>
           <div>
-            <strong>Административни задачи</strong>
+            <strong>Управленски задачи</strong>
             <small>Вътрешна система</small>
           </div>
         </div>
@@ -603,7 +603,7 @@ function Login() {
         <span className="login-secure-chip"><i /> Защитена вътрешна среда</span>
         <div className="brand login-brand">
           <span className="brand-mark">✓</span>
-          <div><strong>Административни задачи</strong><small>Вътрешна система</small></div>
+          <div><strong>Управленски задачи</strong><small>Вътрешна система</small></div>
         </div>
         <p className="eyebrow">Добре дошли</p>
         <h1>Вход в системата</h1>
