@@ -343,7 +343,7 @@ function App() {
           <span className="avatar" aria-hidden="true">{initials(profile?.display_name || session.user.email || 'А')}</span>
           <div className="account-copy">
             <strong>{profile?.display_name || session.user.email}</strong>
-            <small>{profile?.role === 'manager' ? 'Управител' : 'Администрация'}</small>
+            <small>{profile?.display_role || (profile?.role === 'manager' ? 'Мениджър' : 'Модератор')}</small>
           </div>
           <button className="icon-button" onClick={() => void supabase.auth.signOut()} aria-label="Изход" title="Изход">↗</button>
         </div>
