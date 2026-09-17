@@ -1,0 +1,31 @@
+name: Bootstrap Manager Source
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - '.github/workflows/bootstrap-manager-source.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  bootstrap:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout target
+        uses: actions/checkout@v4
+      - name: Download exact source export
+        run: |
+          curl -L --fail 'https://sdmntprnorthcentralus.oaiusercontent.com/files/00000000-d47c-822f-aa24-665ed5bf17f3/raw?se=2026-09-17T14%3A53%3A07Z&sp=r&sv=2026-02-06&sr=b&scid=8e189168-1786-5c3d-9fcb-04dfec5ab66d&skoid=061609b8-1cdb-4a5b-9e68-c7ab9a523a8f&sktid=a48cca56-e6da-484e-a814-9c849652bcb3&skt=2026-09-17T06%3A25%3A52Z&ske=2026-09-18T06%3A25%3A52Z&sks=b&skv=2026-02-06&sig=0jm2wVWzY8tEu7FtORJXQSAeZT1EWBvkq3TY8qRgUl8%3D' -o /tmp/manager-source.zip
+          unzip -q /tmp/manager-source.zip -d /tmp/manager-artifact
+          tar -xzf /tmp/manager-artifact/manager-source.tar.gz -C .
+      - name: Remove bootstrap workflow and commit exact clone
+        run: |
+          rm -f .github/workflows/bootstrap-manager-source.yml
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -A
+          git commit -m 'Clone current Admin Task web frontend exactly'
+          git push
