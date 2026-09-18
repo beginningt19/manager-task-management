@@ -11,6 +11,7 @@ type RecurrenceRow = {
   lead_days: number
   month_day: number | null
   is_active: boolean
+  calendar_year_ahead: boolean
 }
 
 type CalendarTarget = {
@@ -53,6 +54,13 @@ const addDays = (key: string, days: number) => {
   return `${next.getUTCFullYear()}-${String(next.getUTCMonth() + 1).padStart(2, '0')}-${String(next.getUTCDate()).padStart(2, '0')}`
 }
 
+const addYears = (key: string, years: number) => {
+  const { year, month, day } = parseKey(key)
+  const targetYear = year + years
+  const lastDay = new Date(Date.UTC(targetYear, month, 0)).getUTCDate()
+  return `${targetYear}-${String(month).padStart(2, '0')}-${String(Math.min(day, lastDay)).padStart(2, '0')}`
+}
+
 const nextMonthlyKey = (key: string, monthDay: number) => {
   const { year, month } = parseKey(key)
   const nextMonthIndex = month
@@ -93,6 +101,9 @@ const buildOccurrences = (recurrences: RecurrenceRow[], targets: CalendarTarget[
   const keys = targets.map((item) => item.key).sort()
   const minKey = keys[0]
   const maxKey = keys[keys.length - 1]
+  const todayKey = sofiaDateKey(new Date().toISOString())
+  const horizonKey = todayKey ? addYears(todayKey, 1) : maxKey
+  const visibleMaxKey = horizonKey < maxKey ? horizonKey : maxKey
 
   for (const recurrence of recurrences) {
     let key = sofiaDateKey(recurrence.next_due_at)
@@ -103,7 +114,7 @@ const buildOccurrences = (recurrences: RecurrenceRow[], targets: CalendarTarget[
       guard += 1
     }
 
-    while (key && key <= maxKey && guard < 560) {
+    while (key && key <= visibleMaxKey && guard < 560) {
       if (key >= minKey) {
         const bucket = byDay.get(key) || []
         bucket.push(recurrence)
@@ -152,8 +163,9 @@ export default function RecurrenceCalendarHints() {
   const loadRecurrences = useCallback(async () => {
     const { data, error } = await supabase
       .from('task_recurrences')
-      .select('id,description,frequency,next_due_at,lead_days,month_day,is_active')
+      .select('id,description,frequency,next_due_at,lead_days,month_day,is_active,calendar_year_ahead')
       .eq('is_active', true)
+      .eq('calendar_year_ahead', true)
       .order('next_due_at')
 
     if (!error) setRecurrences((data || []) as RecurrenceRow[])
