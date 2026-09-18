@@ -467,7 +467,7 @@ button.stat-card.green.active {
   background: #08152f;
 }
 .manager-login .login-ambient {
-  z-index: -2;
+  z-index: 0;
   opacity: 1;
   background:
     linear-gradient(122deg, rgba(11,27,61,.98), rgba(18,39,83,.95) 42%, rgba(34,44,106,.91) 68%, rgba(232,239,255,.96) 68.2%, rgba(240,245,255,.99) 100%);
@@ -488,6 +488,8 @@ button.stat-card.green.active {
 }
 
 .manager-login-hero {
+  position: relative;
+  z-index: 1;
   padding: clamp(52px, 6vw, 90px);
   place-items: center start;
   background:
@@ -684,6 +686,8 @@ button.stat-card.green.active {
 }
 
 .manager-login-card {
+  position: relative;
+  z-index: 2;
   align-self: center;
   width: min(500px, calc(100% - 70px));
   padding: 48px 50px;
