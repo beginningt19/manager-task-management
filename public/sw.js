@@ -1,5 +1,5 @@
 const DEFAULT_PAYLOAD = {
-  title: 'Административни задачи',
+  title: 'Управленски задачи',
   body: 'Има промяна по задача.',
   url: '/',
 }
@@ -16,7 +16,7 @@ self.addEventListener('push', (event) => {
   }
 
   const urgent = Boolean(payload.urgent || payload.type === 'task-reminder')
-  const tag = payload.tag || (urgent ? `urgent-${Date.now()}` : 'admin-task-update')
+  const tag = payload.tag || (urgent ? `urgent-${Date.now()}` : 'manager-task-update')
 
   event.waitUntil(
     self.registration.showNotification(payload.title, {
