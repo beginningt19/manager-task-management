@@ -1107,8 +1107,8 @@ button.stat-card.green.active {
 }
 
 /* ======================================================================
-   LIVING SILK BACKGROUND
-   The canvas itself never moves. Motion happens only in the SVG wave paths.
+   EXACT LIVING SILK BACKGROUND
+   The original landscape artwork is static. Only masked pixel regions deform.
    ====================================================================== */
 .manager-ambient.manager-silk-background {
   position: fixed;
@@ -1116,10 +1116,10 @@ button.stat-card.green.active {
   overflow: hidden;
   pointer-events: none;
   z-index: -2;
-  background: #edf1f5;
+  background: #eef2f6;
 }
 
-.manager-silk-svg {
+.manager-silk-live {
   position: absolute;
   inset: 0;
   width: 100%;
@@ -1128,10 +1128,7 @@ button.stat-card.green.active {
   transform: none !important;
 }
 
-.manager-silk-svg .silk-wave,
-.manager-silk-svg .silk-edge,
-.manager-silk-svg .silk-shadow,
-.manager-silk-svg .silk-sheen {
+.manager-silk-motion-layer {
   transform: none !important;
   transform-origin: initial !important;
 }
@@ -1139,13 +1136,12 @@ button.stat-card.green.active {
 .manager-silk-veil {
   position: absolute;
   inset: 0;
-  background:
-    radial-gradient(circle at 12% 18%, rgba(255,255,255,.52), transparent 34%),
-    linear-gradient(90deg, rgba(255,255,255,.16) 0%, rgba(255,255,255,.03) 42%, rgba(225,233,242,.05) 100%);
   pointer-events: none;
+  background:
+    radial-gradient(circle at 18% 14%, rgba(255,255,255,.12), transparent 33%),
+    linear-gradient(90deg, rgba(255,255,255,.035), transparent 44%, rgba(223,232,241,.025));
 }
 
-/* Slight glass treatment so the animated silk remains visible but text stays crisp. */
 .panel,
 .stat-card,
 .calendar-shell {
@@ -1154,41 +1150,41 @@ button.stat-card.green.active {
 }
 
 .panel {
-  background: linear-gradient(155deg, rgba(255,255,255,.88), rgba(247,249,252,.78));
+  background: linear-gradient(155deg, rgba(255,255,255,.89), rgba(247,249,252,.79));
 }
 
 .stat-card {
-  background: linear-gradient(145deg, rgba(255,255,255,.87), rgba(247,249,252,.75));
+  background: linear-gradient(145deg, rgba(255,255,255,.88), rgba(247,249,252,.76));
 }
 
 @media (max-width: 980px) {
-  .manager-silk-svg {
+  .manager-silk-live {
     width: 116%;
     left: -8%;
   }
 
   .manager-silk-veil {
     background:
-      linear-gradient(90deg, rgba(255,255,255,.26) 0%, rgba(255,255,255,.05) 55%, transparent 100%);
+      linear-gradient(90deg, rgba(255,255,255,.10), transparent 62%, rgba(223,232,241,.02));
   }
 }
 
 @media (max-width: 620px) {
-  .manager-silk-svg {
-    width: 145%;
-    left: -31%;
+  .manager-silk-live {
+    width: 148%;
+    left: -32%;
   }
 
   .manager-silk-veil {
-    background: rgba(255,255,255,.05);
+    background: rgba(255,255,255,.025);
   }
 }
 
-/* Keep this one decorative animation alive even when the global reduced-motion
-   rule shortens CSS animations. The SVG uses SMIL path morphing, not transforms. */
+/* SVG SMIL handles the wave motion directly, so the global reduced-motion
+   CSS rule cannot accidentally collapse the animation into one frame. */
 @media (prefers-reduced-motion: reduce) {
-  .manager-silk-svg,
-  .manager-silk-svg * {
+  .manager-silk-live,
+  .manager-silk-live * {
     animation: none !important;
   }
 }
