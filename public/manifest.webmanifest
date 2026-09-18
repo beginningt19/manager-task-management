@@ -1,14 +1,14 @@
 {
   "id": "/",
-  "name": "Yavlena Admin Tasks",
-  "short_name": "Yavlena Tasks",
-  "description": "Вътрешна административна система за задачи",
+  "name": "Yavlena Manager Tasks",
+  "short_name": "Manager Tasks",
+  "description": "Вътрешна управленска система за задачи",
   "lang": "bg",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
-  "background_color": "#f4f8f7",
-  "theme_color": "#0f766e",
+  "background_color": "#edf4ff",
+  "theme_color": "#2563eb",
   "icons": [
     {
       "src": "/app-icon.svg",
