@@ -99,20 +99,11 @@ const bulgarianVoiceCommands: ReadonlyArray<readonly [string, string]> = [
   ['нов ред', '\n'],
 ]
 
-const escapeRegExp = (value: string) => value.replace(/[.*+?^${}()|[\]\\]/g, '\\const getSpeechRecognitionConstructor = (): SpeechRecognitionConstructor | null => {
-  const speechWindow = window as typeof window & {
-    SpeechRecognition?: SpeechRecognitionConstructor
-    webkitSpeechRecognition?: SpeechRecognitionConstructor
-  }
-  return speechWindow.SpeechRecognition || speechWindow.webkitSpeechRecognition || null
-}
-')
-
 const applyBulgarianVoiceCommands = (value: string) => {
   let next = ` ${value} `
 
   bulgarianVoiceCommands.forEach(([spoken, replacement]) => {
-    const pattern = new RegExp(`\\s+${escapeRegExp(spoken)}(?=\\s|$)`, 'giu')
+    const pattern = new RegExp(`\\s+${spoken}(?=\\s|$)`, 'giu')
     next = next.replace(pattern, replacement)
   })
 
