@@ -42,7 +42,7 @@
 .mailbox-header {
   min-height: 92px;
   padding: 20px 24px;
-  background: linear-gradient(135deg, #0f766e 0%, #0b5f5a 100%);
+  background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
   color: #fff;
   display: flex;
   align-items: center;
@@ -75,7 +75,7 @@
   padding: 11px 15px;
   border-radius: 10px;
   background: #fff;
-  color: #0f766e;
+  color: #2563eb;
   font-weight: 800;
 }
 .mailbox-close {
@@ -103,7 +103,7 @@
   font-weight: 800;
   cursor: pointer;
 }
-.mailbox-tabs button.active { color: #0f766e; }
+.mailbox-tabs button.active { color: #2563eb; }
 .mailbox-tabs button.active::after {
   content: '';
   position: absolute;
@@ -112,7 +112,7 @@
   bottom: -1px;
   height: 3px;
   border-radius: 3px 3px 0 0;
-  background: #0f766e;
+  background: #2563eb;
 }
 .mailbox-tabs button span {
   display: inline-flex;
@@ -151,8 +151,8 @@
   cursor: pointer;
 }
 .mailbox-row:hover { background: #f8fafc; }
-.mailbox-row.selected { background: #ecfdf5; box-shadow: inset 3px 0 #0f766e; }
-.mailbox-row.unread { background: #f0fdfa; }
+.mailbox-row.selected { background: #eff6ff; box-shadow: inset 3px 0 #2563eb; }
+.mailbox-row.unread { background: #eef4ff; }
 .mailbox-row.unread strong,
 .mailbox-row.unread .mailbox-row-subject { font-weight: 850; }
 .mailbox-row i {
@@ -162,7 +162,7 @@
   width: 8px;
   height: 8px;
   border-radius: 50%;
-  background: #0f766e;
+  background: #2563eb;
 }
 .mailbox-row-top { display: flex; justify-content: space-between; gap: 10px; align-items: baseline; }
 .mailbox-row-top strong { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 13px; }
@@ -201,7 +201,7 @@
   color: #c2410c !important;
   font-weight: 800;
 }
-.mailbox-read-state.read { background: #ecfdf5; color: #047857 !important; }
+.mailbox-read-state.read { background: #eff6ff; color: #1d4ed8 !important; }
 .mailbox-message-body {
   padding: 26px 0;
   color: #1e293b;
@@ -214,8 +214,8 @@
 .mailbox-message footer button {
   border-radius: 9px;
   padding: 10px 14px;
-  background: #e6fffb;
-  color: #0f766e;
+  background: #eef4ff;
+  color: #2563eb;
   font-weight: 800;
 }
 
@@ -226,7 +226,7 @@
 .mailbox-recipient-heading button {
   border: 0;
   background: transparent;
-  color: #0f766e;
+  color: #2563eb;
   font-weight: 800;
   cursor: pointer;
 }
@@ -245,7 +245,7 @@
   background: #fff;
   cursor: pointer;
 }
-.mailbox-recipient-grid label.selected { border-color: #5eead4; background: #f0fdfa; box-shadow: 0 0 0 1px #99f6e4 inset; }
+.mailbox-recipient-grid label.selected { border-color: #93c5fd; background: #eef4ff; box-shadow: 0 0 0 1px #bfdbfe inset; }
 .mailbox-recipient-grid input { position: absolute; opacity: 0; pointer-events: none; }
 .mailbox-recipient-avatar {
   width: 34px;
@@ -255,8 +255,8 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  background: #ccfbf1;
-  color: #0f766e;
+  background: #dbeafe;
+  color: #2563eb;
   font-weight: 900;
   font-size: 11px;
 }
@@ -279,7 +279,7 @@
   outline: none;
 }
 .mailbox-field input:focus,
-.mailbox-field textarea:focus { border-color: #2dd4bf; box-shadow: 0 0 0 3px rgba(45,212,191,.13); }
+.mailbox-field textarea:focus { border-color: #60a5fa; box-shadow: 0 0 0 3px rgba(45,212,191,.13); }
 .mailbox-body-field { position: relative; }
 .mailbox-body-field textarea { min-height: 210px; resize: vertical; line-height: 1.5; }
 .mailbox-body-field > small { align-self: flex-end; color: #94a3b8; }
@@ -289,7 +289,7 @@
   min-width: 145px;
   border-radius: 10px;
   padding: 11px 16px;
-  background: #0f766e;
+  background: #2563eb;
   color: #fff;
   font-weight: 850;
 }
@@ -298,7 +298,7 @@
 .mailbox-unavailable { flex: 1; padding: 50px 30px; }
 .mailbox-unavailable strong { color: #334155; font-size: 18px; }
 .mailbox-unavailable span { max-width: 520px; }
-.mailbox-unavailable button { margin-top: 8px; padding: 10px 14px; border-radius: 9px; background: #0f766e; color: #fff; font-weight: 800; }
+.mailbox-unavailable button { margin-top: 8px; padding: 10px 14px; border-radius: 9px; background: #2563eb; color: #fff; font-weight: 800; }
 
 @media (max-width: 760px) {
   .mailbox-shell { width: 100vw; }
