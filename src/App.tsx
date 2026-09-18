@@ -304,6 +304,19 @@ const applyBulgarianVoiceFormatting = (value: string) =>
 const normalizeSpeechWord = (word: string) =>
   word.toLocaleLowerCase('bg-BG').replace(/^[^а-яa-z0-9]+|[^а-яa-z0-9]+$/giu, '')
 
+const speechWordsMatch = (left: string, right: string) => {
+  const a = normalizeSpeechWord(left)
+  const b = normalizeSpeechWord(right)
+  if (!a || !b) return false
+  if (a === b) return true
+
+  const numericOrdinalPair =
+    (/^\d+$/.test(a) && b.startsWith(`${a}-`))
+    || (/^\d+$/.test(b) && a.startsWith(`${b}-`))
+
+  return numericOrdinalPair
+}
+
 const mergeSpeechChunks = (chunks: string[]) => {
   const merged: string[] = []
 
@@ -317,13 +330,31 @@ const mergeSpeechChunks = (chunks: string[]) => {
         return
       }
 
+      const commonLength = Math.min(merged.length, incoming.length)
+      let commonPrefix = 0
+      while (
+        commonPrefix < commonLength
+        && speechWordsMatch(merged[commonPrefix], incoming[commonPrefix])
+      ) {
+        commonPrefix += 1
+      }
+
+      const looksLikeExpandedRevision =
+        incoming.length >= merged.length
+        && commonPrefix >= Math.max(3, merged.length - 2)
+
+      if (looksLikeExpandedRevision) {
+        merged.splice(0, merged.length, ...incoming)
+        return
+      }
+
       const maxOverlap = Math.min(merged.length, incoming.length)
       let overlap = 0
 
       for (let size = maxOverlap; size >= 1; size -= 1) {
-        const left = merged.slice(-size).map(normalizeSpeechWord)
-        const right = incoming.slice(0, size).map(normalizeSpeechWord)
-        if (left.every((word, index) => word && word === right[index])) {
+        const left = merged.slice(-size)
+        const right = incoming.slice(0, size)
+        if (left.every((word, index) => speechWordsMatch(word, right[index]))) {
           overlap = size
           break
         }
