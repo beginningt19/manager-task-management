@@ -2,11 +2,6 @@ import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent } fro
 import type { Session } from '@supabase/supabase-js'
 import { supabase, configurationError } from './lib/supabase'
 import ChecklistDrawer from './ChecklistDrawer'
-import silk85_01 from './manager-bg/silk85_01'
-import silk85_02 from './manager-bg/silk85_02'
-import silk85_03 from './manager-bg/silk85_03'
-import silk85_04 from './manager-bg/silk85_04'
-import silk85_05 from './manager-bg/silk85_05'
 import {
   approvalLabels,
   bulgarianDateKey,
@@ -39,7 +34,6 @@ type Toast = { tone: 'success' | 'error'; message: string }
 type DetailTab = 'progress' | 'files' | 'approvals' | 'activity'
 type CreateMode = 'team' | 'personal'
 
-const MANAGER_SILK_BACKGROUND = `data:image/webp;base64,${silk85_01}${silk85_02}${silk85_03}${silk85_04}${silk85_05}`
 type ManagerVisibilityMode = 'all' | 'own'
 type DashboardView = 'list' | 'calendar'
 type TaskCategory = 'open' | 'active' | 'approval' | 'overdue' | 'completed'
