@@ -894,28 +894,28 @@ function AmbientBackground({ className = '' }: { className?: string }) {
         <defs>
           <filter id="manager-wave-upper" x="-8%" y="-12%" width="116%" height="124%" colorInterpolationFilters="sRGB">
             <feTurbulence type="fractalNoise" baseFrequency="0.004 0.010" numOctaves="2" seed="8" result="noise">
-              <animate attributeName="baseFrequency" values="0.004 0.010;0.009 0.016;0.005 0.012;0.004 0.010" dur="7s" repeatCount="indefinite" />
+              <animate attributeName="baseFrequency" values="0.0035 0.009;0.0055 0.012;0.004 0.010;0.0035 0.009" dur="20s" repeatCount="indefinite" />
             </feTurbulence>
-            <feDisplacementMap in="SourceGraphic" in2="noise" scale="18" xChannelSelector="R" yChannelSelector="B">
-              <animate attributeName="scale" values="14;38;22;14" dur="6.5s" repeatCount="indefinite" />
+            <feDisplacementMap in="SourceGraphic" in2="noise" scale="10" xChannelSelector="R" yChannelSelector="B">
+              <animate attributeName="scale" values="8;18;12;8" dur="22s" repeatCount="indefinite" />
             </feDisplacementMap>
           </filter>
 
           <filter id="manager-wave-middle" x="-9%" y="-14%" width="118%" height="128%" colorInterpolationFilters="sRGB">
             <feTurbulence type="fractalNoise" baseFrequency="0.006 0.012" numOctaves="2" seed="15" result="noise">
-              <animate attributeName="baseFrequency" values="0.006 0.012;0.012 0.020;0.007 0.014;0.006 0.012" dur="8.5s" repeatCount="indefinite" />
+              <animate attributeName="baseFrequency" values="0.0045 0.010;0.0065 0.014;0.005 0.011;0.0045 0.010" dur="22s" repeatCount="indefinite" />
             </feTurbulence>
-            <feDisplacementMap in="SourceGraphic" in2="noise" scale="24" xChannelSelector="G" yChannelSelector="R">
-              <animate attributeName="scale" values="20;44;28;20" dur="7.5s" repeatCount="indefinite" />
+            <feDisplacementMap in="SourceGraphic" in2="noise" scale="11" xChannelSelector="G" yChannelSelector="R">
+              <animate attributeName="scale" values="9;19;13;9" dur="24s" repeatCount="indefinite" />
             </feDisplacementMap>
           </filter>
 
           <filter id="manager-wave-lower" x="-10%" y="-14%" width="120%" height="128%" colorInterpolationFilters="sRGB">
             <feTurbulence type="fractalNoise" baseFrequency="0.004 0.014" numOctaves="2" seed="24" result="noise">
-              <animate attributeName="baseFrequency" values="0.004 0.014;0.009 0.023;0.005 0.017;0.004 0.014" dur="9.5s" repeatCount="indefinite" />
+              <animate attributeName="baseFrequency" values="0.003 0.009;0.0042 0.0115;0.0034 0.0098;0.003 0.009" dur="26s" repeatCount="indefinite" />
             </feTurbulence>
-            <feDisplacementMap in="SourceGraphic" in2="noise" scale="26" xChannelSelector="B" yChannelSelector="G">
-              <animate attributeName="scale" values="22;48;30;22" dur="8s" repeatCount="indefinite" />
+            <feDisplacementMap in="SourceGraphic" in2="noise" scale="6" xChannelSelector="B" yChannelSelector="G">
+              <animate attributeName="scale" values="4;10;7;4" dur="28s" repeatCount="indefinite" />
             </feDisplacementMap>
           </filter>
 
@@ -949,8 +949,8 @@ function AmbientBackground({ className = '' }: { className?: string }) {
             <stop offset=".52" stopColor="white" stopOpacity=".52" />
             <stop offset=".60" stopColor="white" stopOpacity=".06" />
             <stop offset="1" stopColor="white" stopOpacity="0" />
-            <animate attributeName="x1" values="-0.45;0.65;-0.45" dur="7s" repeatCount="indefinite" />
-            <animate attributeName="x2" values="0.15;1.25;0.15" dur="7s" repeatCount="indefinite" />
+            <animate attributeName="x1" values="-0.45;0.65;-0.45" dur="20s" repeatCount="indefinite" />
+            <animate attributeName="x2" values="0.15;1.25;0.15" dur="20s" repeatCount="indefinite" />
           </linearGradient>
         </defs>
 
@@ -963,7 +963,7 @@ function AmbientBackground({ className = '' }: { className?: string }) {
           preserveAspectRatio="xMidYMid slice"
           mask="url(#manager-upper-mask)"
           filter="url(#manager-wave-upper)"
-          opacity=".82"
+          opacity=".52"
         />
         <image
           className="manager-silk-motion-layer"
@@ -972,7 +972,7 @@ function AmbientBackground({ className = '' }: { className?: string }) {
           preserveAspectRatio="xMidYMid slice"
           mask="url(#manager-middle-mask)"
           filter="url(#manager-wave-middle)"
-          opacity=".84"
+          opacity=".46"
         />
         <image
           className="manager-silk-motion-layer"
@@ -981,10 +981,10 @@ function AmbientBackground({ className = '' }: { className?: string }) {
           preserveAspectRatio="xMidYMid slice"
           mask="url(#manager-lower-mask)"
           filter="url(#manager-wave-lower)"
-          opacity=".86"
+          opacity=".28"
         />
 
-        <rect className="manager-silk-sheen" width="1672" height="941" fill="url(#manager-sheen-gradient)" opacity=".58" />
+        <rect className="manager-silk-sheen" width="1672" height="941" fill="url(#manager-sheen-gradient)" opacity=".24" />
       </svg>
       <span className="manager-silk-readability" />
     </div>
