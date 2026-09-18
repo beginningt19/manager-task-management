@@ -1107,8 +1107,8 @@ button.stat-card.green.active {
 }
 
 /* ======================================================================
-   EXACT LIVING SILK BACKGROUND
-   The original landscape artwork is static. Only masked pixel regions deform.
+   EXACT LIVE SILK BACKGROUND
+   Exact landscape artwork stays fixed. Only internal wave regions deform.
    ====================================================================== */
 .manager-ambient.manager-silk-background {
   position: fixed;
@@ -1130,16 +1130,20 @@ button.stat-card.green.active {
 
 .manager-silk-motion-layer {
   transform: none !important;
-  transform-origin: initial !important;
+  transform-origin: center;
 }
 
-.manager-silk-veil {
+.manager-silk-sheen {
+  mix-blend-mode: screen;
+}
+
+.manager-silk-readability {
   position: absolute;
   inset: 0;
   pointer-events: none;
   background:
-    radial-gradient(circle at 18% 14%, rgba(255,255,255,.12), transparent 33%),
-    linear-gradient(90deg, rgba(255,255,255,.035), transparent 44%, rgba(223,232,241,.025));
+    radial-gradient(circle at 18% 14%, rgba(255,255,255,.10), transparent 32%),
+    linear-gradient(90deg, rgba(255,255,255,.035), transparent 48%, rgba(222,231,240,.02));
 }
 
 .panel,
@@ -1162,11 +1166,6 @@ button.stat-card.green.active {
     width: 116%;
     left: -8%;
   }
-
-  .manager-silk-veil {
-    background:
-      linear-gradient(90deg, rgba(255,255,255,.10), transparent 62%, rgba(223,232,241,.02));
-  }
 }
 
 @media (max-width: 620px) {
@@ -1175,16 +1174,7 @@ button.stat-card.green.active {
     left: -32%;
   }
 
-  .manager-silk-veil {
-    background: rgba(255,255,255,.025);
-  }
-}
-
-/* SVG SMIL handles the wave motion directly, so the global reduced-motion
-   CSS rule cannot accidentally collapse the animation into one frame. */
-@media (prefers-reduced-motion: reduce) {
-  .manager-silk-live,
-  .manager-silk-live * {
-    animation: none !important;
+  .manager-silk-readability {
+    background: rgba(255,255,255,.018);
   }
 }
