@@ -913,15 +913,15 @@ function AmbientBackground({ className = '' }: { className?: string }) {
           <linearGradient id="manager-mask-upper" x1="0" y1="0" x2="0" y2="1">
             <stop offset="0" stopColor="white" />
             <stop offset=".28" stopColor="white" />
-            <stop offset=".58" stopColor="white" stopOpacity=".78" />
-            <stop offset=".73" stopColor="black" />
+            <stop offset=".47" stopColor="white" stopOpacity=".72" />
+            <stop offset=".60" stopColor="black" />
           </linearGradient>
           <linearGradient id="manager-mask-middle" x1="0" y1="0" x2="0" y2="1">
             <stop offset=".18" stopColor="black" />
             <stop offset=".31" stopColor="white" stopOpacity=".60" />
             <stop offset=".46" stopColor="white" />
-            <stop offset=".73" stopColor="white" stopOpacity=".80" />
-            <stop offset=".88" stopColor="black" />
+            <stop offset=".61" stopColor="white" stopOpacity=".70" />
+            <stop offset=".70" stopColor="black" />
           </linearGradient>
 
           <mask id="manager-upper-mask"><rect width="1672" height="941" fill="url(#manager-mask-upper)" /></mask>
