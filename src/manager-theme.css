@@ -363,3 +363,28 @@ body {
     animation: none !important;
   }
 }
+
+
+/* Final Manager color normalization: inherited semantic green classes render in blue/indigo. */
+.stat-card.green .stat-icon,
+.task-category-column.green .task-category-header .stat-icon {
+  color: #1d4ed8;
+  background: linear-gradient(135deg, #dbeafe, #e0e7ff);
+}
+button.stat-card.green.active {
+  border-color: rgba(59,130,246,.48);
+  box-shadow: 0 0 0 2px rgba(59,130,246,.10), 0 15px 40px rgba(37,99,235,.12);
+}
+.task-category-column.green {
+  border-color: #d5e3f6;
+  background: linear-gradient(180deg, #f2f6ff, #fff);
+}
+.task-completion-panel,
+.task-completed-panel {
+  border-color: #d5e3f6;
+  background: #f3f7ff;
+}
+.task-completed-panel > span {
+  color: #1d4ed8;
+  background: #dbeafe;
+}
