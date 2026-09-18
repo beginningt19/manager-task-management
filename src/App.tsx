@@ -589,7 +589,7 @@ function Login() {
           <div className="showcase-kicker"><i /> PRIVATE WORKSPACE</div>
           <span className="showcase-mark">✓</span>
           <h2>Подредена работа.<br /><em>Ясен напредък.</em></h2>
-          <p>Едно спокойно място за задачи, срокове, файлове и решения на административния екип.</p>
+          <p>Едно спокойно място за задачи, срокове, файлове и решения на управленския екип.</p>
           <div className="workflow-preview">
             <div className="preview-header"><span><i /><i /><i /></span><small>Днешен фокус</small><b>4</b></div>
             <div className="preview-task"><i className="preview-priority urgent" /><span><strong>Одобрение на документи</strong><small>Днес · 14:30</small></span><b>Спешен</b></div>
@@ -1130,14 +1130,14 @@ function CreateTaskModal({
           <label>Приоритет<select value={priority} onChange={(event) => setPriority(event.target.value as Priority)}>{priorities.map((item) => <option key={item} value={item}>{priorityLabels[item]}</option>)}</select></label>
         </div>
 
-        <fieldset style={{ padding: 14, border: '1px solid #dbe8e5', borderRadius: 14, background: '#f8fbfa' }}>
+        <fieldset style={{ padding: 14, border: '1px solid #dbe7f6', borderRadius: 14, background: '#f8faff' }}>
           <legend style={{ padding: '0 6px', fontWeight: 750 }}>Повторение на задачата</legend>
           <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
             <div className="view-switch" aria-label="Повторение на задачата">
               <button type="button" className={!recurring ? 'active' : ''} onClick={() => setRecurring(false)} aria-pressed={!recurring}>Не</button>
               <button type="button" className={recurring ? 'active' : ''} onClick={() => setRecurring(true)} aria-pressed={recurring}>Да</button>
             </div>
-            <span style={{ color: '#73868a', fontSize: 12 }}>{recurring ? recurrenceDescription : 'Задачата ще бъде еднократна.'}</span>
+            <span style={{ color: '#71809b', fontSize: 12 }}>{recurring ? recurrenceDescription : 'Задачата ще бъде еднократна.'}</span>
           </div>
 
           {recurring && (
@@ -1168,7 +1168,7 @@ function CreateTaskModal({
                   {[1, 2, 3, 4].map((days) => <option key={days} value={days}>{recurrenceLeadLabel(days)} преди крайния срок</option>)}
                 </select>
               </label>
-              <div style={{ alignSelf: 'end', minHeight: 42, display: 'flex', alignItems: 'center', padding: '0 12px', color: '#52756f', background: '#edf6f3', border: '1px solid #d6e9e4', borderRadius: 10, fontSize: 12 }}>
+              <div style={{ alignSelf: 'end', minHeight: 42, display: 'flex', alignItems: 'center', padding: '0 12px', color: '#4e6590', background: '#eef4ff', border: '1px solid #d6e3f6', borderRadius: 10, fontSize: 12 }}>
                 Първата задача се създава веднага. Всеки следващ екземпляр ще се появява {recurrenceLeadLabel(recurrenceLeadDays)} преди собствения си краен срок.
               </div>
             </div>
@@ -1176,14 +1176,14 @@ function CreateTaskModal({
         </fieldset>
 
         {!recurring ? (
-          <fieldset style={{ padding: 14, border: '1px solid #dbe8e5', borderRadius: 14, background: '#fbfdfc' }}>
+          <fieldset style={{ padding: 14, border: '1px solid #dbe7f6', borderRadius: 14, background: '#fbfcff' }}>
             <legend style={{ padding: '0 6px', fontWeight: 750 }}>🔔 Напомняне за задачата</legend>
             <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
               <div className="view-switch" aria-label="Напомняне за задачата">
                 <button type="button" className={!reminderEnabled ? 'active' : ''} onClick={() => setReminderEnabled(false)} aria-pressed={!reminderEnabled}>Не</button>
                 <button type="button" className={reminderEnabled ? 'active' : ''} onClick={() => setReminderEnabled(true)} aria-pressed={reminderEnabled}>Да</button>
               </div>
-              <span style={{ color: '#73868a', fontSize: 12 }}>Известието се изпраща до изпълнителите, които са включили „Известия“.</span>
+              <span style={{ color: '#71809b', fontSize: 12 }}>Известието се изпраща до изпълнителите, които са включили „Известия“.</span>
             </div>
             {reminderEnabled && (
               <div style={{ marginTop: 14 }}>
@@ -1192,7 +1192,7 @@ function CreateTaskModal({
             )}
           </fieldset>
         ) : (
-          <div style={{ padding: '11px 13px', border: '1px solid #e1e9e7', borderRadius: 10, background: '#fafcfc', color: '#71817f', fontSize: 12 }}>
+          <div style={{ padding: '11px 13px', border: '1px solid #e1e7f2', borderRadius: 10, background: '#fafbff', color: '#71809a', fontSize: 12 }}>
             🔔 След създаването ще се отвори първата задача и при нужда можеш да ѝ зададеш отделно напомняне.
           </div>
         )}
@@ -1216,7 +1216,7 @@ function CreateTaskModal({
             <small className="muted" style={{ display: 'block', marginTop: 5 }}>До 50 MB на файл. Файловете ще се качат заедно със задачата.</small>
           </div>
         ) : (
-          <div style={{ padding: '11px 13px', border: '1px solid #e1e9e7', borderRadius: 10, background: '#fafcfc', color: '#71817f', fontSize: 12 }}>
+          <div style={{ padding: '11px 13px', border: '1px solid #e1e7f2', borderRadius: 10, background: '#fafbff', color: '#71809a', fontSize: 12 }}>
             📎 След създаването ще се отвори първата задача и можеш веднага да добавиш файлове към нея.
           </div>
         )}
@@ -1238,7 +1238,7 @@ function CreateTaskModal({
                 <span className="avatar small">{initials(person.display_name)}</span>{person.display_name}
               </label>
             ))}
-            {!personal && people.length === 0 && <p className="muted">Административните акаунти още не са създадени.</p>}
+            {!personal && people.length === 0 && <p className="muted">Модераторските акаунти още не са създадени.</p>}
           </div>
         </fieldset>
         <label className="switch-row"><input type="checkbox" checked={approvalRequired} onChange={(event) => setApprovalRequired(event.target.checked)} /><span>Необходимо е одобрение преди завършване</span></label>
@@ -1655,9 +1655,9 @@ function TaskDetail({
         <div className="drawer-body">
           <h2>{task.description}</h2>
           {editing && isCreator && (
-            <form className="stack-form modal-form" onSubmit={saveTaskEdits} style={{ margin: '14px 0 18px', padding: 16, border: '1px solid #d8e7e4', borderRadius: 14, background: '#f8fbfa' }}>
+            <form className="stack-form modal-form" onSubmit={saveTaskEdits} style={{ margin: '14px 0 18px', padding: 16, border: '1px solid #d8e3f2', borderRadius: 14, background: '#f8faff' }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
-                <div><small style={{ display: 'block', color: '#78908d' }}>Редакция от създателя</small><strong>Променете данните и запазете.</strong></div>
+                <div><small style={{ display: 'block', color: '#7789a8' }}>Редакция от създателя</small><strong>Променете данните и запазете.</strong></div>
                 <span className="approval-badge">Само вие можете да редактирате</span>
               </div>
               <label>Описание<textarea required rows={3} value={editDescription} onChange={(event) => setEditDescription(event.target.value)} /></label>
@@ -1668,24 +1668,24 @@ function TaskDetail({
               <label>Необходими материали<textarea rows={2} value={editMaterials} onChange={(event) => setEditMaterials(event.target.value)} placeholder="Линкове, документи или допълнителна информация" /></label>
               <label className="switch-row"><input type="checkbox" checked={editApprovalRequired} onChange={(event) => setEditApprovalRequired(event.target.checked)} /><span>Необходимо е одобрение преди завършване</span></label>
               {task.recurrence_id && recurrenceActive && (
-                <fieldset style={{ padding: 14, border: '1px solid #dbe8e5', borderRadius: 14, background: '#ffffff' }}>
+                <fieldset style={{ padding: 14, border: '1px solid #dbe7f6', borderRadius: 14, background: '#ffffff' }}>
                   <legend style={{ padding: '0 6px', fontWeight: 750 }}>↻ Повторение на задачата</legend>
                   <label>Кога да се създава всеки следващ екземпляр
                     <select value={recurrenceLeadDays} onChange={(event) => setRecurrenceLeadDays(Number(event.target.value))}>
                       {[1, 2, 3, 4].map((days) => <option key={days} value={days}>{recurrenceLeadLabel(days)} преди крайния срок</option>)}
                     </select>
                   </label>
-                  <small style={{ display: 'block', marginTop: 7, color: '#73868a' }}>Промяната важи за бъдещите задачи от тази серия. Ако новият момент вече е настъпил, следващият екземпляр ще бъде създаден при най-близката автоматична проверка.</small>
+                  <small style={{ display: 'block', marginTop: 7, color: '#71809b' }}>Промяната важи за бъдещите задачи от тази серия. Ако новият момент вече е настъпил, следващият екземпляр ще бъде създаден при най-близката автоматична проверка.</small>
                 </fieldset>
               )}
-              <fieldset style={{ padding: 14, border: '1px solid #dbe8e5', borderRadius: 14, background: '#ffffff' }}>
+              <fieldset style={{ padding: 14, border: '1px solid #dbe7f6', borderRadius: 14, background: '#ffffff' }}>
                 <legend style={{ padding: '0 6px', fontWeight: 750 }}>🔔 Напомняне за задачата</legend>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
                   <div className="view-switch" aria-label="Напомняне при редакция">
                     <button type="button" className={!editReminderEnabled ? 'active' : ''} onClick={() => setEditReminderEnabled(false)} aria-pressed={!editReminderEnabled}>Не</button>
                     <button type="button" className={editReminderEnabled ? 'active' : ''} onClick={() => setEditReminderEnabled(true)} aria-pressed={editReminderEnabled}>Да</button>
                   </div>
-                  <span style={{ color: '#73868a', fontSize: 12 }}>{reminder?.sent_at ? `Предишното напомняне е изпратено на ${formatDateTime(reminder.sent_at)}.` : 'Получатели са изпълнителите с включени push известия.'}</span>
+                  <span style={{ color: '#71809b', fontSize: 12 }}>{reminder?.sent_at ? `Предишното напомняне е изпратено на ${formatDateTime(reminder.sent_at)}.` : 'Получатели са изпълнителите с включени push известия.'}</span>
                 </div>
                 {editReminderEnabled && <div style={{ marginTop: 14 }}><BulgarianDateTimeField value={editRemindAt} onChange={setEditRemindAt} legend="Изпрати напомнянето" previewLabel="Момент на push известието" /></div>}
               </fieldset>
@@ -1733,13 +1733,13 @@ function TaskDetail({
           )}
           {task.status === 'new' && (
             <div style={{ marginTop: 12, padding: '12px 14px', background: '#eef4ff', border: '1px solid #d6e4f7', borderRadius: 12 }}>
-              <small style={{ display: 'block', color: '#78908d', marginBottom: 3 }}>Работен поток</small>
+              <small style={{ display: 'block', color: '#7789a8', marginBottom: 3 }}>Работен поток</small>
               <strong style={{ color: '#4b6595' }}>{canAccept ? 'Приемете задачата, за да започнете работа по нея.' : 'Задачата чака да бъде приета от назначен изпълнител.'}</strong>
             </div>
           )}
           {task.recurrence_id && (
             <div style={{ marginTop: 12, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, padding: '12px 14px', background: recurrenceActive ? '#eef4ff' : '#f4f6f6', border: `1px solid ${recurrenceActive ? '#d3e2f7' : '#e0e5e5'}`, borderRadius: 12 }}>
-              <div><small style={{ display: 'block', color: '#78908d', marginBottom: 3 }}>Повторение</small><strong style={{ color: recurrenceActive ? '#1d4ed8' : '#778688' }}>{recurrenceActive ? `Активно — бъдещите задачи ще се създават ${recurrenceLeadLabel(recurrenceLeadDays)} преди крайния срок.` : 'Спряно — няма да се създават нови задачи от тази серия.'}</strong></div>
+              <div><small style={{ display: 'block', color: '#7789a8', marginBottom: 3 }}>Повторение</small><strong style={{ color: recurrenceActive ? '#1d4ed8' : '#778688' }}>{recurrenceActive ? `Активно — бъдещите задачи ще се създават ${recurrenceLeadLabel(recurrenceLeadDays)} преди крайния срок.` : 'Спряно — няма да се създават нови задачи от тази серия.'}</strong></div>
               {canStopRecurrence && <button type="button" className="danger-soft" disabled={busy} onClick={() => void stopRecurrence()}>Спри повторението</button>}
             </div>
           )}
