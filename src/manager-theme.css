@@ -968,3 +968,48 @@ button.stat-card.green.active {
     animation: none !important;
   }
 }
+
+
+/* Manager task-visibility mode control */
+.manager-visibility-toggle {
+  min-width: 174px;
+  justify-content: center;
+  gap: 8px;
+  padding-inline: 12px;
+  font-weight: 750;
+  letter-spacing: .01em;
+  border-color: rgba(147,197,253,.18) !important;
+  background: rgba(96,165,250,.08) !important;
+}
+.manager-visibility-toggle:hover {
+  border-color: rgba(147,197,253,.34) !important;
+  background: rgba(96,165,250,.16) !important;
+}
+.manager-visibility-toggle.own-mode {
+  border-color: rgba(196,181,253,.26) !important;
+  background: rgba(129,140,248,.14) !important;
+}
+.visibility-mode-indicator {
+  width: 8px;
+  height: 8px;
+  flex: 0 0 auto;
+  border-radius: 2px;
+  background: #60a5fa;
+  box-shadow: 0 0 0 5px rgba(96,165,250,.08), 0 0 13px rgba(96,165,250,.5);
+}
+.manager-visibility-toggle.own-mode .visibility-mode-indicator {
+  background: #a5b4fc;
+  box-shadow: 0 0 0 5px rgba(165,180,252,.08), 0 0 13px rgba(165,180,252,.52);
+}
+.manager-visibility-toggle:disabled {
+  cursor: wait;
+  opacity: .7;
+}
+
+@media (max-width: 1180px) {
+  .manager-visibility-toggle {
+    min-width: 40px;
+    width: 40px;
+    padding: 0;
+  }
+}
