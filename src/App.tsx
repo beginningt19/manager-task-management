@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState, type FormEvent } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent } from 'react'
 import type { Session } from '@supabase/supabase-js'
 import { supabase, configurationError } from './lib/supabase'
 import ChecklistDrawer from './ChecklistDrawer'
@@ -64,6 +64,29 @@ const bulgarianMonths = [
 
 const bulgarianWeekdays = ['Понеделник', 'Вторник', 'Сряда', 'Четвъртък', 'Петък', 'Събота', 'Неделя']
 const recurrenceLeadLabel = (days: number) => days === 1 ? '1 ден' : `${days} дни`
+const GALINA_PROFILE_ID = 'fbdd7dfe-82b6-48c0-9c4c-1a6edb974ca5'
+
+type SpeechRecognitionLike = {
+  lang: string
+  continuous: boolean
+  interimResults: boolean
+  start: () => void
+  stop: () => void
+  abort: () => void
+  onresult: ((event: { resultIndex: number; results: ArrayLike<{ isFinal: boolean; 0: { transcript: string } }> }) => void) | null
+  onerror: ((event: { error: string }) => void) | null
+  onend: (() => void) | null
+}
+
+type SpeechRecognitionConstructor = new () => SpeechRecognitionLike
+
+const getSpeechRecognitionConstructor = (): SpeechRecognitionConstructor | null => {
+  const speechWindow = window as typeof window & {
+    SpeechRecognition?: SpeechRecognitionConstructor
+    webkitSpeechRecognition?: SpeechRecognitionConstructor
+  }
+  return speechWindow.SpeechRecognition || speechWindow.webkitSpeechRecognition || null
+}
 
 const taskCategoryOrder: TaskCategory[] = ['open', 'active', 'approval', 'overdue', 'completed']
 const taskCategoryMeta: Record<TaskCategory, { label: string; tone: string; icon: string }> = {
@@ -404,6 +427,9 @@ function App() {
           {profile && (
             <div className="page-actions">
               <button className="secondary-button" onClick={() => openCreate('personal')} title="Създай лична задача"><span>＋</span> Лична задача</button>
+              {profile.id === GALINA_PROFILE_ID && (
+                <button className="secondary-button voice-quick-button" onClick={() => openCreate('personal')} title="Създай задача чрез гласово въвеждане"><span>🎙</span> Гласова задача</button>
+              )}
               {profile.role === 'manager' && (
                 <button className="primary-button" onClick={() => openCreate('team')} title="Създай екипна задача"><span>＋</span> Екипна задача</button>
               )}
@@ -1064,7 +1090,88 @@ function CreateTaskModal({
   const [recurrenceMonthDay, setRecurrenceMonthDay] = useState(initialSchedule.getDate())
   const [recurrenceLeadDays, setRecurrenceLeadDays] = useState(1)
   const [busy, setBusy] = useState(false)
+  const [voiceListening, setVoiceListening] = useState(false)
+  const [voiceInterim, setVoiceInterim] = useState('')
+  const [voiceMessage, setVoiceMessage] = useState('')
+  const recognitionRef = useRef<SpeechRecognitionLike | null>(null)
   const personal = mode === 'personal'
+  const voiceEnabled = personal && profile.id === GALINA_PROFILE_ID
+
+  useEffect(() => () => {
+    recognitionRef.current?.abort()
+    recognitionRef.current = null
+  }, [])
+
+  const stopVoiceDictation = () => {
+    recognitionRef.current?.stop()
+    setVoiceListening(false)
+  }
+
+  const startVoiceDictation = () => {
+    if (!voiceEnabled || voiceListening) return
+    const Recognition = getSpeechRecognitionConstructor()
+
+    if (!Recognition) {
+      setVoiceMessage('Този браузър не поддържа гласово въвеждане. Използвайте Chrome или Edge.')
+      return
+    }
+
+    const recognition = new Recognition()
+    recognition.lang = 'bg-BG'
+    recognition.continuous = true
+    recognition.interimResults = true
+
+    recognition.onresult = (event) => {
+      let finalText = ''
+      let interimText = ''
+
+      for (let index = event.resultIndex; index < event.results.length; index += 1) {
+        const result = event.results[index]
+        const transcript = result[0]?.transcript?.trim() || ''
+        if (!transcript) continue
+        if (result.isFinal) finalText += `${finalText ? ' ' : ''}${transcript}`
+        else interimText += `${interimText ? ' ' : ''}${transcript}`
+      }
+
+      if (finalText) {
+        setDescription((current) => {
+          const prefix = current.trim()
+          return prefix ? `${prefix} ${finalText}` : finalText
+        })
+      }
+      setVoiceInterim(interimText)
+    }
+
+    recognition.onerror = (event) => {
+      setVoiceListening(false)
+      setVoiceInterim('')
+      if (event.error === 'not-allowed' || event.error === 'service-not-allowed') {
+        setVoiceMessage('Достъпът до микрофона е отказан. Разрешете микрофона за сайта и опитайте отново.')
+      } else if (event.error === 'no-speech') {
+        setVoiceMessage('Не беше разпозната реч. Натиснете „Диктувай“ и опитайте отново.')
+      } else {
+        setVoiceMessage('Гласовото въвеждане беше прекъснато. Опитайте отново.')
+      }
+    }
+
+    recognition.onend = () => {
+      setVoiceListening(false)
+      setVoiceInterim('')
+      recognitionRef.current = null
+    }
+
+    recognitionRef.current = recognition
+    setVoiceMessage('')
+    setVoiceInterim('')
+    try {
+      recognition.start()
+      setVoiceListening(true)
+    } catch {
+      recognitionRef.current = null
+      setVoiceListening(false)
+      setVoiceMessage('Микрофонът не можа да бъде стартиран. Опитайте отново.')
+    }
+  }
 
   const uploadNewTaskFile = async (taskId: string, file: File) => {
     const { data: logical, error: logicalError } = await supabase
@@ -1102,6 +1209,7 @@ function CreateTaskModal({
 
   const submit = async (event: FormEvent) => {
     event.preventDefault()
+    if (voiceListening) stopVoiceDictation()
     if (!personal && (selected.length < 1 || selected.length > 3)) {
       onError('Изберете между един и трима изпълнители.')
       return
@@ -1187,7 +1295,27 @@ function CreateTaskModal({
   return (
     <Modal title={personal ? 'Нова лична задача' : 'Нова екипна задача'} onClose={onClose}>
       <form onSubmit={submit} className="stack-form modal-form">
-        <label>Описание<textarea required rows={4} value={description} onChange={(event) => setDescription(event.target.value)} placeholder="Какво трябва да бъде изпълнено?" /></label>
+        <label className={voiceEnabled ? 'voice-description-field' : undefined}>
+          <span className="voice-description-heading">
+            <span>Описание</span>
+            {voiceEnabled && (
+              <button
+                type="button"
+                className={`voice-dictation-button${voiceListening ? ' listening' : ''}`}
+                onClick={voiceListening ? stopVoiceDictation : startVoiceDictation}
+                disabled={busy}
+              >
+                <span className="voice-mic" aria-hidden="true">🎙</span>
+                {voiceListening ? 'Спри диктовката' : 'Диктувай'}
+              </button>
+            )}
+          </span>
+          <textarea required rows={4} value={description} onChange={(event) => setDescription(event.target.value)} placeholder={voiceEnabled ? 'Напишете задачата или натиснете „Диктувай“…' : 'Какво трябва да бъде изпълнено?'} />
+          {voiceEnabled && voiceListening && (
+            <span className="voice-live-status"><i /> Слушам… {voiceInterim && <em>{voiceInterim}</em>}</span>
+          )}
+          {voiceEnabled && voiceMessage && <span className="voice-help-message">{voiceMessage}</span>}
+        </label>
         <div className="task-scheduling-grid">
           <BulgarianDateTimeField
             value={dueAt}
