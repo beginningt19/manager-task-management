@@ -388,3 +388,579 @@ button.stat-card.green.active {
   color: #1d4ed8;
   background: #dbeafe;
 }
+
+
+/* ======================================================================
+   MANAGER V2 — distinct executive visual system
+   This intentionally replaces the inherited Admin login/topbar/dynamics.
+   ====================================================================== */
+
+/* New ambient language: directional light, data lanes and discrete nodes. */
+.manager-ambient {
+  overflow: hidden;
+  background:
+    linear-gradient(115deg, rgba(37,99,235,.035) 0 1px, transparent 1px 100%),
+    linear-gradient(25deg, rgba(79,70,229,.028) 0 1px, transparent 1px 100%),
+    linear-gradient(180deg, #f7faff 0%, #edf3ff 48%, #e9f0ff 100%);
+  background-size: 74px 74px, 92px 92px, 100% 100%;
+}
+.manager-grid {
+  position: absolute;
+  inset: 0;
+  opacity: .52;
+  background:
+    linear-gradient(rgba(45,86,170,.055) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(45,86,170,.055) 1px, transparent 1px);
+  background-size: 54px 54px;
+  mask-image: linear-gradient(to bottom, rgba(0,0,0,.8), rgba(0,0,0,.18));
+}
+.manager-streak {
+  position: absolute;
+  width: 58vw;
+  height: 2px;
+  transform-origin: left center;
+  background: linear-gradient(90deg, transparent, rgba(59,130,246,.5), rgba(99,102,241,.18), transparent);
+  filter: drop-shadow(0 0 10px rgba(59,130,246,.18));
+  animation: manager-data-lane 14s ease-in-out infinite;
+}
+.streak-one { top: 21%; left: -18%; transform: rotate(-12deg); }
+.streak-two { top: 57%; right: -20%; transform: rotate(11deg); animation-delay: -4.5s; }
+.streak-three { bottom: 12%; left: 18%; transform: rotate(-7deg); animation-delay: -9s; }
+.manager-pulse {
+  position: absolute;
+  height: 1px;
+  width: min(420px, 42vw);
+  background: linear-gradient(90deg, transparent, rgba(37,99,235,.28), transparent);
+}
+.manager-pulse::after {
+  content: '';
+  position: absolute;
+  top: -3px;
+  width: 7px;
+  height: 7px;
+  border-radius: 2px;
+  background: #60a5fa;
+  box-shadow: 0 0 14px rgba(59,130,246,.55);
+  animation: manager-pulse-dot 8s linear infinite;
+}
+.pulse-one { top: 34%; left: 7%; transform: rotate(20deg); }
+.pulse-two { right: 9%; bottom: 28%; transform: rotate(-19deg); }
+.pulse-two::after { animation-delay: -3.8s; }
+.manager-node {
+  position: absolute;
+  width: 8px;
+  height: 8px;
+  border-radius: 2px;
+  background: rgba(59,130,246,.48);
+  box-shadow: 0 0 0 6px rgba(59,130,246,.05), 0 0 24px rgba(59,130,246,.24);
+  animation: manager-node-breathe 4.8s ease-in-out infinite;
+}
+.manager-node-one { left: 12%; top: 18%; }
+.manager-node-two { right: 19%; top: 29%; animation-delay: -1.2s; }
+.manager-node-three { left: 31%; bottom: 16%; animation-delay: -2.3s; }
+.manager-node-four { right: 7%; bottom: 12%; animation-delay: -3.5s; }
+
+/* Executive login — completely separate from inherited Admin showcase. */
+.manager-login {
+  grid-template-columns: minmax(620px, 1.12fr) minmax(460px, .88fr);
+  min-height: 100vh;
+  background: #08152f;
+}
+.manager-login .login-ambient {
+  z-index: -2;
+  opacity: 1;
+  background:
+    linear-gradient(122deg, rgba(11,27,61,.98), rgba(18,39,83,.95) 42%, rgba(34,44,106,.91) 68%, rgba(232,239,255,.96) 68.2%, rgba(240,245,255,.99) 100%);
+}
+.manager-login .manager-grid {
+  opacity: .24;
+  background:
+    linear-gradient(rgba(147,197,253,.08) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(147,197,253,.08) 1px, transparent 1px);
+  background-size: 58px 58px;
+}
+.manager-login .manager-streak {
+  background: linear-gradient(90deg, transparent, rgba(96,165,250,.62), rgba(129,140,248,.26), transparent);
+}
+.manager-login .manager-node {
+  background: #93c5fd;
+  box-shadow: 0 0 0 6px rgba(147,197,253,.06), 0 0 25px rgba(96,165,250,.38);
+}
+
+.manager-login-hero {
+  padding: clamp(52px, 6vw, 90px);
+  place-items: center start;
+  background:
+    linear-gradient(135deg, rgba(9,24,55,.88), rgba(19,44,92,.78) 58%, rgba(38,46,112,.68));
+  border-right: 1px solid rgba(147,197,253,.16);
+}
+.manager-login-hero::before,
+.manager-login-hero::after {
+  content: '';
+  position: absolute;
+  border-radius: 0;
+  border: 0;
+  pointer-events: none;
+}
+.manager-login-hero::before {
+  width: 60%;
+  height: 160%;
+  right: -18%;
+  top: -30%;
+  background: linear-gradient(100deg, transparent 15%, rgba(96,165,250,.09) 48%, transparent 78%);
+  transform: rotate(13deg);
+  animation: executive-panel-sweep 12s ease-in-out infinite;
+}
+.manager-login-hero::after {
+  width: 1px;
+  height: 72%;
+  right: 14%;
+  top: 14%;
+  background: linear-gradient(transparent, rgba(147,197,253,.35), transparent);
+  box-shadow: -72px 0 0 rgba(147,197,253,.08), -144px 0 0 rgba(147,197,253,.05);
+}
+
+.executive-showcase {
+  position: relative;
+  z-index: 3;
+  width: min(720px, 100%);
+  color: white;
+}
+.executive-kicker {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 44px;
+  color: #9fc7ff;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: .22em;
+}
+.executive-kicker > span {
+  width: 30px;
+  height: 2px;
+  background: linear-gradient(90deg,#60a5fa,#818cf8);
+  box-shadow: 0 0 12px rgba(96,165,250,.45);
+}
+.executive-title small {
+  display: block;
+  margin-bottom: 10px;
+  color: rgba(191,219,254,.66);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: .18em;
+}
+.executive-title h2 {
+  margin: 0;
+  color: #f8fbff;
+  font-size: clamp(42px, 4.6vw, 68px);
+  line-height: .98;
+  letter-spacing: -.055em;
+}
+.executive-title h2 em {
+  color: #8fb7ff;
+  font-style: normal;
+}
+.executive-title p {
+  max-width: 610px;
+  margin: 25px 0 0;
+  color: rgba(226,236,255,.68);
+  font-size: 14px;
+  line-height: 1.75;
+}
+
+.executive-board {
+  width: min(650px, 100%);
+  margin-top: 42px;
+  padding: 20px;
+  border: 1px solid rgba(147,197,253,.16);
+  border-radius: 22px;
+  background: linear-gradient(145deg, rgba(13,31,69,.68), rgba(24,47,97,.38));
+  box-shadow: 0 30px 80px rgba(0,0,0,.24), inset 0 1px 0 rgba(255,255,255,.06);
+  backdrop-filter: blur(16px);
+}
+.executive-board-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-bottom: 14px;
+  color: rgba(191,219,254,.62);
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: .15em;
+  border-bottom: 1px solid rgba(147,197,253,.12);
+}
+.executive-board-head b {
+  padding: 4px 8px;
+  color: #bfdbfe;
+  border: 1px solid rgba(96,165,250,.22);
+  border-radius: 999px;
+  background: rgba(59,130,246,.12);
+  font-size: 8px;
+}
+.executive-metrics {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1px;
+  margin: 15px 0 20px;
+  overflow: hidden;
+  border-radius: 14px;
+  background: rgba(147,197,253,.10);
+}
+.executive-metrics > div {
+  min-height: 74px;
+  padding: 14px 16px;
+  display: grid;
+  align-content: center;
+  gap: 4px;
+  background: rgba(8,24,55,.72);
+}
+.executive-metrics strong {
+  color: #f8fbff;
+  font-size: 22px;
+  letter-spacing: -.04em;
+}
+.executive-metrics small { color: rgba(191,219,254,.55); font-size: 9px; }
+
+.executive-flow {
+  position: relative;
+  min-height: 92px;
+  margin-top: 8px;
+}
+.flow-line {
+  position: absolute;
+  left: 5%;
+  right: 5%;
+  top: 28px;
+  height: 2px;
+  background: linear-gradient(90deg, rgba(96,165,250,.18), #60a5fa 35%, #818cf8 68%, rgba(129,140,248,.16));
+}
+.flow-line::after {
+  content: '';
+  position: absolute;
+  width: 24%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, #dbeafe, transparent);
+  animation: executive-flow-scan 5s linear infinite;
+}
+.flow-dot {
+  position: absolute;
+  top: 23px;
+  width: 12px;
+  height: 12px;
+  border: 2px solid #93c5fd;
+  border-radius: 3px;
+  background: #112d63;
+  box-shadow: 0 0 0 5px rgba(96,165,250,.08), 0 0 16px rgba(96,165,250,.35);
+}
+.dot-a { left: 8%; }
+.dot-b { left: 39%; }
+.dot-c { left: 70%; }
+.dot-d { right: 7%; }
+.flow-label {
+  position: absolute;
+  top: 48px;
+  display: grid;
+  gap: 2px;
+}
+.flow-label b { color: rgba(239,246,255,.85); font-size: 8px; letter-spacing: .08em; }
+.flow-label small { color: rgba(191,219,254,.48); font-size: 8px; }
+.label-a { left: 5%; }
+.label-b { left: 35%; }
+.label-c { left: 67%; }
+.executive-meta {
+  display: flex;
+  gap: 22px;
+  flex-wrap: wrap;
+  margin-top: 22px;
+  color: rgba(191,219,254,.5);
+  font-size: 9px;
+  font-weight: 700;
+}
+.executive-meta span::before {
+  content: '•';
+  margin-right: 7px;
+  color: #60a5fa;
+}
+
+.manager-login-card {
+  align-self: center;
+  width: min(500px, calc(100% - 70px));
+  padding: 48px 50px;
+  border: 1px solid rgba(183,202,235,.8);
+  border-radius: 28px;
+  background: rgba(250,252,255,.92);
+  box-shadow: 0 34px 100px rgba(30,64,175,.15);
+  backdrop-filter: blur(22px) saturate(130%);
+}
+.manager-login-card::before { display: none; }
+.manager-login-badge {
+  display: inline-flex;
+  margin-bottom: 28px;
+  padding: 7px 10px;
+  border-radius: 8px;
+  color: #3159ad;
+  background: #e9f0ff;
+  border: 1px solid #d2def5;
+  font-size: 8px;
+  font-weight: 900;
+  letter-spacing: .12em;
+}
+.manager-login-card .login-brand { margin-bottom: 48px; }
+.manager-login-card .brand-mark {
+  background: linear-gradient(145deg, #173e88, #3b4ac2);
+  font-size: 17px;
+  font-weight: 900;
+  animation: none;
+}
+.manager-login-card .brand-mark::after { display: none; }
+.manager-login-card h1 { color: #13254e; }
+.manager-login-card .eyebrow { color: #315fcb; }
+.manager-login-card .stack-form > label { color: #445474; }
+.manager-login-card .stack-form input {
+  min-height: 48px;
+  border-color: #d2ddef;
+  border-radius: 12px;
+  background: rgba(255,255,255,.94);
+}
+.manager-login-card .stack-form input:focus {
+  border-color: #6b93eb;
+  box-shadow: 0 0 0 4px rgba(59,130,246,.10);
+}
+.manager-login-card .primary-button {
+  min-height: 49px;
+  border-radius: 12px;
+  background: linear-gradient(110deg, #245bb6, #4454dc);
+  box-shadow: 0 15px 34px rgba(55,80,190,.24);
+}
+.manager-login-card .forgot-button { color: #315fcb; }
+
+/* High-contrast manager topbar — fixes disappearing navigation. */
+.topbar {
+  min-height: 78px;
+  height: 78px;
+  color: #f8fbff;
+  background:
+    linear-gradient(90deg, rgba(8,24,55,.97), rgba(17,43,91,.96) 58%, rgba(31,39,101,.96));
+  border-bottom: 1px solid rgba(147,197,253,.16);
+  box-shadow: 0 12px 34px rgba(16,38,86,.20);
+  backdrop-filter: blur(18px) saturate(130%);
+}
+.topbar .brand strong,
+.topbar .account-copy strong { color: #f8fbff; }
+.topbar .brand small,
+.topbar .account-copy small { color: rgba(219,234,254,.64); }
+.topbar .brand-mark {
+  color: white;
+  background: linear-gradient(145deg,#2c65c7,#4b52d7);
+  border: 1px solid rgba(191,219,254,.20);
+  box-shadow: 0 10px 24px rgba(0,0,0,.18);
+}
+.topbar .notification-button,
+.topbar .checklist-launch,
+.topbar .icon-button {
+  color: rgba(226,236,255,.82);
+  border-color: rgba(147,197,253,.12);
+  background: rgba(96,165,250,.055);
+}
+.topbar .notification-button:hover,
+.topbar .notification-button.active,
+.topbar .checklist-launch:hover,
+.topbar .icon-button:hover {
+  color: white;
+  border-color: rgba(147,197,253,.28);
+  background: rgba(96,165,250,.14);
+  box-shadow: 0 8px 20px rgba(0,0,0,.10);
+}
+.topbar .avatar {
+  color: #dbeafe;
+  background: linear-gradient(145deg,#244e9a,#323a99);
+  border-color: rgba(219,234,254,.55);
+  box-shadow: 0 0 0 1px rgba(147,197,253,.25);
+}
+.account-area { min-width: 0; }
+.topbar .account-copy { min-width: 0; }
+.topbar .account-copy strong {
+  max-width: 190px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Dashboard hero must stay readable and no longer reuse the Admin orbit motif. */
+.dashboard-hero {
+  background:
+    linear-gradient(122deg, #0f2b61, #17418b 52%, #3b399e);
+  border-color: rgba(147,197,253,.18);
+}
+.dashboard-hero::before {
+  width: 48%;
+  height: 180%;
+  right: 8%;
+  top: -55%;
+  border-radius: 0;
+  border: 0;
+  background:
+    repeating-linear-gradient(90deg, rgba(147,197,253,.05) 0 1px, transparent 1px 34px);
+  transform: rotate(19deg);
+  box-shadow: none;
+}
+.dashboard-hero h1 { color: #fff !important; text-shadow: 0 8px 30px rgba(0,0,0,.18); }
+.dashboard-hero .eyebrow { color: #9fc7ff; }
+.dashboard-hero .hero-copy > p:last-of-type { color: rgba(226,236,255,.72); }
+.dashboard-hero .secondary-button {
+  color: #eef5ff;
+  border-color: rgba(191,219,254,.28);
+  background: rgba(255,255,255,.08);
+}
+.dashboard-hero .secondary-button:hover { background: rgba(255,255,255,.15); }
+.manager-hero-art {
+  width: 255px;
+  height: 150px;
+  right: 28%;
+  top: 26px;
+  display: block;
+  opacity: .9;
+}
+.hero-signal {
+  position: absolute;
+  left: 10px;
+  right: 10px;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(147,197,253,.68), transparent);
+}
+.hero-signal::after {
+  content: '';
+  position: absolute;
+  top: -2px;
+  width: 5px;
+  height: 5px;
+  border-radius: 1px;
+  background: #dbeafe;
+  box-shadow: 0 0 12px rgba(191,219,254,.7);
+  animation: hero-signal-run 5s linear infinite;
+}
+.signal-a { top: 32px; transform: rotate(-8deg); }
+.signal-b { top: 75px; transform: rotate(7deg); opacity: .7; }
+.signal-b::after { animation-delay: -1.8s; }
+.signal-c { top: 116px; transform: rotate(-4deg); opacity: .45; }
+.signal-c::after { animation-delay: -3.4s; }
+.hero-data-bar {
+  position: absolute;
+  bottom: 18px;
+  width: 18px;
+  border-radius: 4px 4px 2px 2px;
+  background: linear-gradient(180deg, rgba(191,219,254,.78), rgba(96,165,250,.12));
+  transform-origin: bottom;
+  animation: hero-bar-pulse 4.6s ease-in-out infinite;
+}
+.bar-a { left: 38px; height: 31px; }
+.bar-b { left: 68px; height: 48px; animation-delay: -.8s; }
+.bar-c { left: 98px; height: 72px; animation-delay: -1.7s; }
+.bar-d { left: 128px; height: 55px; animation-delay: -2.6s; }
+.hero-data-label {
+  position: absolute;
+  right: 14px;
+  bottom: 16px;
+  color: rgba(219,234,254,.38);
+  font-size: 9px;
+  font-weight: 900;
+  letter-spacing: .2em;
+}
+
+/* Responsive navigation: never allow controls to fade or overlap. */
+@media (max-width: 1180px) {
+  .topbar {
+    padding-inline: 22px;
+  }
+  .topbar .notification-button span { display: none; }
+  .topbar .account-copy strong { max-width: 140px; }
+  .manager-hero-art { right: 20%; opacity: .62; }
+}
+@media (max-width: 980px) {
+  .manager-login { grid-template-columns: 1fr; background: #eef3ff; }
+  .manager-login-hero { display: none; }
+  .manager-login .login-ambient {
+    background: linear-gradient(145deg,#eef4ff,#e8efff 56%,#f6f8ff);
+  }
+  .manager-login-card {
+    width: min(520px, calc(100% - 34px));
+    padding: 42px 38px;
+  }
+}
+@media (max-width: 760px) {
+  .topbar {
+    height: 66px;
+    min-height: 66px;
+    padding-inline: 13px;
+  }
+  .topbar .brand div,
+  .topbar .account-copy,
+  .topbar .notification-button span { display: none; }
+  .topbar .brand { gap: 0; }
+  .account-area { gap: 5px; }
+  .topbar .notification-button {
+    width: 38px;
+    height: 38px;
+    padding: 0;
+    justify-content: center;
+  }
+  .topbar .icon-button { width: 38px; height: 38px; }
+  .manager-hero-art { display: none; }
+}
+@media (max-width: 520px) {
+  .manager-login-card {
+    width: calc(100% - 22px);
+    padding: 32px 23px;
+    border-radius: 22px;
+  }
+  .manager-login-card .login-brand { margin-bottom: 38px; }
+  .manager-login-badge { margin-bottom: 22px; }
+}
+
+/* New motion vocabulary */
+@keyframes manager-data-lane {
+  0%, 100% { opacity: .18; translate: -3% 0; }
+  50% { opacity: .72; translate: 9% 0; }
+}
+@keyframes manager-pulse-dot {
+  from { left: 0; opacity: 0; }
+  12% { opacity: 1; }
+  88% { opacity: 1; }
+  to { left: calc(100% - 7px); opacity: 0; }
+}
+@keyframes manager-node-breathe {
+  0%,100% { transform: scale(.72) rotate(0); opacity: .42; }
+  50% { transform: scale(1.12) rotate(45deg); opacity: .92; }
+}
+@keyframes executive-panel-sweep {
+  0%, 18% { translate: -20% 0; opacity: .12; }
+  55% { translate: 25% 0; opacity: .55; }
+  82%,100% { translate: 42% 0; opacity: .10; }
+}
+@keyframes executive-flow-scan {
+  from { left: -24%; }
+  to { left: 100%; }
+}
+@keyframes hero-signal-run {
+  from { left: 0; opacity: 0; }
+  10% { opacity: 1; }
+  90% { opacity: 1; }
+  to { left: calc(100% - 5px); opacity: 0; }
+}
+@keyframes hero-bar-pulse {
+  0%,100% { transform: scaleY(.72); opacity: .48; }
+  50% { transform: scaleY(1.08); opacity: .9; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .manager-streak,
+  .manager-pulse::after,
+  .manager-node,
+  .manager-login-hero::before,
+  .flow-line::after,
+  .hero-signal::after,
+  .hero-data-bar {
+    animation: none !important;
+  }
+}
