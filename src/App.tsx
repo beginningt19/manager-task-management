@@ -1698,10 +1698,10 @@ function TaskDetail({
             <div>
               <small>Статус</small>
               {task.status === 'completed' ? (
-                <strong style={{ color: '#16806f' }}>✓ Завършена</strong>
+                <strong style={{ color: '#1d4ed8' }}>✓ Завършена</strong>
               ) : task.status === 'new' ? (
                 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'stretch', gap: 7 }}>
-                  <strong style={{ color: '#197d73' }}>Отворена · чака приемане</strong>
+                  <strong style={{ color: '#2563eb' }}>Отворена · чака приемане</strong>
                   {canAccept && (
                     <button type="button" className="primary-button" disabled={busy} onClick={() => void acceptTask()}>
                       {busy ? 'Приемане…' : '✓ Приеми задачата'}
@@ -1732,14 +1732,14 @@ function TaskDetail({
             <div className="task-completed-panel"><span>✓</span><div><small>Задачата е приключена</small><strong>Отбелязана е като завършена и се намира в категория „Завършени“.</strong></div></div>
           )}
           {task.status === 'new' && (
-            <div style={{ marginTop: 12, padding: '12px 14px', background: '#f3faf8', border: '1px solid #d9ebe7', borderRadius: 12 }}>
+            <div style={{ marginTop: 12, padding: '12px 14px', background: '#eef4ff', border: '1px solid #d6e4f7', borderRadius: 12 }}>
               <small style={{ display: 'block', color: '#78908d', marginBottom: 3 }}>Работен поток</small>
-              <strong style={{ color: '#557b76' }}>{canAccept ? 'Приемете задачата, за да започнете работа по нея.' : 'Задачата чака да бъде приета от назначен изпълнител.'}</strong>
+              <strong style={{ color: '#4b6595' }}>{canAccept ? 'Приемете задачата, за да започнете работа по нея.' : 'Задачата чака да бъде приета от назначен изпълнител.'}</strong>
             </div>
           )}
           {task.recurrence_id && (
-            <div style={{ marginTop: 12, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, padding: '12px 14px', background: recurrenceActive ? '#edf8f5' : '#f4f6f6', border: `1px solid ${recurrenceActive ? '#d3ebe5' : '#e0e5e5'}`, borderRadius: 12 }}>
-              <div><small style={{ display: 'block', color: '#78908d', marginBottom: 3 }}>Повторение</small><strong style={{ color: recurrenceActive ? '#247b70' : '#778688' }}>{recurrenceActive ? `Активно — бъдещите задачи ще се създават ${recurrenceLeadLabel(recurrenceLeadDays)} преди крайния срок.` : 'Спряно — няма да се създават нови задачи от тази серия.'}</strong></div>
+            <div style={{ marginTop: 12, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, padding: '12px 14px', background: recurrenceActive ? '#eef4ff' : '#f4f6f6', border: `1px solid ${recurrenceActive ? '#d3e2f7' : '#e0e5e5'}`, borderRadius: 12 }}>
+              <div><small style={{ display: 'block', color: '#78908d', marginBottom: 3 }}>Повторение</small><strong style={{ color: recurrenceActive ? '#1d4ed8' : '#778688' }}>{recurrenceActive ? `Активно — бъдещите задачи ще се създават ${recurrenceLeadLabel(recurrenceLeadDays)} преди крайния срок.` : 'Спряно — няма да се създават нови задачи от тази серия.'}</strong></div>
               {canStopRecurrence && <button type="button" className="danger-soft" disabled={busy} onClick={() => void stopRecurrence()}>Спри повторението</button>}
             </div>
           )}
