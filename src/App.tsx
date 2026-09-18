@@ -329,7 +329,7 @@ function App() {
       <AmbientBackground />
       <header className="topbar">
         <div className="brand">
-          <span className="brand-mark" aria-hidden="true">✓</span>
+          <span className="brand-mark" aria-hidden="true">M</span>
           <div>
             <strong>Управленски задачи</strong>
             <small>Вътрешна система</small>
