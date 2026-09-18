@@ -539,6 +539,7 @@ function App() {
   const visibleCategoryKeys: TaskCategory[] = categoryFocus ? [categoryFocus] : taskCategoryOrder
   const visibleListCount = visibleCategoryKeys.reduce((total, category) => total + categorizedTasks[category].length, 0)
   const canControlManagerVisibility = Boolean(profile && (profile.role === 'admin' || profile.display_role === 'Управител'))
+  const canCreateTeamTasks = profile?.display_role === 'Управител'
 
   const toggleManagerVisibility = async () => {
     if (!canControlManagerVisibility || visibilityBusy) return
@@ -581,7 +582,7 @@ function App() {
     if (!profile) return
     const dueDate = calendarDueDate(date)
     setCreateDueDate(dueDate)
-    if (profile.role === 'manager') setCalendarChoiceDate(dueDate)
+    if (canCreateTeamTasks) setCalendarChoiceDate(dueDate)
     else setCreateMode('personal')
   }
 
@@ -642,7 +643,7 @@ function App() {
               {profile.id === GALINA_PROFILE_ID && (
                 <button className="secondary-button voice-quick-button" onClick={() => openCreate('personal')} title="Създай задача чрез гласово въвеждане"><span>🎙</span> Гласова задача</button>
               )}
-              {profile.role === 'manager' && (
+              {canCreateTeamTasks && (
                 <button className="primary-button" onClick={() => openCreate('team')} title="Създай екипна задача"><span>＋</span> Екипна задача</button>
               )}
             </div>
@@ -736,7 +737,7 @@ function App() {
         </section>
       </main>
 
-      {calendarChoiceDate && profile?.role === 'manager' && (
+      {calendarChoiceDate && canCreateTeamTasks && (
         <CalendarTaskChoice
           date={calendarChoiceDate}
           onPersonal={() => openCreate('personal', calendarChoiceDate)}
@@ -748,7 +749,7 @@ function App() {
         />
       )}
 
-      {createMode && profile && (createMode === 'personal' || profile.role === 'manager') && (
+      {createMode && profile && (createMode === 'personal' || canCreateTeamTasks) && (
         <CreateTaskModal
           mode={createMode}
           initialDueDate={createDueDate}
