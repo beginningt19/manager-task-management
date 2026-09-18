@@ -765,12 +765,17 @@ function App() {
             setSelectedTaskId(taskId)
             showToast({ tone: 'success', message: 'Задачата е създадена.' })
           }}
-          onRecurringCreated={async (taskId) => {
+          onRecurringCreated={async (taskId, calendarYearAhead) => {
             setCreateMode(null)
             setCreateDueDate(null)
             await loadCore()
             setSelectedTaskId(taskId)
-            showToast({ tone: 'success', message: 'Повтарящата се задача е създадена. Следващите задачи ще се създават автоматично по зададения график.' })
+            showToast({
+              tone: 'success',
+              message: calendarYearAhead
+                ? 'Повтарящата се задача е създадена и повторенията ѝ се виждат в календара за 1 година напред.'
+                : 'Повтарящата се задача е създадена. Следващите задачи ще се създават автоматично по зададения график.',
+            })
           }}
           onError={(message) => showToast({ tone: 'error', message })}
         />
@@ -1279,7 +1284,7 @@ function CreateTaskModal({
   people: Profile[]
   onClose: () => void
   onCreated: (taskId: string) => Promise<void>
-  onRecurringCreated: (taskId: string) => Promise<void>
+  onRecurringCreated: (taskId: string, calendarYearAhead: boolean) => Promise<void>
   onError: (message: string) => void
 }) {
   const tomorrow = new Date(Date.now() + 24 * 60 * 60 * 1000)
@@ -1300,6 +1305,7 @@ function CreateTaskModal({
   const [recurrenceWeekday, setRecurrenceWeekday] = useState(initialWeekday)
   const [recurrenceMonthDay, setRecurrenceMonthDay] = useState(initialSchedule.getDate())
   const [recurrenceLeadDays, setRecurrenceLeadDays] = useState(1)
+  const [calendarYearAhead, setCalendarYearAhead] = useState(false)
   const [busy, setBusy] = useState(false)
   const [voiceListening, setVoiceListening] = useState(false)
   const [voiceInterim, setVoiceInterim] = useState('')
@@ -1453,7 +1459,22 @@ function CreateTaskModal({
         setBusy(false)
         return
       }
-      await onRecurringCreated(data as string)
+      const taskId = data as string
+      if (calendarYearAhead) {
+        const { error: calendarProjectionError } = await supabase.rpc('set_task_recurrence_calendar_year_ahead', {
+          p_task_id: taskId,
+          p_enabled: true,
+        })
+
+        if (calendarProjectionError) {
+          setBusy(false)
+          await onRecurringCreated(taskId, false)
+          onError(`Задачата е създадена, но календарът за 1 година напред не беше активиран: ${calendarProjectionError.message}`)
+          return
+        }
+      }
+
+      await onRecurringCreated(taskId, calendarYearAhead)
       return
     }
 
@@ -1575,6 +1596,14 @@ function CreateTaskModal({
               <div style={{ alignSelf: 'end', minHeight: 42, display: 'flex', alignItems: 'center', padding: '0 12px', color: '#4e6590', background: '#eef4ff', border: '1px solid #d6e3f6', borderRadius: 10, fontSize: 12 }}>
                 Първата задача се създава веднага. Всеки следващ екземпляр ще се появява {recurrenceLeadLabel(recurrenceLeadDays)} преди собствения си краен срок.
               </div>
+              <label className="switch-row" style={{ gridColumn: '1 / -1', marginTop: 2 }}>
+                <input
+                  type="checkbox"
+                  checked={calendarYearAhead}
+                  onChange={(event) => setCalendarYearAhead(event.target.checked)}
+                />
+                <span>📅 Покажи повторенията в календара за 1 година напред</span>
+              </label>
             </div>
           )}
         </fieldset>
