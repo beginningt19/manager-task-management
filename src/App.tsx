@@ -594,7 +594,7 @@ function App() {
       <AmbientBackground />
       <header className="topbar">
         <div className="brand">
-          <span className="brand-mark" aria-hidden="true">M</span>
+          <span className="brand-mark" aria-hidden="true">✓</span>
           <div>
             <strong>Управленски задачи</strong>
             <small>Вътрешна система</small>
@@ -908,7 +908,7 @@ function Login() {
       <section className="login-card manager-login-card">
         <span className="manager-login-badge">ВЪТРЕШНА УПРАВЛЕНСКА СИСТЕМА</span>
         <div className="brand login-brand">
-          <span className="brand-mark">M</span>
+          <span className="brand-mark">✓</span>
           <div><strong>Manager Task Management</strong><small>Явлена · Изток</small></div>
         </div>
         <p className="eyebrow">Служебен достъп</p>
@@ -1096,7 +1096,6 @@ function CalendarView({
     <div className="calendar-shell">
       <div className="calendar-toolbar">
         <h3>{bulgarianMonths[month]} {year}</h3>
-        <span className="calendar-hint">Български календар · Понеделник–Неделя · 24 часа</span>
         <div>
           <button type="button" onClick={() => moveMonth(-1)} aria-label="Предишен месец">‹</button>
           <button type="button" onClick={showToday}>Днес</button>
