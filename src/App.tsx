@@ -373,7 +373,6 @@ function App() {
             <span className="hero-data-bar bar-b" />
             <span className="hero-data-bar bar-c" />
             <span className="hero-data-bar bar-d" />
-            <span className="hero-data-label">CONTROL</span>
           </div>
         </section>
 
