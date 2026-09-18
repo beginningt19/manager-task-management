@@ -2,40 +2,92 @@ package com.yavlena.managertasks.notifier;
 
 import org.json.JSONArray;
 import org.json.JSONObject;
-import java.io.*;
-import java.net.*;
+
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.io.OutputStream;
+import java.net.HttpURLConnection;
+import java.net.URLEncoder;
+import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.time.Instant;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
 
 final class SupabaseClient {
     private static final String BASE_URL = "https://xrcvfzqwhqtoljfxgxgr.supabase.co";
     private static final String API_KEY = "sb_publishable_K9eOz-sxjizM7fkHrWXOeA_zu-9ijLu";
 
     static final class AuthSession {
-        final String email, accessToken, refreshToken;
+        final String email;
+        final String accessToken;
+        final String refreshToken;
         AuthSession(String email, String accessToken, String refreshToken) {
-            this.email = email; this.accessToken = accessToken; this.refreshToken = refreshToken;
+            this.email = email;
+            this.accessToken = accessToken;
+            this.refreshToken = refreshToken;
         }
     }
 
     static final class Reminder {
-        final String id, taskId, description;
+        final String id;
+        final String taskId;
         final Instant remindAt;
+        final String description;
         final boolean completed;
+
         Reminder(String id, String taskId, Instant remindAt, String description, boolean completed) {
-            this.id = id; this.taskId = taskId; this.remindAt = remindAt; this.description = description; this.completed = completed;
+            this.id = id;
+            this.taskId = taskId;
+            this.remindAt = remindAt;
+            this.description = description;
+            this.completed = completed;
         }
     }
 
     AuthSession login(String email, String password) throws Exception {
-        JSONObject body = new JSONObject().put("email", email).put("password", password);
+        JSONObject body = new JSONObject();
+        body.put("email", email);
+        body.put("password", password);
         return authRequest("/auth/v1/token?grant_type=password", body, email);
     }
 
     AuthSession refresh(String email, String refreshToken) throws Exception {
-        JSONObject body = new JSONObject().put("refresh_token", refreshToken);
+        JSONObject body = new JSONObject();
+        body.put("refresh_token", refreshToken);
         return authRequest("/auth/v1/token?grant_type=refresh_token", body, email);
+    }
+
+    void registerMobilePushDevice(String accessToken, String fcmToken, String deviceName, String appVersion) throws Exception {
+        JSONObject user = new JSONObject(request("GET", "/auth/v1/user", null, accessToken));
+        String userId = user.getString("id");
+
+        JSONObject body = new JSONObject();
+        body.put("user_id", userId);
+        body.put("fcm_token", fcmToken);
+        body.put("platform", "android");
+        body.put("device_name", deviceName);
+        body.put("app_version", appVersion);
+        body.put("last_seen_at", Instant.now().toString());
+        body.put("updated_at", Instant.now().toString());
+
+        request(
+                "POST",
+                "/rest/v1/mobile_push_devices?on_conflict=fcm_token",
+                body.toString(),
+                accessToken,
+                "resolution=merge-duplicates,return=minimal");
+    }
+
+    void deleteMobilePushDevice(String accessToken, String fcmToken) throws Exception {
+        request(
+                "DELETE",
+                "/rest/v1/mobile_push_devices?fcm_token=eq." + encode(fcmToken),
+                null,
+                accessToken,
+                "return=minimal");
     }
 
     List<Reminder> fetchReminders(String accessToken, Instant from, Instant to) throws Exception {
@@ -44,7 +96,8 @@ final class SupabaseClient {
                 + "&remind_at=gte." + encode(from.toString())
                 + "&remind_at=lte." + encode(to.toString())
                 + "&order=remind_at.asc";
-        JSONArray rows = new JSONArray(request("GET", path, null, accessToken));
+        String text = request("GET", path, null, accessToken);
+        JSONArray rows = new JSONArray(text);
         List<Reminder> result = new ArrayList<>();
         for (int i = 0; i < rows.length(); i++) {
             JSONObject row = rows.getJSONObject(i);
@@ -52,13 +105,19 @@ final class SupabaseClient {
             String description = task == null ? "Задача" : task.optString("description", "Задача");
             String status = task == null ? "" : task.optString("status", "");
             boolean completed = task == null || "completed".equals(status) || !task.isNull("completed_at");
-            result.add(new Reminder(row.getString("id"), row.getString("task_id"), Instant.parse(row.getString("remind_at")), description, completed));
+            result.add(new Reminder(
+                    row.getString("id"),
+                    row.getString("task_id"),
+                    Instant.parse(row.getString("remind_at")),
+                    description,
+                    completed));
         }
         return result;
     }
 
     private AuthSession authRequest(String path, JSONObject body, String email) throws Exception {
-        JSONObject json = new JSONObject(request("POST", path, body.toString(), null));
+        String text = request("POST", path, body.toString(), null);
+        JSONObject json = new JSONObject(text);
         String access = json.optString("access_token", null);
         String refresh = json.optString("refresh_token", null);
         if (access == null || refresh == null) throw new IOException("Supabase не върна валидна сесия.");
@@ -66,17 +125,30 @@ final class SupabaseClient {
     }
 
     private String request(String method, String path, String body, String accessToken) throws Exception {
-        HttpURLConnection c = (HttpURLConnection) new URL(BASE_URL + path).openConnection();
-        c.setConnectTimeout(15000); c.setReadTimeout(20000); c.setRequestMethod(method);
-        c.setRequestProperty("apikey", API_KEY); c.setRequestProperty("Accept", "application/json");
-        if (accessToken != null) c.setRequestProperty("Authorization", "Bearer " + accessToken);
+        return request(method, path, body, accessToken, null);
+    }
+
+    private String request(String method, String path, String body, String accessToken, String prefer) throws Exception {
+        HttpURLConnection connection = (HttpURLConnection) new URL(BASE_URL + path).openConnection();
+        connection.setConnectTimeout(15_000);
+        connection.setReadTimeout(20_000);
+        connection.setRequestMethod(method);
+        connection.setRequestProperty("apikey", API_KEY);
+        connection.setRequestProperty("Accept", "application/json");
+        if (accessToken != null) connection.setRequestProperty("Authorization", "Bearer " + accessToken);
+        if (prefer != null) connection.setRequestProperty("Prefer", prefer);
         if (body != null) {
-            c.setDoOutput(true); c.setRequestProperty("Content-Type", "application/json; charset=utf-8");
-            try (OutputStream out = c.getOutputStream()) { out.write(body.getBytes(StandardCharsets.UTF_8)); }
+            connection.setDoOutput(true);
+            connection.setRequestProperty("Content-Type", "application/json; charset=utf-8");
+            try (OutputStream output = connection.getOutputStream()) {
+                output.write(body.getBytes(StandardCharsets.UTF_8));
+            }
         }
-        int code = c.getResponseCode();
-        InputStream stream = code >= 200 && code < 300 ? c.getInputStream() : c.getErrorStream();
-        String text = readAll(stream); c.disconnect();
+
+        int code = connection.getResponseCode();
+        InputStream stream = code >= 200 && code < 300 ? connection.getInputStream() : connection.getErrorStream();
+        String text = readAll(stream);
+        connection.disconnect();
         if (code < 200 || code >= 300) {
             String message = "Грешка при връзка със Supabase (" + code + ").";
             try {
@@ -93,14 +165,18 @@ final class SupabaseClient {
     private static String readAll(InputStream stream) throws IOException {
         if (stream == null) return "";
         StringBuilder result = new StringBuilder();
-        try (BufferedReader r = new BufferedReader(new InputStreamReader(stream, StandardCharsets.UTF_8))) {
-            String line; while ((line = r.readLine()) != null) result.append(line);
+        try (BufferedReader reader = new BufferedReader(new InputStreamReader(stream, StandardCharsets.UTF_8))) {
+            String line;
+            while ((line = reader.readLine()) != null) result.append(line);
         }
         return result.toString();
     }
 
     private static String encode(String value) {
-        try { return URLEncoder.encode(value, StandardCharsets.UTF_8.name()).replace("+", "%20"); }
-        catch (Exception e) { throw new IllegalStateException(e); }
+        try {
+            return URLEncoder.encode(value, StandardCharsets.UTF_8.name()).replace("+", "%20");
+        } catch (Exception impossible) {
+            throw new IllegalStateException(impossible);
+        }
     }
 }
