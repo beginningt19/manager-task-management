@@ -88,6 +88,43 @@ const getSpeechRecognitionConstructor = (): SpeechRecognitionConstructor | null 
   return speechWindow.SpeechRecognition || speechWindow.webkitSpeechRecognition || null
 }
 
+const bulgarianVoiceCommands: ReadonlyArray<readonly [string, string]> = [
+  ['точка и запетая', ';'],
+  ['въпросителен знак', '?'],
+  ['удивителен знак', '!'],
+  ['двоеточие', ':'],
+  ['запетая', ','],
+  ['точка', '.'],
+  ['тире', ' - '],
+  ['нов ред', '\n'],
+]
+
+const escapeRegExp = (value: string) => value.replace(/[.*+?^${}()|[\]\\]/g, '\\const getSpeechRecognitionConstructor = (): SpeechRecognitionConstructor | null => {
+  const speechWindow = window as typeof window & {
+    SpeechRecognition?: SpeechRecognitionConstructor
+    webkitSpeechRecognition?: SpeechRecognitionConstructor
+  }
+  return speechWindow.SpeechRecognition || speechWindow.webkitSpeechRecognition || null
+}
+')
+
+const applyBulgarianVoiceCommands = (value: string) => {
+  let next = ` ${value} `
+
+  bulgarianVoiceCommands.forEach(([spoken, replacement]) => {
+    const pattern = new RegExp(`\\s+${escapeRegExp(spoken)}(?=\\s|$)`, 'giu')
+    next = next.replace(pattern, replacement)
+  })
+
+  return next
+    .replace(/[ \t]+([,.;:?!])/g, '$1')
+    .replace(/([,.;:?!])(?=\S)/g, '$1 ')
+    .replace(/[ \t]*\n[ \t]*/g, '\n')
+    .replace(/[ \t]{2,}/g, ' ')
+    .replace(/^[ \t]+/, '')
+    .replace(/[ \t]+$/, '')
+}
+
 const taskCategoryOrder: TaskCategory[] = ['open', 'active', 'approval', 'overdue', 'completed']
 const taskCategoryMeta: Record<TaskCategory, { label: string; tone: string; icon: string }> = {
   open: { label: 'Отворени', tone: 'teal', icon: '□' },
@@ -1134,12 +1171,9 @@ function CreateTaskModal({
       }
 
       if (finalText) {
-        setDescription((current) => {
-          const prefix = current.trim()
-          return prefix ? `${prefix} ${finalText}` : finalText
-        })
+        setDescription((current) => applyBulgarianVoiceCommands(current ? `${current} ${finalText}` : finalText))
       }
-      setVoiceInterim(interimText)
+      setVoiceInterim(applyBulgarianVoiceCommands(interimText))
     }
 
     recognition.onerror = (event) => {
