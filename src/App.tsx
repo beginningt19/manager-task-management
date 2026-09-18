@@ -124,9 +124,11 @@ const bulgarianCardinalNumbers: Record<string, number> = {
   'петнадесет': 15, 'петнайсет': 15, 'шестнадесет': 16, 'шестнайсет': 16,
   'седемнадесет': 17, 'седемнайсет': 17, 'осемнадесет': 18, 'осемнайсет': 18,
   'деветнадесет': 19, 'деветнайсет': 19, 'двадесет': 20, 'двайсет': 20,
-  'тридесет': 30, 'трийсет': 30, 'четиридесет': 40, 'петдесет': 50,
-  'шестдесет': 60, 'шейсет': 60, 'седемдесет': 70, 'осемдесет': 80, 'деветдесет': 90,
-  'сто': 100, 'двеста': 200, 'триста': 300, 'четиристотин': 400, 'петстотин': 500,
+  'тридесет': 30, 'трийсет': 30, 'четиридесет': 40, 'четирсет': 40, 'четирсе': 40,
+  'петдесет': 50, 'пейсе': 50, 'шестдесет': 60, 'шейсет': 60,
+  'седемдесет': 70, 'седемсе': 70, 'осемдесет': 80, 'осемсе': 80,
+  'деветдесет': 90, 'деветсе': 90,
+  'сто': 100, 'двеста': 200, 'триста': 300, 'четиристотин': 400, 'четристотин': 400, 'петстотин': 500,
   'шестстотин': 600, 'седемстотин': 700, 'осемстотин': 800, 'деветстотин': 900,
 }
 
@@ -165,6 +167,7 @@ const isBulgarianNumberLexeme = (word: string) =>
   Object.prototype.hasOwnProperty.call(bulgarianCardinalNumbers, word)
   || Object.prototype.hasOwnProperty.call(bulgarianOrdinalNumbers, word)
   || Object.prototype.hasOwnProperty.call(bulgarianNumberScales, word)
+  || word === 'стотин'
   || bulgarianDecimalMarkers.has(word)
 
 const parseBulgarianIntegerWords = (words: string[]): string | null => {
@@ -186,6 +189,12 @@ const parseBulgarianIntegerWords = (words: string[]): string | null => {
     const direct = bulgarianCardinalNumbers[word] ?? bulgarianOrdinalNumbers[word]
     if (direct !== undefined) {
       current += direct
+      sawNumber = true
+      continue
+    }
+
+    if (word === 'стотин') {
+      current = (current || 1) * 100
       sawNumber = true
       continue
     }
