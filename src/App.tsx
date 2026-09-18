@@ -2,6 +2,11 @@ import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent } fro
 import type { Session } from '@supabase/supabase-js'
 import { supabase, configurationError } from './lib/supabase'
 import ChecklistDrawer from './ChecklistDrawer'
+import silk85_01 from './manager-bg/silk85_01'
+import silk85_02 from './manager-bg/silk85_02'
+import silk85_03 from './manager-bg/silk85_03'
+import silk85_04 from './manager-bg/silk85_04'
+import silk85_05 from './manager-bg/silk85_05'
 import {
   approvalLabels,
   bulgarianDateKey,
@@ -33,6 +38,8 @@ import type {
 type Toast = { tone: 'success' | 'error'; message: string }
 type DetailTab = 'progress' | 'files' | 'approvals' | 'activity'
 type CreateMode = 'team' | 'personal'
+
+const MANAGER_SILK_BACKGROUND = `data:image/webp;base64,${silk85_01}${silk85_02}${silk85_03}${silk85_04}${silk85_05}`
 type ManagerVisibilityMode = 'all' | 'own'
 type DashboardView = 'list' | 'calendar'
 type TaskCategory = 'open' | 'active' | 'approval' | 'overdue' | 'completed'
@@ -885,226 +892,145 @@ function AmbientBackground({ className = '' }: { className?: string }) {
   return (
     <div className={`ambient-background manager-ambient manager-silk-background ${className}`.trim()} aria-hidden="true">
       <svg
-        className="manager-silk-svg"
-        viewBox="0 0 1600 900"
+        className="manager-silk-live"
+        viewBox="0 0 1672 941"
         preserveAspectRatio="xMidYMid slice"
         xmlns="http://www.w3.org/2000/svg"
       >
         <defs>
-          <linearGradient id="silk-bg" x1="0" y1="0" x2="1" y2="1">
-            <stop offset="0" stopColor="#f7f5f1" />
-            <stop offset=".48" stopColor="#eef1f4" />
-            <stop offset="1" stopColor="#dfe7ef" />
-          </linearGradient>
+          <mask id="silk-mask-upper" maskUnits="userSpaceOnUse" x="0" y="0" width="1672" height="941">
+            <rect width="1672" height="941" fill="black" />
+            <path
+              d="M720 -40 H1712 V660 C1510 645 1405 574 1260 558 C1095 540 1000 600 850 590 C772 585 720 558 684 520 C760 438 835 382 902 305 C1010 182 1048 68 1114 -40 Z"
+              fill="white"
+            />
+          </mask>
 
-          <linearGradient id="silk-pearl" x1="0" y1="0" x2="1" y2="1">
-            <stop offset="0" stopColor="#ffffff" />
-            <stop offset=".36" stopColor="#f2eee8" />
-            <stop offset=".68" stopColor="#cfd5dc" />
-            <stop offset="1" stopColor="#f9fbfd" />
-          </linearGradient>
+          <mask id="silk-mask-middle" maskUnits="userSpaceOnUse" x="0" y="0" width="1672" height="941">
+            <rect width="1672" height="941" fill="black" />
+            <path
+              d="M-80 360 C190 300 332 530 520 586 C716 645 846 610 995 560 C1170 502 1340 410 1750 330 V790 C1435 736 1238 736 1042 786 C808 846 630 848 440 750 C265 660 124 560 -80 570 Z"
+              fill="white"
+            />
+          </mask>
 
-          <linearGradient id="silk-pearl-bright" x1=".05" y1="0" x2=".95" y2="1">
-            <stop offset="0" stopColor="#ffffff" />
-            <stop offset=".5" stopColor="#f5f0e9" />
-            <stop offset="1" stopColor="#b9c4d0" />
-          </linearGradient>
+          <mask id="silk-mask-lower" maskUnits="userSpaceOnUse" x="0" y="0" width="1672" height="941">
+            <rect width="1672" height="941" fill="black" />
+            <path
+              d="M-80 500 C170 510 354 692 548 760 C754 832 936 842 1124 770 C1320 695 1454 612 1750 600 V1000 H-80 Z"
+              fill="white"
+            />
+          </mask>
 
-          <linearGradient id="silk-blue" x1="0" y1=".2" x2="1" y2=".8">
-            <stop offset="0" stopColor="#e7edf4" />
-            <stop offset=".45" stopColor="#c2ceda" />
-            <stop offset=".72" stopColor="#9eafc0" />
-            <stop offset="1" stopColor="#dce6f0" />
-          </linearGradient>
-
-          <linearGradient id="silk-blue-deep" x1=".1" y1="0" x2=".9" y2="1">
-            <stop offset="0" stopColor="#cbd7e2" />
-            <stop offset=".5" stopColor="#91a3b5" />
-            <stop offset="1" stopColor="#e5edf5" />
-          </linearGradient>
-
-          <linearGradient id="silk-sheen" x1="0" y1="0" x2="1" y2="0">
-            <stop offset="0" stopColor="#ffffff" stopOpacity="0" />
-            <stop offset=".46" stopColor="#ffffff" stopOpacity=".05" />
-            <stop offset=".54" stopColor="#ffffff" stopOpacity=".72">
-              <animate attributeName="stop-opacity" values=".32;.78;.32" dur="9s" repeatCount="indefinite" />
-            </stop>
-            <stop offset=".62" stopColor="#ffffff" stopOpacity=".04" />
-            <stop offset="1" stopColor="#ffffff" stopOpacity="0" />
-          </linearGradient>
-
-          <filter id="silk-shadow" x="-20%" y="-30%" width="140%" height="170%">
-            <feGaussianBlur stdDeviation="18" />
+          <filter id="silk-flow-upper" x="-8%" y="-10%" width="116%" height="120%" colorInterpolationFilters="sRGB">
+            <feTurbulence type="fractalNoise" baseFrequency="0.006 0.014" numOctaves="2" seed="7" result="noise">
+              <animate
+                attributeName="baseFrequency"
+                values="0.006 0.014;0.011 0.021;0.004 0.017;0.006 0.014"
+                dur="7.5s"
+                repeatCount="indefinite"
+              />
+            </feTurbulence>
+            <feDisplacementMap in="SourceGraphic" in2="noise" scale="20" xChannelSelector="R" yChannelSelector="B">
+              <animate attributeName="scale" values="15;34;23;15" dur="7.5s" repeatCount="indefinite" />
+            </feDisplacementMap>
           </filter>
 
-          <filter id="silk-soft-shadow" x="-15%" y="-25%" width="130%" height="150%">
-            <feGaussianBlur stdDeviation="8" />
+          <filter id="silk-flow-middle" x="-8%" y="-12%" width="116%" height="124%" colorInterpolationFilters="sRGB">
+            <feTurbulence type="fractalNoise" baseFrequency="0.004 0.012" numOctaves="2" seed="13" result="noise">
+              <animate
+                attributeName="baseFrequency"
+                values="0.004 0.012;0.009 0.018;0.005 0.009;0.004 0.012"
+                dur="9s"
+                repeatCount="indefinite"
+              />
+            </feTurbulence>
+            <feDisplacementMap in="SourceGraphic" in2="noise" scale="24" xChannelSelector="B" yChannelSelector="R">
+              <animate attributeName="scale" values="18;40;26;18" dur="9s" repeatCount="indefinite" />
+            </feDisplacementMap>
           </filter>
+
+          <filter id="silk-flow-lower" x="-8%" y="-12%" width="116%" height="124%" colorInterpolationFilters="sRGB">
+            <feTurbulence type="fractalNoise" baseFrequency="0.005 0.010" numOctaves="2" seed="21" result="noise">
+              <animate
+                attributeName="baseFrequency"
+                values="0.005 0.010;0.010 0.015;0.004 0.012;0.005 0.010"
+                dur="10.5s"
+                repeatCount="indefinite"
+              />
+            </feTurbulence>
+            <feDisplacementMap in="SourceGraphic" in2="noise" scale="22" xChannelSelector="G" yChannelSelector="B">
+              <animate attributeName="scale" values="16;36;25;16" dur="10.5s" repeatCount="indefinite" />
+            </feDisplacementMap>
+          </filter>
+
+          <linearGradient id="silk-moving-light" x1="0" y1="0" x2="1" y2="0">
+            <stop offset="0" stopColor="white" stopOpacity="0" />
+            <stop offset=".42" stopColor="white" stopOpacity="0" />
+            <stop offset=".52" stopColor="white" stopOpacity=".55" />
+            <stop offset=".61" stopColor="white" stopOpacity=".03" />
+            <stop offset="1" stopColor="white" stopOpacity="0" />
+            <animate attributeName="x1" values="-1;.65;-1" dur="8s" repeatCount="indefinite" />
+            <animate attributeName="x2" values="0;1.65;0" dur="8s" repeatCount="indefinite" />
+          </linearGradient>
         </defs>
 
-        <rect width="1600" height="900" fill="url(#silk-bg)" />
+        <image
+          href={MANAGER_SILK_BACKGROUND}
+          x="0"
+          y="0"
+          width="1672"
+          height="941"
+          preserveAspectRatio="xMidYMid slice"
+        />
+
+        <image
+          className="manager-silk-motion-layer manager-silk-motion-upper"
+          href={MANAGER_SILK_BACKGROUND}
+          x="0"
+          y="0"
+          width="1672"
+          height="941"
+          preserveAspectRatio="xMidYMid slice"
+          mask="url(#silk-mask-upper)"
+          filter="url(#silk-flow-upper)"
+          opacity=".82"
+        />
+
+        <image
+          className="manager-silk-motion-layer manager-silk-motion-middle"
+          href={MANAGER_SILK_BACKGROUND}
+          x="0"
+          y="0"
+          width="1672"
+          height="941"
+          preserveAspectRatio="xMidYMid slice"
+          mask="url(#silk-mask-middle)"
+          filter="url(#silk-flow-middle)"
+          opacity=".78"
+        />
+
+        <image
+          className="manager-silk-motion-layer manager-silk-motion-lower"
+          href={MANAGER_SILK_BACKGROUND}
+          x="0"
+          y="0"
+          width="1672"
+          height="941"
+          preserveAspectRatio="xMidYMid slice"
+          mask="url(#silk-mask-lower)"
+          filter="url(#silk-flow-lower)"
+          opacity=".72"
+        />
 
         <path
-          className="silk-shadow silk-shadow-lower"
-          d="M-100 650 C250 520 410 760 700 690 C980 620 1080 470 1710 520 L1710 940 L-100 940 Z"
-          fill="#71879b"
-          opacity=".17"
-          filter="url(#silk-shadow)"
-        >
-          <animate
-            attributeName="d"
-            dur="20s"
-            repeatCount="indefinite"
-            values="
-              M-100 650 C250 520 410 760 700 690 C980 620 1080 470 1710 520 L1710 940 L-100 940 Z;
-              M-100 660 C250 500 430 745 710 676 C965 614 1115 488 1710 504 L1710 940 L-100 940 Z;
-              M-100 650 C250 520 410 760 700 690 C980 620 1080 470 1710 520 L1710 940 L-100 940 Z"
-          />
-        </path>
-
-        <path
-          className="silk-wave silk-wave-blue"
-          d="M-80 610 C220 495 375 675 610 672 C890 667 1015 500 1260 505 C1425 509 1510 575 1690 540 L1690 930 L-80 930 Z"
-          fill="url(#silk-blue)"
-        >
-          <animate
-            attributeName="d"
-            dur="18s"
-            repeatCount="indefinite"
-            values="
-              M-80 610 C220 495 375 675 610 672 C890 667 1015 500 1260 505 C1425 509 1510 575 1690 540 L1690 930 L-80 930 Z;
-              M-80 623 C210 505 390 650 620 660 C905 671 1020 480 1270 496 C1440 507 1520 556 1690 528 L1690 930 L-80 930 Z;
-              M-80 610 C220 495 375 675 610 672 C890 667 1015 500 1260 505 C1425 509 1510 575 1690 540 L1690 930 L-80 930 Z"
-          />
-        </path>
-
-        <path
-          className="silk-wave silk-wave-blue-deep"
-          d="M-100 760 C205 620 405 790 680 734 C970 674 1020 566 1280 565 C1455 564 1530 625 1710 588 L1710 950 L-100 950 Z"
-          fill="url(#silk-blue-deep)"
-          opacity=".88"
-        >
-          <animate
-            attributeName="d"
-            dur="22s"
-            repeatCount="indefinite"
-            values="
-              M-100 760 C205 620 405 790 680 734 C970 674 1020 566 1280 565 C1455 564 1530 625 1710 588 L1710 950 L-100 950 Z;
-              M-100 748 C220 635 420 776 686 722 C956 668 1044 550 1288 557 C1458 562 1540 610 1710 575 L1710 950 L-100 950 Z;
-              M-100 760 C205 620 405 790 680 734 C970 674 1020 566 1280 565 C1455 564 1530 625 1710 588 L1710 950 L-100 950 Z"
-          />
-        </path>
-
-        <path
-          className="silk-shadow silk-shadow-middle"
-          d="M-80 498 C240 355 360 635 650 566 C910 505 975 365 1235 313 C1440 272 1555 332 1700 250"
+          d="M-120 600 C210 425 375 660 600 652 C860 644 1010 500 1250 476 C1450 457 1560 500 1790 390"
           fill="none"
-          stroke="#697b8d"
-          strokeWidth="62"
-          strokeLinecap="round"
-          opacity=".13"
-          filter="url(#silk-shadow)"
-        >
-          <animate
-            attributeName="d"
-            dur="19s"
-            repeatCount="indefinite"
-            values="
-              M-80 498 C240 355 360 635 650 566 C910 505 975 365 1235 313 C1440 272 1555 332 1700 250;
-              M-80 510 C225 365 385 615 660 552 C915 494 1000 350 1244 302 C1442 263 1565 316 1700 238;
-              M-80 498 C240 355 360 635 650 566 C910 505 975 365 1235 313 C1440 272 1555 332 1700 250"
-          />
-        </path>
-
-        <path
-          className="silk-wave silk-wave-pearl"
-          d="M-90 460 C230 320 350 610 638 542 C870 488 950 350 1165 270 C1375 192 1500 225 1700 110 L1700 -60 L1040 -60 C970 115 940 235 810 343 C655 474 495 486 355 430 C205 368 95 350 -90 455 Z"
-          fill="url(#silk-pearl)"
-        >
-          <animate
-            attributeName="d"
-            dur="17s"
-            repeatCount="indefinite"
-            values="
-              M-90 460 C230 320 350 610 638 542 C870 488 950 350 1165 270 C1375 192 1500 225 1700 110 L1700 -60 L1040 -60 C970 115 940 235 810 343 C655 474 495 486 355 430 C205 368 95 350 -90 455 Z;
-              M-90 472 C215 326 370 590 648 528 C875 478 970 336 1175 258 C1380 181 1510 210 1700 96 L1700 -60 L1040 -60 C966 124 925 240 800 350 C645 487 490 500 345 442 C195 382 82 360 -90 468 Z;
-              M-90 460 C230 320 350 610 638 542 C870 488 950 350 1165 270 C1375 192 1500 225 1700 110 L1700 -60 L1040 -60 C970 115 940 235 810 343 C655 474 495 486 355 430 C205 368 95 350 -90 455 Z"
-          />
-        </path>
-
-        <path
-          className="silk-wave silk-wave-pearl-top"
-          d="M610 508 C820 442 945 330 1030 190 C1105 64 1130 -20 1185 -90 L1710 -90 L1710 260 C1495 390 1335 372 1190 405 C988 451 865 548 610 594 Z"
-          fill="url(#silk-pearl-bright)"
-          opacity=".94"
-        >
-          <animate
-            attributeName="d"
-            dur="21s"
-            repeatCount="indefinite"
-            values="
-              M610 508 C820 442 945 330 1030 190 C1105 64 1130 -20 1185 -90 L1710 -90 L1710 260 C1495 390 1335 372 1190 405 C988 451 865 548 610 594 Z;
-              M600 521 C812 449 960 323 1042 181 C1113 58 1144 -24 1197 -90 L1710 -90 L1710 246 C1508 381 1342 361 1197 396 C985 447 850 552 600 607 Z;
-              M610 508 C820 442 945 330 1030 190 C1105 64 1130 -20 1185 -90 L1710 -90 L1710 260 C1495 390 1335 372 1190 405 C988 451 865 548 610 594 Z"
-          />
-        </path>
-
-        <path
-          className="silk-edge silk-edge-pearl"
-          d="M-60 470 C235 332 360 598 640 536 C875 485 963 344 1170 268 C1382 190 1502 216 1690 108"
-          fill="none"
-          stroke="rgba(255,255,255,.84)"
-          strokeWidth="4"
-          filter="url(#silk-soft-shadow)"
-        >
-          <animate
-            attributeName="d"
-            dur="17s"
-            repeatCount="indefinite"
-            values="
-              M-60 470 C235 332 360 598 640 536 C875 485 963 344 1170 268 C1382 190 1502 216 1690 108;
-              M-60 481 C220 338 380 580 650 522 C880 476 982 330 1180 256 C1388 180 1512 202 1690 94;
-              M-60 470 C235 332 360 598 640 536 C875 485 963 344 1170 268 C1382 190 1502 216 1690 108"
-          />
-        </path>
-
-        <path
-          className="silk-edge silk-edge-blue"
-          d="M-60 617 C225 505 385 664 615 663 C890 661 1022 500 1260 505 C1432 509 1515 568 1680 540"
-          fill="none"
-          stroke="rgba(241,247,253,.72)"
-          strokeWidth="3"
-        >
-          <animate
-            attributeName="d"
-            dur="18s"
-            repeatCount="indefinite"
-            values="
-              M-60 617 C225 505 385 664 615 663 C890 661 1022 500 1260 505 C1432 509 1515 568 1680 540;
-              M-60 629 C215 514 399 642 625 651 C905 663 1027 481 1270 496 C1445 506 1523 550 1680 528;
-              M-60 617 C225 505 385 664 615 663 C890 661 1022 500 1260 505 C1432 509 1515 568 1680 540"
-          />
-        </path>
-
-        <path
-          className="silk-sheen"
-          d="M-100 520 C250 365 385 635 665 565 C930 500 1010 360 1240 300 C1450 245 1550 290 1710 205"
-          fill="none"
-          stroke="url(#silk-sheen)"
+          stroke="url(#silk-moving-light)"
           strokeWidth="34"
           strokeLinecap="round"
-          opacity=".55"
-        >
-          <animate
-            attributeName="d"
-            dur="19s"
-            repeatCount="indefinite"
-            values="
-              M-100 520 C250 365 385 635 665 565 C930 500 1010 360 1240 300 C1450 245 1550 290 1710 205;
-              M-100 530 C235 375 405 617 674 552 C932 489 1030 345 1248 289 C1454 236 1560 274 1710 192;
-              M-100 520 C250 365 385 635 665 565 C930 500 1010 360 1240 300 C1450 245 1550 290 1710 205"
-          />
-        </path>
+          opacity=".42"
+        />
       </svg>
       <span className="manager-silk-veil" />
     </div>
