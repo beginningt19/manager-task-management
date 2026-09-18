@@ -344,7 +344,7 @@ export default function MessagingMailbox({ userId, profiles, onResult }: Props) 
                                 <span className="mailbox-recipient-avatar">{person.display_name.split(/\s+/).map((part) => part[0]).slice(0, 2).join('').toUpperCase()}</span>
                                 <span>
                                   <strong>{person.display_name}</strong>
-                                  <small>{person.role === 'manager' ? 'Управител' : 'Администрация'}</small>
+                                  <small>{person.display_role || (person.role === 'manager' ? 'Мениджър' : 'Модератор')}</small>
                                 </span>
                               </label>
                             ))}
