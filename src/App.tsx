@@ -1461,10 +1461,23 @@ function CreateTaskModal({
       }
       const taskId = data as string
       if (calendarYearAhead) {
-        const { error: calendarProjectionError } = await supabase.rpc('set_task_recurrence_calendar_year_ahead', {
-          p_task_id: taskId,
-          p_enabled: true,
-        })
+        const { data: recurrenceTask, error: recurrenceLookupError } = await supabase
+          .from('tasks')
+          .select('recurrence_id')
+          .eq('id', taskId)
+          .single()
+
+        if (recurrenceLookupError || !recurrenceTask?.recurrence_id) {
+          setBusy(false)
+          await onRecurringCreated(taskId, false)
+          onError(`Задачата е създадена, но календарът за 1 година напред не беше активиран: ${recurrenceLookupError?.message || 'Липсва recurrence ID.'}`)
+          return
+        }
+
+        const { error: calendarProjectionError } = await supabase
+          .from('task_recurrences')
+          .update({ calendar_year_ahead: true })
+          .eq('id', recurrenceTask.recurrence_id)
 
         if (calendarProjectionError) {
           setBusy(false)
