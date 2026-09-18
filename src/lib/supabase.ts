@@ -9,10 +9,16 @@ export const configurationError =
     : null
 
 const managerAuthStorageKey = 'yavlena-manager-auth'
+const legacySupabaseStorageKey = 'sb-xrcvfzqwhqtoljfxgxgr-auth-token'
 
 const browserStorage = typeof window !== 'undefined'
   ? window.localStorage
   : undefined
+
+if (browserStorage && !browserStorage.getItem(managerAuthStorageKey)) {
+  const legacySession = browserStorage.getItem(legacySupabaseStorageKey)
+  if (legacySession) browserStorage.setItem(managerAuthStorageKey, legacySession)
+}
 
 // Keep a stable, explicit localStorage key so the Manager session survives
 // tab closes, browser restarts and PWA re-opens until the user signs out.
