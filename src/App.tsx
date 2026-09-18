@@ -884,16 +884,10 @@ function App() {
 function AmbientBackground({ className = '' }: { className?: string }) {
   return (
     <div className={`ambient-background manager-ambient ${className}`.trim()} aria-hidden="true">
-      <span className="manager-grid" />
-      <span className="manager-streak streak-one" />
-      <span className="manager-streak streak-two" />
-      <span className="manager-streak streak-three" />
-      <span className="manager-pulse pulse-one" />
-      <span className="manager-pulse pulse-two" />
-      <span className="manager-node manager-node-one" />
-      <span className="manager-node manager-node-two" />
-      <span className="manager-node manager-node-three" />
-      <span className="manager-node manager-node-four" />
+      <span className="manager-soft-image" />
+      <span className="manager-soft-wash" />
+      <span className="manager-soft-glow manager-soft-glow-one" />
+      <span className="manager-soft-glow manager-soft-glow-two" />
     </div>
   )
 }
