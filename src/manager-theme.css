@@ -1371,3 +1371,24 @@ button.stat-card.green.active {
   from { transform: translate3d(-14px, -12px, 0); }
   to { transform: translate3d(18px, 14px, 0); }
 }
+
+
+/* FORCE MANAGER BACKGROUND MOTION
+   This background is intentionally animated by product design. */
+@media (prefers-reduced-motion: reduce) {
+  .manager-soft-image {
+    animation-name: manager-soft-natural-float !important;
+    animation-duration: 14s !important;
+    animation-timing-function: ease-in-out !important;
+    animation-iteration-count: infinite !important;
+    animation-direction: alternate !important;
+  }
+
+  .manager-soft-wash {
+    animation-name: manager-soft-wash-breathe !important;
+    animation-duration: 10s !important;
+    animation-timing-function: ease-in-out !important;
+    animation-iteration-count: infinite !important;
+    animation-direction: alternate !important;
+  }
+}
