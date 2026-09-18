@@ -365,13 +365,15 @@ function App() {
               )}
             </div>
           )}
-          <div className="hero-art" aria-hidden="true">
-            <span className="hero-orbit orbit-outer" />
-            <span className="hero-orbit orbit-inner" />
-            <span className="hero-core">✓</span>
-            <span className="hero-node node-one" />
-            <span className="hero-node node-two" />
-            <span className="hero-node node-three" />
+          <div className="hero-art manager-hero-art" aria-hidden="true">
+            <span className="hero-signal signal-a" />
+            <span className="hero-signal signal-b" />
+            <span className="hero-signal signal-c" />
+            <span className="hero-data-bar bar-a" />
+            <span className="hero-data-bar bar-b" />
+            <span className="hero-data-bar bar-c" />
+            <span className="hero-data-bar bar-d" />
+            <span className="hero-data-label">CONTROL</span>
           </div>
         </section>
 
@@ -528,18 +530,17 @@ function App() {
 
 function AmbientBackground({ className = '' }: { className?: string }) {
   return (
-    <div className={`ambient-background ${className}`.trim()} aria-hidden="true">
-      <span className="ambient-orb orb-one" />
-      <span className="ambient-orb orb-two" />
-      <span className="ambient-orb orb-three" />
-      <span className="ambient-beam beam-one" />
-      <span className="ambient-beam beam-two" />
-      <span className="ambient-ring ring-one" />
-      <span className="ambient-ring ring-two" />
-      <span className="ambient-spark spark-one" />
-      <span className="ambient-spark spark-two" />
-      <span className="ambient-spark spark-three" />
-      <span className="ambient-spark spark-four" />
+    <div className={`ambient-background manager-ambient ${className}`.trim()} aria-hidden="true">
+      <span className="manager-grid" />
+      <span className="manager-streak streak-one" />
+      <span className="manager-streak streak-two" />
+      <span className="manager-streak streak-three" />
+      <span className="manager-pulse pulse-one" />
+      <span className="manager-pulse pulse-two" />
+      <span className="manager-node manager-node-one" />
+      <span className="manager-node manager-node-two" />
+      <span className="manager-node manager-node-three" />
+      <span className="manager-node manager-node-four" />
     </div>
   )
 }
@@ -582,32 +583,56 @@ function Login() {
   }
 
   return (
-    <main className="login-page">
+    <main className="login-page manager-login">
       <AmbientBackground className="login-ambient" />
-      <aside className="login-accent" aria-hidden="true">
-        <div className="login-showcase">
-          <div className="showcase-kicker"><i /> PRIVATE WORKSPACE</div>
-          <span className="showcase-mark">✓</span>
-          <h2>Подредена работа.<br /><em>Ясен напредък.</em></h2>
-          <p>Едно спокойно място за задачи, срокове, файлове и решения на управленския екип.</p>
-          <div className="workflow-preview">
-            <div className="preview-header"><span><i /><i /><i /></span><small>Днешен фокус</small><b>4</b></div>
-            <div className="preview-task"><i className="preview-priority urgent" /><span><strong>Одобрение на документи</strong><small>Днес · 14:30</small></span><b>Спешен</b></div>
-            <div className="preview-task"><i className="preview-priority normal" /><span><strong>Подготовка на справка</strong><small>Утре · 10:00</small></span><b>В процес</b></div>
-            <div className="preview-task"><i className="preview-priority low" /><span><strong>Архивиране на материали</strong><small>Петък · 16:00</small></span><b>Отворена</b></div>
+      <aside className="login-accent manager-login-hero" aria-hidden="true">
+        <div className="executive-showcase">
+          <div className="executive-kicker"><span /> MANAGER CONTROL</div>
+          <div className="executive-title">
+            <small>ЯВЛЕНА · ИЗТОК</small>
+            <h2>Управление без<br /><em>излишен шум.</em></h2>
+            <p>Център за задачи, отговорности, срокове и решения на управленския екип.</p>
           </div>
-          <div className="showcase-meta"><span><i /> 4 служебни акаунта</span><span><i /> Сигурен достъп</span><span><i /> Live updates</span></div>
+
+          <div className="executive-board">
+            <div className="executive-board-head">
+              <span>УПРАВЛЕНСКИ ПУЛС</span>
+              <b>LIVE</b>
+            </div>
+            <div className="executive-metrics">
+              <div><strong>8</strong><small>активни профила</small></div>
+              <div><strong>24/7</strong><small>синхронизация</small></div>
+              <div><strong>1</strong><small>общ контролен център</small></div>
+            </div>
+            <div className="executive-flow">
+              <span className="flow-line" />
+              <i className="flow-dot dot-a" />
+              <i className="flow-dot dot-b" />
+              <i className="flow-dot dot-c" />
+              <i className="flow-dot dot-d" />
+              <div className="flow-label label-a"><b>ЗАДАЧА</b><small>Възлагане</small></div>
+              <div className="flow-label label-b"><b>КОНТРОЛ</b><small>Проследяване</small></div>
+              <div className="flow-label label-c"><b>РЕШЕНИЕ</b><small>Одобрение</small></div>
+            </div>
+          </div>
+
+          <div className="executive-meta">
+            <span>Роли и права</span>
+            <span>Мобилни известия</span>
+            <span>История на действията</span>
+          </div>
         </div>
       </aside>
-      <section className="login-card">
-        <span className="login-secure-chip"><i /> Защитена вътрешна среда</span>
+
+      <section className="login-card manager-login-card">
+        <span className="manager-login-badge">ВЪТРЕШНА УПРАВЛЕНСКА СИСТЕМА</span>
         <div className="brand login-brand">
-          <span className="brand-mark">✓</span>
-          <div><strong>Управленски задачи</strong><small>Вътрешна система</small></div>
+          <span className="brand-mark">M</span>
+          <div><strong>Manager Task Management</strong><small>Явлена · Изток</small></div>
         </div>
-        <p className="eyebrow">Добре дошли</p>
-        <h1>Вход в системата</h1>
-        <p className="login-intro">Използвайте служебния акаунт, създаден от управителя.</p>
+        <p className="eyebrow">Служебен достъп</p>
+        <h1>Вход в управлението</h1>
+        <p className="login-intro">Влезте с личния си служебен акаунт.</p>
         <form onSubmit={submit} className="stack-form">
           <label>Имейл<input type="email" autoComplete="email" required value={email} onChange={(event) => setEmail(event.target.value)} /></label>
           <label>Парола<input type="password" autoComplete="current-password" required value={password} onChange={(event) => setPassword(event.target.value)} /></label>
@@ -616,7 +641,7 @@ function Login() {
           <button className="primary-button full" disabled={busy}>{busy ? 'Влизане…' : 'Вход'}</button>
           <button type="button" className="forgot-button" onClick={() => void resetPassword()} disabled={busy}>Забравена парола?</button>
         </form>
-        <small className="security-note">Достъпът е ограничен до четири служебни акаунта.</small>
+        <small className="security-note">Достъп само за оторизирани служебни профили.</small>
       </section>
     </main>
   )
