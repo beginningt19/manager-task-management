@@ -33,6 +33,7 @@ import type {
 type Toast = { tone: 'success' | 'error'; message: string }
 type DetailTab = 'progress' | 'files' | 'approvals' | 'activity'
 type CreateMode = 'team' | 'personal'
+type ManagerVisibilityMode = 'all' | 'own'
 type DashboardView = 'list' | 'calendar'
 type TaskCategory = 'open' | 'active' | 'approval' | 'overdue' | 'completed'
 type RecurrenceFrequency = 'daily' | 'weekly' | 'monthly'
@@ -186,6 +187,8 @@ function App() {
   const [assigneeFilter, setAssigneeFilter] = useState('all')
   const [overdueOnly, setOverdueOnly] = useState(false)
   const [categoryFocus, setCategoryFocus] = useState<TaskCategory | null>(null)
+  const [managerVisibilityMode, setManagerVisibilityMode] = useState<ManagerVisibilityMode>('all')
+  const [visibilityBusy, setVisibilityBusy] = useState(false)
 
   const showToast = useCallback((next: Toast) => {
     setToast(next)
@@ -196,13 +199,14 @@ function App() {
     if (!session?.user.id) return
     setLoading(true)
 
-    const [profilesResult, tasksResult, assigneesResult] = await Promise.all([
+    const [profilesResult, tasksResult, assigneesResult, visibilityResult] = await Promise.all([
       supabase.from('profiles').select('*').order('display_name'),
       supabase.from('tasks').select('*').order('due_at'),
       supabase.from('task_assignees').select('*'),
+      supabase.from('task_visibility_settings').select('manager_mode').eq('id', 'global').maybeSingle(),
     ])
 
-    const firstError = profilesResult.error || tasksResult.error || assigneesResult.error
+    const firstError = profilesResult.error || tasksResult.error || assigneesResult.error || visibilityResult.error
     if (firstError) {
       showToast({ tone: 'error', message: firstError.message })
       setLoading(false)
@@ -216,6 +220,7 @@ function App() {
 
     setProfiles(nextProfiles)
     setProfile(byId.get(session.user.id) || null)
+    setManagerVisibilityMode((visibilityResult.data?.manager_mode as ManagerVisibilityMode) || 'all')
     setTasks(
       rawTasks.map((task) => ({
         ...task,
@@ -248,6 +253,7 @@ function App() {
       setProfile(null)
       setProfiles([])
       setTasks([])
+      setManagerVisibilityMode('all')
       setLoading(false)
       return
     }
@@ -260,6 +266,7 @@ function App() {
       .channel('core-dashboard')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'tasks' }, loadCore)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'task_assignees' }, loadCore)
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'task_visibility_settings' }, loadCore)
       .subscribe()
     return () => {
       void supabase.removeChannel(channel)
@@ -296,6 +303,29 @@ function App() {
 
   const visibleCategoryKeys: TaskCategory[] = categoryFocus ? [categoryFocus] : taskCategoryOrder
   const visibleListCount = visibleCategoryKeys.reduce((total, category) => total + categorizedTasks[category].length, 0)
+  const canControlManagerVisibility = Boolean(profile && (profile.role === 'admin' || profile.display_role === 'Управител'))
+
+  const toggleManagerVisibility = async () => {
+    if (!canControlManagerVisibility || visibilityBusy) return
+    const nextMode: ManagerVisibilityMode = managerVisibilityMode === 'all' ? 'own' : 'all'
+    setVisibilityBusy(true)
+    const { error } = await supabase.rpc('set_manager_task_visibility', { p_mode: nextMode })
+    setVisibilityBusy(false)
+
+    if (error) {
+      showToast({ tone: 'error', message: error.message })
+      return
+    }
+
+    setManagerVisibilityMode(nextMode)
+    await loadCore()
+    showToast({
+      tone: 'success',
+      message: nextMode === 'all'
+        ? 'Режим 1 е активен: мениджърите виждат всички задачи.'
+        : 'Режим 2 е активен: всеки мениджър вижда само задачите, възложени на него.',
+    })
+  }
 
   const focusTaskCategory = (category: TaskCategory) => {
     setDashboardView('list')
@@ -336,6 +366,20 @@ function App() {
           </div>
         </div>
         <div className="account-area">
+          {canControlManagerVisibility && (
+            <button
+              className={`notification-button manager-visibility-toggle ${managerVisibilityMode === 'own' ? 'own-mode' : 'all-mode'}`}
+              onClick={() => void toggleManagerVisibility()}
+              disabled={visibilityBusy}
+              title={managerVisibilityMode === 'all'
+                ? 'Режим 1: мениджърите виждат всички задачи. Натиснете за режим 2.'
+                : 'Режим 2: мениджърите виждат само своите задачи. Натиснете за режим 1.'}
+              aria-label="Превключи видимостта на задачите за мениджърите"
+            >
+              <i className="visibility-mode-indicator" aria-hidden="true" />
+              <span>{visibilityBusy ? 'Промяна…' : managerVisibilityMode === 'all' ? 'Мениджъри: всички' : 'Мениджъри: само свои'}</span>
+            </button>
+          )}
           <button className={`notification-button checklist-launch${dashboardView === 'calendar' ? ' active' : ''}`} onClick={() => setDashboardView('calendar')} title="Отвори календара">◷<span>Календар</span></button>
           <button className="notification-button checklist-launch" onClick={() => setChecklistsOpen(true)} title="Отвори чеклистите">▦<span>Чеклисти</span></button>
           <PushButton userId={session.user.id} onResult={showToast} />
