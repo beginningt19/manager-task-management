@@ -1013,3 +1013,95 @@ button.stat-card.green.active {
     padding: 0;
   }
 }
+
+
+/* Galina-only voice task input */
+.voice-quick-button {
+  border-color: rgba(147,197,253,.28) !important;
+  background: rgba(255,255,255,.08) !important;
+}
+.voice-quick-button:hover {
+  background: rgba(255,255,255,.15) !important;
+}
+.voice-description-field {
+  gap: 9px !important;
+}
+.voice-description-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.voice-dictation-button {
+  min-height: 34px;
+  padding: 0 12px;
+  border: 1px solid #cbd9f2;
+  border-radius: 10px;
+  background: linear-gradient(180deg,#f8fbff,#eef4ff);
+  color: #2f56a8;
+  font-size: 11px;
+  font-weight: 800;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  box-shadow: 0 5px 14px rgba(53,87,160,.08);
+}
+.voice-dictation-button:hover {
+  border-color: #9db8ec;
+  background: #edf3ff;
+}
+.voice-dictation-button.listening {
+  color: #8f2f45;
+  border-color: #efb7c3;
+  background: #fff2f5;
+  box-shadow: 0 0 0 4px rgba(220,76,111,.07);
+}
+.voice-mic {
+  font-size: 14px;
+  line-height: 1;
+}
+.voice-live-status {
+  min-height: 32px;
+  padding: 7px 10px;
+  border: 1px solid #d6e3f7;
+  border-radius: 10px;
+  background: #f5f8ff;
+  color: #46618f;
+  font-size: 11px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.voice-live-status > i {
+  width: 8px;
+  height: 8px;
+  flex: 0 0 auto;
+  border-radius: 50%;
+  background: #ef5d78;
+  box-shadow: 0 0 0 5px rgba(239,93,120,.09);
+  animation: voice-listening-pulse 1.25s ease-in-out infinite;
+}
+.voice-live-status em {
+  color: #7182a2;
+  font-style: normal;
+  font-weight: 500;
+}
+.voice-help-message {
+  color: #8d5260;
+  font-size: 10px;
+  line-height: 1.45;
+}
+@keyframes voice-listening-pulse {
+  0%,100% { transform: scale(.78); opacity: .55; }
+  50% { transform: scale(1.15); opacity: 1; }
+}
+@media (max-width: 650px) {
+  .voice-description-heading {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+  .voice-dictation-button {
+    width: 100%;
+    justify-content: center;
+  }
+}
