@@ -17,8 +17,10 @@ final class FcmRegistrar {
         try {
             String appId = context.getString(com.yavlena.managertasks.notifier.R.string.google_app_id);
             String senderId = context.getString(com.yavlena.managertasks.notifier.R.string.gcm_defaultSenderId);
+            String apiKey = context.getString(com.yavlena.managertasks.notifier.R.string.google_api_key);
             return appId != null && !appId.trim().isEmpty()
-                    && senderId != null && !senderId.trim().isEmpty();
+                    && senderId != null && !senderId.trim().isEmpty()
+                    && apiKey != null && !apiKey.trim().isEmpty();
         } catch (Exception ignored) {
             return false;
         }
