@@ -471,7 +471,7 @@ function App() {
           mode={createMode}
           initialDueDate={createDueDate}
           profile={profile}
-          people={profiles.filter((person) => person.role === 'admin' && person.is_active)}
+          people={profiles.filter((person) => person.is_active)}
           onClose={() => {
             setCreateMode(null)
             setCreateDueDate(null)
@@ -764,7 +764,7 @@ function CalendarTaskChoice({
           </button>
           <button type="button" onClick={onTeam}>
             <span className="choice-icon team">◫</span>
-            <strong>За администрацията</strong>
+            <strong>За екипа</strong>
             <small>Екипна задача към един, двама или трима души</small>
             <i>Избери хора ›</i>
           </button>
@@ -1262,7 +1262,7 @@ function CreateTaskModal({
                 <span className="avatar small">{initials(person.display_name)}</span>{person.display_name}
               </label>
             ))}
-            {!personal && people.length === 0 && <p className="muted">Модераторските акаунти още не са създадени.</p>}
+            {!personal && people.length === 0 && <p className="muted">Няма други активни служебни профили.</p>}
           </div>
         </fieldset>
         <label className="switch-row"><input type="checkbox" checked={approvalRequired} onChange={(event) => setApprovalRequired(event.target.checked)} /><span>Необходимо е одобрение преди завършване</span></label>
