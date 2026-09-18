@@ -300,6 +300,41 @@ const applyBulgarianNumberWords = (value: string) => {
 const applyBulgarianVoiceFormatting = (value: string) =>
   applyBulgarianNumberWords(applyBulgarianVoiceCommands(value))
 
+
+const normalizeSpeechWord = (word: string) =>
+  word.toLocaleLowerCase('bg-BG').replace(/^[^а-яa-z0-9]+|[^а-яa-z0-9]+$/giu, '')
+
+const mergeSpeechChunks = (chunks: string[]) => {
+  const merged: string[] = []
+
+  chunks
+    .map((chunk) => chunk.trim())
+    .filter(Boolean)
+    .forEach((chunk) => {
+      const incoming = chunk.split(/\s+/)
+      if (!merged.length) {
+        merged.push(...incoming)
+        return
+      }
+
+      const maxOverlap = Math.min(merged.length, incoming.length)
+      let overlap = 0
+
+      for (let size = maxOverlap; size >= 1; size -= 1) {
+        const left = merged.slice(-size).map(normalizeSpeechWord)
+        const right = incoming.slice(0, size).map(normalizeSpeechWord)
+        if (left.every((word, index) => word && word === right[index])) {
+          overlap = size
+          break
+        }
+      }
+
+      merged.push(...incoming.slice(overlap))
+    })
+
+  return merged.join(' ')
+}
+
 const taskCategoryOrder: TaskCategory[] = ['open', 'active', 'approval', 'overdue', 'completed']
 const taskCategoryMeta: Record<TaskCategory, { label: string; tone: string; icon: string }> = {
   open: { label: 'Отворени', tone: 'teal', icon: '□' },
@@ -1312,6 +1347,8 @@ function CreateTaskModal({
   const [voiceInterim, setVoiceInterim] = useState('')
   const [voiceMessage, setVoiceMessage] = useState('')
   const recognitionRef = useRef<SpeechRecognitionLike | null>(null)
+  const voiceBaseDescriptionRef = useRef('')
+  const voiceFinalSegmentsRef = useRef<Map<number, string>>(new Map())
   const personal = mode === 'personal'
   const voiceEnabled = personal && profile.id === GALINA_PROFILE_ID
 
@@ -1340,21 +1377,28 @@ function CreateTaskModal({
     recognition.interimResults = true
 
     recognition.onresult = (event) => {
-      let finalText = ''
-      let interimText = ''
+      const interimChunks: string[] = []
 
       for (let index = event.resultIndex; index < event.results.length; index += 1) {
         const result = event.results[index]
         const transcript = result[0]?.transcript?.trim() || ''
         if (!transcript) continue
-        if (result.isFinal) finalText += `${finalText ? ' ' : ''}${transcript}`
-        else interimText += `${interimText ? ' ' : ''}${transcript}`
+
+        if (result.isFinal) {
+          voiceFinalSegmentsRef.current.set(index, transcript)
+        } else {
+          interimChunks.push(transcript)
+        }
       }
 
-      if (finalText) {
-        setDescription((current) => applyBulgarianVoiceFormatting(current ? `${current} ${finalText}` : finalText))
-      }
-      setVoiceInterim(applyBulgarianVoiceFormatting(interimText))
+      const finalChunks = Array.from(voiceFinalSegmentsRef.current.entries())
+        .sort(([left], [right]) => left - right)
+        .map(([, transcript]) => transcript)
+
+      const mergedFinal = mergeSpeechChunks(finalChunks)
+      const combined = [voiceBaseDescriptionRef.current, mergedFinal].filter(Boolean).join(' ')
+      setDescription(applyBulgarianVoiceFormatting(combined))
+      setVoiceInterim(applyBulgarianVoiceFormatting(mergeSpeechChunks(interimChunks)))
     }
 
     recognition.onerror = (event) => {
@@ -1373,9 +1417,12 @@ function CreateTaskModal({
       setVoiceListening(false)
       setVoiceInterim('')
       recognitionRef.current = null
+      voiceFinalSegmentsRef.current = new Map()
     }
 
     recognitionRef.current = recognition
+    voiceBaseDescriptionRef.current = description.trim()
+    voiceFinalSegmentsRef.current = new Map()
     setVoiceMessage('')
     setVoiceInterim('')
     try {
