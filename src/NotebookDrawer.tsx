@@ -23,6 +23,7 @@ type NotebookEntry = {
   position: number
   created_at: string
   updated_at: string
+  edited_at: string | null
   carried_from_entry_id: string | null
   carried_from_date: string | null
 }
@@ -439,10 +440,17 @@ export default function NotebookDrawer({
   const saveEdit = async (entry: NotebookEntry) => {
     const body = editingText.trim()
     if (!body || busy) return
+
+    if (body === entry.body.trim()) {
+      setEditingId(null)
+      setEditingText('')
+      return
+    }
+
     setBusy(true)
     const { error } = await supabase
       .from('notebook_entries')
-      .update({ body })
+      .update({ body, edited_at: new Date().toISOString() })
       .eq('id', entry.id)
       .eq('user_id', currentUser.id)
     setBusy(false)
@@ -455,6 +463,32 @@ export default function NotebookDrawer({
     setEditingId(null)
     setEditingText('')
     await loadData(true)
+  }
+
+  const deleteEntry = async (entry: NotebookEntry) => {
+    if (busy) return
+    if (!window.confirm('Да изтрия ли тази задача от тефтера?')) return
+
+    setBusy(true)
+    const { error } = await supabase
+      .from('notebook_entries')
+      .delete()
+      .eq('id', entry.id)
+      .eq('user_id', currentUser.id)
+    setBusy(false)
+
+    if (error) {
+      onResult({ tone: 'error', message: `Задачата не беше изтрита: ${error.message}` })
+      return
+    }
+
+    if (editingId === entry.id) {
+      setEditingId(null)
+      setEditingText('')
+    }
+
+    setEntries((current) => current.filter((item) => item.id !== entry.id))
+    onResult({ tone: 'success', message: 'Задачата е изтрита от тефтера.' })
   }
 
   const changePage = (direction: -1 | 1) => {
@@ -706,7 +740,7 @@ export default function NotebookDrawer({
                       )}
                       <small>
                         {new Intl.DateTimeFormat('bg-BG', { hour: '2-digit', minute: '2-digit' }).format(new Date(entry.created_at))}
-                        {entry.updated_at !== entry.created_at ? ' · редактирано' : ''}
+                        {entry.edited_at ? ' · редактирано' : ''}
                       </small>
                     </div>
 
@@ -717,9 +751,20 @@ export default function NotebookDrawer({
                           <button type="button" onClick={() => setEditingId(null)}>Отказ</button>
                         </>
                       ) : (
-                        <button type="button" className="notebook-edit-action" onClick={() => beginEdit(entry)} title="Редактирай записа">
-                          <span aria-hidden="true">✎</span><span>Редактирай</span>
-                        </button>
+                        <>
+                          <button type="button" className="notebook-edit-action" onClick={() => beginEdit(entry)} title="Редактирай записа">
+                            <span aria-hidden="true">✎</span><span>Редактирай</span>
+                          </button>
+                          <button
+                            type="button"
+                            className="notebook-delete-action"
+                            onClick={() => void deleteEntry(entry)}
+                            title="Изтрий задачата"
+                            disabled={busy}
+                          >
+                            <span aria-hidden="true">⌫</span><span>Изтрий</span>
+                          </button>
+                        </>
                       )}
                     </div>
                   </div>
