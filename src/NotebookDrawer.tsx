@@ -308,8 +308,14 @@ export default function NotebookDrawer({
       return null
     }
 
-    const created = data as NotebookPage
-    setPages((current) => sortPages([...current, created]))
+    const created = (Array.isArray(data) ? data[0] : data) as NotebookPage | null
+    if (!created?.id) {
+      onResult({ tone: 'error', message: 'Новата страница беше създадена, но не можа да бъде отворена. Обновете тефтера и опитайте отново.' })
+      await loadData(true)
+      return null
+    }
+
+    setPages((current) => sortPages([...current.filter((page) => page.id !== created.id), created]))
     setSelectedPageId(created.id)
     onResult({ tone: 'success', message: `Добавена е страница ${created.page_number} за ${new Intl.DateTimeFormat('bg-BG').format(dateFromKey(selectedDate))}.` })
     return created
