@@ -1188,3 +1188,184 @@ button.stat-card.green.active {
 .manager-silk-sheen {
   opacity: .24;
 }
+
+
+/* ======================================================================
+   LIVE SILK — RELIABLE HTML LAYERS
+   Base artwork is a normal AVIF <img>; animated copies are masked to the
+   upper/middle ribbon zones so the frame itself never drifts.
+   ====================================================================== */
+.manager-silk-background::after {
+  content: none !important;
+  display: none !important;
+  background: none !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+.manager-silk-base-image,
+.manager-silk-region,
+.manager-silk-flow-light {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+.manager-silk-base-image {
+  z-index: 0;
+  display: block;
+  object-fit: cover;
+  object-position: center;
+  image-rendering: auto;
+  filter: contrast(1.15) saturate(1.18) brightness(.985);
+}
+
+.manager-silk-region {
+  z-index: 1;
+  display: block;
+  background-image: url('/manager-silk-live.avif');
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: cover;
+  opacity: .46;
+  will-change: transform, filter, opacity;
+  transform-origin: center;
+}
+
+.manager-silk-region-upper {
+  -webkit-mask-image: linear-gradient(
+    to bottom,
+    #000 0%,
+    #000 31%,
+    rgba(0,0,0,.82) 47%,
+    rgba(0,0,0,.32) 57%,
+    transparent 66%
+  );
+  mask-image: linear-gradient(
+    to bottom,
+    #000 0%,
+    #000 31%,
+    rgba(0,0,0,.82) 47%,
+    rgba(0,0,0,.32) 57%,
+    transparent 66%
+  );
+  animation: manager-silk-upper-life 24s ease-in-out infinite;
+}
+
+.manager-silk-region-middle {
+  opacity: .38;
+  -webkit-mask-image: linear-gradient(
+    to bottom,
+    transparent 18%,
+    rgba(0,0,0,.32) 28%,
+    #000 39%,
+    #000 56%,
+    rgba(0,0,0,.62) 64%,
+    transparent 72%
+  );
+  mask-image: linear-gradient(
+    to bottom,
+    transparent 18%,
+    rgba(0,0,0,.32) 28%,
+    #000 39%,
+    #000 56%,
+    rgba(0,0,0,.62) 64%,
+    transparent 72%
+  );
+  animation: manager-silk-middle-life 29s ease-in-out infinite;
+}
+
+.manager-silk-flow-light {
+  z-index: 2;
+  opacity: .34;
+  mix-blend-mode: screen;
+  background:
+    linear-gradient(
+      112deg,
+      transparent 17%,
+      rgba(255,255,255,0) 34%,
+      rgba(255,255,255,.38) 46%,
+      rgba(219,232,246,.18) 52%,
+      rgba(255,255,255,0) 62%,
+      transparent 78%
+    );
+  background-size: 180% 100%;
+  animation: manager-silk-light-pass 20s ease-in-out infinite;
+}
+
+.manager-silk-readability {
+  z-index: 3;
+  background:
+    radial-gradient(circle at 17% 12%, rgba(255,255,255,.035), transparent 31%),
+    linear-gradient(180deg, rgba(255,255,255,.012), rgba(222,231,240,.012));
+}
+
+@keyframes manager-silk-upper-life {
+  0%, 100% {
+    transform: translate3d(0,0,0) scale(1.003);
+    filter: contrast(1.03) saturate(1.04) brightness(1);
+    opacity: .40;
+  }
+  28% {
+    transform: translate3d(-6px,3px,0) scale(1.009);
+    filter: contrast(1.08) saturate(1.08) brightness(1.008);
+    opacity: .48;
+  }
+  56% {
+    transform: translate3d(5px,-4px,0) scale(1.012);
+    filter: contrast(1.10) saturate(1.10) brightness(1.012);
+    opacity: .52;
+  }
+  78% {
+    transform: translate3d(2px,3px,0) scale(1.006);
+    filter: contrast(1.05) saturate(1.06) brightness(1.004);
+    opacity: .45;
+  }
+}
+
+@keyframes manager-silk-middle-life {
+  0%, 100% {
+    transform: translate3d(0,0,0) scale(1.002);
+    filter: contrast(1.02) saturate(1.03);
+    opacity: .34;
+  }
+  33% {
+    transform: translate3d(5px,-3px,0) scale(1.007);
+    filter: contrast(1.07) saturate(1.08);
+    opacity: .42;
+  }
+  66% {
+    transform: translate3d(-5px,4px,0) scale(1.010);
+    filter: contrast(1.09) saturate(1.09);
+    opacity: .46;
+  }
+}
+
+@keyframes manager-silk-light-pass {
+  0%, 100% {
+    background-position: 112% 0;
+    opacity: .22;
+  }
+  50% {
+    background-position: -12% 0;
+    opacity: .38;
+  }
+}
+
+@media (max-width: 980px) {
+  .manager-silk-base-image,
+  .manager-silk-region {
+    object-position: center;
+    background-position: center;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .manager-silk-region-upper,
+  .manager-silk-region-middle,
+  .manager-silk-flow-light {
+    animation: none !important;
+  }
+}
