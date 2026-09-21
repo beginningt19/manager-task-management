@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent } fro
 import type { Session } from '@supabase/supabase-js'
 import { supabase, configurationError } from './lib/supabase'
 import ChecklistDrawer from './ChecklistDrawer'
+import NotebookDrawer from './NotebookDrawer'
 import {
   approvalLabels,
   bulgarianDateKey,
@@ -483,6 +484,7 @@ function App() {
   })
   const [passwordOpen, setPasswordOpen] = useState(false)
   const [checklistsOpen, setChecklistsOpen] = useState(false)
+  const [notebookOpen, setNotebookOpen] = useState(false)
   const [query, setQuery] = useState('')
   const [statusFilter, setStatusFilter] = useState<'all' | TaskStatus>('all')
   const [priorityFilter, setPriorityFilter] = useState<'all' | Priority>('all')
@@ -685,6 +687,7 @@ function App() {
           )}
           <button className={`notification-button checklist-launch${dashboardView === 'calendar' ? ' active' : ''}`} onClick={() => setDashboardView('calendar')} title="Отвори календара">◷<span>Календар</span></button>
           <button className="notification-button checklist-launch" onClick={() => setChecklistsOpen(true)} title="Отвори чеклистите">▦<span>Чеклисти</span></button>
+          <button className="notification-button checklist-launch notebook-launch" onClick={() => setNotebookOpen(true)} title="Отвори личния тефтер">✎<span>Тефтер</span></button>
           <PushButton userId={session.user.id} onResult={showToast} />
           <button className="notification-button" onClick={() => setPasswordOpen(true)} title="Смени паролата">⌘<span>Парола</span></button>
           <span className="avatar" aria-hidden="true">{initials(profile?.display_name || session.user.email || 'А')}</span>
@@ -873,6 +876,14 @@ function App() {
           currentUser={profile}
           profiles={profiles}
           onClose={() => setChecklistsOpen(false)}
+          onResult={showToast}
+        />
+      )}
+
+      {notebookOpen && profile && (
+        <NotebookDrawer
+          currentUser={profile}
+          onClose={() => setNotebookOpen(false)}
           onResult={showToast}
         />
       )}
