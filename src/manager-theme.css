@@ -1399,3 +1399,85 @@ button.stat-card.green.active {
 .app-shell > .manager-silk-background .manager-silk-readability {
   visibility: visible !important;
 }
+
+
+/* ======================================================================
+   SINGLE GLOBAL BACKGROUND
+   No legacy body/app gradients, ambient grids, pseudo washes or old orbs.
+   The only page background is the live silk artwork and its motion layers.
+   ====================================================================== */
+html,
+:root,
+body,
+#root,
+.app-shell {
+  background: transparent !important;
+  background-color: transparent !important;
+  background-image: none !important;
+}
+
+body,
+#root,
+.app-shell {
+  min-height: 100vh;
+}
+
+.ambient-background,
+.manager-ambient.manager-silk-background,
+.app-shell > .manager-silk-background {
+  background: none !important;
+  background-color: transparent !important;
+  background-image: none !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+  z-index: 0 !important;
+}
+
+.ambient-background::before,
+.ambient-background::after,
+.manager-silk-background::before,
+.manager-silk-background::after {
+  content: none !important;
+  display: none !important;
+  background: none !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+.ambient-orb,
+.orb-one,
+.orb-two,
+.orb-three,
+.manager-silk-readability {
+  display: none !important;
+}
+
+.app-shell > main:not(.login-page):not(.fatal) {
+  position: relative;
+  z-index: 1;
+  background: transparent !important;
+  background-image: none !important;
+}
+
+.app-shell > .topbar {
+  position: sticky;
+  z-index: 30;
+}
+
+.manager-silk-base-image {
+  opacity: 1 !important;
+  visibility: visible !important;
+  filter: contrast(1.12) saturate(1.14) brightness(1) !important;
+}
+
+.manager-silk-region-upper {
+  opacity: .48;
+}
+
+.manager-silk-region-middle {
+  opacity: .42;
+}
+
+.manager-silk-flow-light {
+  opacity: .28;
+}
