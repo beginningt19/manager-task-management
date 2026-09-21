@@ -1997,3 +1997,49 @@
     pointer-events: auto !important;
   }
 }
+
+
+/* Notebook entry actions: edit above delete, clear of the writing lines. */
+.notebook-entry-actions {
+  align-self: start;
+  margin-top: 2px;
+}
+
+.notebook-delete-action {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  color: #a44949;
+  background: #fff8f6 !important;
+  border-color: #ecd2cd !important;
+}
+
+.notebook-delete-action:hover {
+  color: #933737;
+  background: #fff0ed !important;
+  border-color: #e5beb8 !important;
+}
+
+.notebook-delete-action > span:first-child {
+  font-size: 12px;
+}
+
+.notebook-delete-action:disabled {
+  opacity: .48;
+  cursor: wait;
+}
+
+@media (max-width: 680px) {
+  .notebook-entry-actions {
+    display: grid;
+    grid-template-columns: 1fr;
+    width: 104px;
+    align-self: start;
+  }
+
+  .notebook-entry-actions button {
+    width: 100%;
+    min-width: 0;
+  }
+}
