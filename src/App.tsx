@@ -905,7 +905,6 @@ function AmbientBackground({ className = '' }: { className?: string }) {
       <span className="manager-silk-region manager-silk-region-upper" />
       <span className="manager-silk-region manager-silk-region-middle" />
       <span className="manager-silk-flow-light" />
-      <span className="manager-silk-readability" />
     </div>
   )
 }
