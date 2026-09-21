@@ -277,7 +277,10 @@ export default function NotebookDrawer({
   )
 
   const visibleDates = useMemo(() => {
-    const first = dateFromKey(selectedDate)
+    const active = dateFromKey(selectedDate)
+    const first = new Date(active)
+    first.setDate(active.getDate() - 1)
+
     return Array.from({ length: 14 }, (_, index) => {
       const date = new Date(first)
       date.setDate(first.getDate() + index)
