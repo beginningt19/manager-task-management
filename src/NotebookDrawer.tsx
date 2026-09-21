@@ -12,8 +12,6 @@ type NotebookPage = {
   page_number: number
   created_at: string
   updated_at: string
-  carried_from_entry_id: string | null
-  carried_from_date: string | null
 }
 
 type NotebookEntry = {
@@ -25,6 +23,8 @@ type NotebookEntry = {
   position: number
   created_at: string
   updated_at: string
+  carried_from_entry_id: string | null
+  carried_from_date: string | null
 }
 
 type SpeechRecognitionLike = {
