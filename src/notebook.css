@@ -2,8 +2,9 @@
   position: fixed;
   inset: 0;
   z-index: 120;
-  background: rgba(7, 15, 30, .72);
-  backdrop-filter: blur(12px);
+  background: rgba(18, 30, 48, .12);
+  backdrop-filter: blur(1.5px) saturate(108%);
+  -webkit-backdrop-filter: blur(1.5px) saturate(108%);
   animation: notebook-fade-in .2s ease;
 }
 
@@ -15,8 +16,8 @@
   grid-template-rows: auto 1fr;
   color: #1f2937;
   background:
-    radial-gradient(circle at 16% 10%, rgba(255,255,255,.55), transparent 28%),
-    linear-gradient(135deg, #e9eef6 0%, #d9e2ef 42%, #eef2f7 100%);
+    radial-gradient(circle at 16% 10%, rgba(255,255,255,.34), transparent 30%),
+    linear-gradient(135deg, rgba(235,240,247,.30) 0%, rgba(219,228,239,.18) 42%, rgba(242,245,249,.24) 100%);
 }
 
 .notebook-topbar {
@@ -1730,4 +1731,12 @@
   .notebook-paper.notebook-turn-backward {
     animation: none !important;
   }
+}
+
+
+/* Let the existing live silk background remain visible around the physical notebook. */
+.notebook-desk {
+  background:
+    radial-gradient(circle at 50% 30%, rgba(255,255,255,.10), transparent 48%),
+    linear-gradient(180deg, rgba(238,243,249,.06), rgba(221,230,240,.10));
 }
