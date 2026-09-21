@@ -188,6 +188,7 @@ export default function NotebookDrawer({
   const [voiceInterim, setVoiceInterim] = useState('')
   const [voiceMessage, setVoiceMessage] = useState('')
   const [pageTurn, setPageTurn] = useState<'forward' | 'backward'>('forward')
+  const [pageTurnNonce, setPageTurnNonce] = useState(0)
 
   const recognitionRef = useRef<SpeechRecognitionLike | null>(null)
   const voiceBaseRef = useRef('')
@@ -291,9 +292,14 @@ export default function NotebookDrawer({
   const completedCount = pageEntries.filter((entry) => entry.completed).length
   const activePageNumber = selectedPage?.page_number || 1
 
+  const triggerPageTurn = (direction: 'forward' | 'backward') => {
+    setPageTurn(direction)
+    setPageTurnNonce((value) => value + 1)
+  }
+
   const chooseDate = (date: string) => {
     if (date !== selectedDate) {
-      setPageTurn(date > selectedDate ? 'forward' : 'backward')
+      triggerPageTurn(date > selectedDate ? 'forward' : 'backward')
     }
     setSelectedDate(date)
     const matching = pages.filter((page) => page.page_date === date).sort((a, b) => a.page_number - b.page_number)
@@ -303,7 +309,7 @@ export default function NotebookDrawer({
 
   const choosePage = (page: NotebookPage) => {
     if (page.id === selectedPage?.id) return
-    setPageTurn(page.page_number > activePageNumber ? 'forward' : 'backward')
+    triggerPageTurn(page.page_number > activePageNumber ? 'forward' : 'backward')
     setSelectedPageId(page.id)
     setEditingId(null)
   }
@@ -326,7 +332,7 @@ export default function NotebookDrawer({
     }
 
     setPages((current) => sortPages([...current.filter((page) => page.id !== created.id), created]))
-    setPageTurn('forward')
+    triggerPageTurn('forward')
     setSelectedPageId(created.id)
     if (announce) {
       onResult({ tone: 'success', message: `Добавена е страница ${created.page_number} за ${new Intl.DateTimeFormat('bg-BG').format(dateFromKey(selectedDate))}.` })
@@ -425,7 +431,7 @@ export default function NotebookDrawer({
       : pagesForDate.length - 1
     const nextIndex = Math.max(0, Math.min(pagesForDate.length - 1, currentIndex + direction))
     if (nextIndex === currentIndex) return
-    setPageTurn(direction > 0 ? 'forward' : 'backward')
+    triggerPageTurn(direction > 0 ? 'forward' : 'backward')
     setSelectedPageId(pagesForDate[nextIndex].id)
     setEditingId(null)
   }
@@ -520,8 +526,20 @@ export default function NotebookDrawer({
             <div className="notebook-cover-edge" aria-hidden="true" />
             <div className="notebook-paper-stack" aria-hidden="true" />
 
+            {pageTurnNonce > 0 && (
+              <div
+                key={`page-flip-${pageTurnNonce}`}
+                className={`notebook-page-flip notebook-page-flip-${pageTurn}`}
+                aria-hidden="true"
+              >
+                <span className="notebook-page-flip-face notebook-page-flip-front" />
+                <span className="notebook-page-flip-face notebook-page-flip-back" />
+                <span className="notebook-page-flip-edge" />
+              </div>
+            )}
+
             <article
-              key={`${selectedDate}:${selectedPage?.id || 'virtual'}`}
+              key={`${selectedDate}:${selectedPage?.id || 'virtual'}:${pageTurnNonce}`}
               className={`notebook-paper notebook-turn-${pageTurn}`}
             >
               <div className="notebook-toolbar">
