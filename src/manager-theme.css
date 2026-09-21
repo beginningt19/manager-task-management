@@ -1115,7 +1115,7 @@ button.stat-card.green.active {
   inset: 0;
   overflow: hidden;
   pointer-events: none;
-  z-index: -2;
+  z-index: -1;
   background: #eef2f6;
 }
 
@@ -1177,4 +1177,14 @@ button.stat-card.green.active {
   .manager-silk-readability {
     background: rgba(255,255,255,.018);
   }
+}
+
+
+/* Keep the live silk unmistakably visible without reintroducing pixel distortion. */
+.manager-silk-motion-layer {
+  opacity: .44;
+}
+
+.manager-silk-sheen {
+  opacity: .24;
 }
