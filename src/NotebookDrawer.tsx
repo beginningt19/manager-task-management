@@ -276,18 +276,14 @@ export default function NotebookDrawer({
     [entries, selectedPage],
   )
 
-  const distinctDates = useMemo(() => {
-    const seen = new Set<string>()
-    const result: string[] = []
-    pages.forEach((page) => {
-      if (!seen.has(page.page_date)) {
-        seen.add(page.page_date)
-        result.push(page.page_date)
-      }
+  const visibleDates = useMemo(() => {
+    const first = dateFromKey(selectedDate)
+    return Array.from({ length: 14 }, (_, index) => {
+      const date = new Date(first)
+      date.setDate(first.getDate() + index)
+      return localDateKey(date)
     })
-    if (!seen.has(selectedDate)) result.unshift(selectedDate)
-    return result.slice(0, 14)
-  }, [pages, selectedDate])
+  }, [selectedDate])
 
   const completedCount = pageEntries.filter((entry) => entry.completed).length
   const activePageNumber = selectedPage?.page_number || 1
@@ -309,7 +305,7 @@ export default function NotebookDrawer({
     setEditingId(null)
   }
 
-  const createPage = async () => {
+  const createPage = async (announce = true) => {
     if (busy) return null
     setBusy(true)
     const { data, error } = await supabase.rpc('create_notebook_page', { p_date: selectedDate })
@@ -329,13 +325,23 @@ export default function NotebookDrawer({
     setPages((current) => sortPages([...current.filter((page) => page.id !== created.id), created]))
     setPageTurn('forward')
     setSelectedPageId(created.id)
-    onResult({ tone: 'success', message: `Добавена е страница ${created.page_number} за ${new Intl.DateTimeFormat('bg-BG').format(dateFromKey(selectedDate))}.` })
+    if (announce) {
+      onResult({ tone: 'success', message: `Добавена е страница ${created.page_number} за ${new Intl.DateTimeFormat('bg-BG').format(dateFromKey(selectedDate))}.` })
+    }
     return created
+  }
+
+  const addPage = async () => {
+    if (pagesForDate.length === 0) {
+      const defaultPage = await createPage(false)
+      if (!defaultPage) return
+    }
+    await createPage(true)
   }
 
   const ensurePage = async () => {
     if (selectedPage) return selectedPage
-    return createPage()
+    return createPage(false)
   }
 
   const saveDraft = async () => {
@@ -528,7 +534,7 @@ export default function NotebookDrawer({
                   </label>
                 </div>
 
-                <button className="notebook-new-page" type="button" onClick={() => void createPage()} disabled={busy}>
+                <button className="notebook-new-page" type="button" onClick={() => void addPage()} disabled={busy}>
                   ＋ Нова страница
                 </button>
               </div>
@@ -540,7 +546,7 @@ export default function NotebookDrawer({
                 </div>
                 <div className="notebook-page-meta">
                   <span>Страница</span>
-                  <strong>{activePageNumber}{pagesForDate.length ? ` / ${pagesForDate.length}` : ''}</strong>
+                  <strong>{activePageNumber} / {Math.max(1, pagesForDate.length)}</strong>
                 </div>
               </div>
 
@@ -661,9 +667,9 @@ export default function NotebookDrawer({
             </article>
 
             <nav className="notebook-date-tabs" aria-label="Дати в тефтера">
-              {distinctDates.map((date) => {
+              {visibleDates.map((date) => {
                 const tab = formatTabDate(date)
-                const count = pages.filter((page) => page.page_date === date).length
+                const count = Math.max(1, pages.filter((page) => page.page_date === date).length)
                 return (
                   <button
                     key={date}
