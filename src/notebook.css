@@ -1420,3 +1420,314 @@
     animation: none !important;
   }
 }
+
+
+/* ======================================================================
+   REALISTIC PHYSICAL PAGE TURN
+   A separate double-sided paper sheet flips above the destination page.
+   This is triggered for both day tabs and pages within the same day.
+   ====================================================================== */
+.notebook-book {
+  transform-style: preserve-3d;
+  perspective: 1850px;
+  perspective-origin: 50% 42%;
+}
+
+.notebook-paper {
+  z-index: 2;
+  backface-visibility: visible;
+  transform: none;
+  will-change: filter, opacity;
+}
+
+.notebook-paper.notebook-turn-forward {
+  transform-origin: center;
+  animation: notebook-underpage-forward .86s cubic-bezier(.19,.74,.22,1) both;
+}
+
+.notebook-paper.notebook-turn-backward {
+  transform-origin: center;
+  animation: notebook-underpage-backward .86s cubic-bezier(.19,.74,.22,1) both;
+}
+
+.notebook-paper.notebook-turn-forward::after,
+.notebook-paper.notebook-turn-backward::after {
+  animation: none;
+  opacity: 0;
+}
+
+.notebook-page-flip {
+  position: absolute;
+  inset: 0;
+  z-index: 12;
+  pointer-events: none;
+  transform-style: preserve-3d;
+  backface-visibility: visible;
+  border-radius: 9px 7px 8px 12px;
+  will-change: transform, filter, opacity;
+}
+
+.notebook-page-flip-face {
+  position: absolute;
+  inset: 0;
+  display: block;
+  border-radius: inherit;
+  backface-visibility: hidden;
+  transform-style: preserve-3d;
+  overflow: hidden;
+}
+
+.notebook-page-flip-front {
+  background:
+    linear-gradient(90deg, transparent 0 48px, rgba(202,88,86,.15) 48px 49px, transparent 49px),
+    repeating-linear-gradient(180deg, rgba(255,255,255,.015) 0 35px, rgba(80,113,157,.15) 35px 36px),
+    linear-gradient(90deg, #faf6ec 0%, #fffdf7 52%, #faf4e8 100%);
+  box-shadow:
+    inset 18px 0 24px rgba(81,63,38,.035),
+    inset -16px 0 24px rgba(81,63,38,.028);
+}
+
+.notebook-page-flip-front::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(ellipse at 92% 50%, rgba(255,255,255,.72), rgba(255,255,255,0) 35%),
+    linear-gradient(90deg, rgba(57,45,29,.045), transparent 14%, transparent 80%, rgba(255,255,255,.22));
+  opacity: .8;
+}
+
+.notebook-page-flip-back {
+  transform: rotateY(180deg);
+  background:
+    linear-gradient(270deg, transparent 0 48px, rgba(202,88,86,.10) 48px 49px, transparent 49px),
+    repeating-linear-gradient(180deg, rgba(255,255,255,.012) 0 35px, rgba(80,113,157,.10) 35px 36px),
+    linear-gradient(90deg, #e7dfd1 0%, #f5efe4 42%, #dfd6c8 100%);
+  box-shadow:
+    inset -22px 0 34px rgba(44,34,25,.10),
+    inset 12px 0 22px rgba(255,255,255,.38);
+}
+
+.notebook-page-flip-back::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(90deg, rgba(28,31,38,.18), transparent 17%, transparent 74%, rgba(255,255,255,.18));
+  opacity: .74;
+}
+
+.notebook-page-flip-edge {
+  position: absolute;
+  z-index: 3;
+  top: 1.5%;
+  bottom: 1.5%;
+  width: 16px;
+  border-radius: 50%;
+  background:
+    linear-gradient(90deg,
+      rgba(47,38,29,.22),
+      rgba(255,255,255,.72) 45%,
+      rgba(255,255,255,.08));
+  filter: blur(.25px);
+  opacity: .86;
+  backface-visibility: visible;
+}
+
+.notebook-page-flip-forward {
+  transform-origin: 0 50%;
+  animation: notebook-real-flip-forward .86s cubic-bezier(.18,.70,.18,1) both;
+}
+
+.notebook-page-flip-forward .notebook-page-flip-edge {
+  right: -4px;
+  animation: notebook-edge-forward .86s ease-in-out both;
+}
+
+.notebook-page-flip-backward {
+  transform-origin: 0 50%;
+  animation: notebook-real-flip-backward .92s cubic-bezier(.18,.72,.16,1) both;
+}
+
+.notebook-page-flip-backward .notebook-page-flip-edge {
+  right: -4px;
+  animation: notebook-edge-backward .92s ease-in-out both;
+}
+
+/* Forward: the visible sheet starts flat and turns from right to left. */
+@keyframes notebook-real-flip-forward {
+  0% {
+    transform: translateZ(8px) rotateY(0deg) skewY(0deg) scaleX(1);
+    opacity: 1;
+    filter: brightness(1) saturate(1);
+    box-shadow: 0 10px 20px rgba(25,32,45,.05);
+  }
+  18% {
+    transform: translateZ(28px) rotateY(-24deg) skewY(-.35deg) scaleX(.997);
+    opacity: 1;
+    filter: brightness(.98) saturate(.98);
+    box-shadow: 16px 13px 28px rgba(25,32,45,.16);
+  }
+  46% {
+    transform: translateZ(44px) rotateY(-86deg) skewY(-1.1deg) scaleX(.985);
+    opacity: 1;
+    filter: brightness(.88) saturate(.93);
+    box-shadow: 31px 15px 44px rgba(25,32,45,.28);
+  }
+  69% {
+    transform: translateZ(30px) rotateY(-138deg) skewY(-.7deg) scaleX(.991);
+    opacity: 1;
+    filter: brightness(.93) saturate(.95);
+    box-shadow: 18px 12px 32px rgba(25,32,45,.20);
+  }
+  92% {
+    transform: translateZ(8px) rotateY(-176deg) skewY(0deg) scaleX(1);
+    opacity: .98;
+    filter: brightness(.99);
+    box-shadow: 4px 6px 14px rgba(25,32,45,.07);
+  }
+  100% {
+    transform: translateZ(0) rotateY(-179.5deg) scaleX(1);
+    opacity: 0;
+    visibility: hidden;
+    filter: none;
+    box-shadow: none;
+  }
+}
+
+/* Backward: a sheet comes back from the left stack and settles on top. */
+@keyframes notebook-real-flip-backward {
+  0% {
+    transform: translateZ(0) rotateY(-179.5deg) skewY(0deg) scaleX(1);
+    opacity: .02;
+    filter: brightness(.92) saturate(.94);
+    box-shadow: none;
+  }
+  8% {
+    opacity: 1;
+  }
+  30% {
+    transform: translateZ(30px) rotateY(-142deg) skewY(.7deg) scaleX(.991);
+    opacity: 1;
+    filter: brightness(.92) saturate(.95);
+    box-shadow: 18px 12px 32px rgba(25,32,45,.19);
+  }
+  55% {
+    transform: translateZ(46px) rotateY(-91deg) skewY(1.05deg) scaleX(.984);
+    opacity: 1;
+    filter: brightness(.87) saturate(.92);
+    box-shadow: 32px 16px 46px rgba(25,32,45,.29);
+  }
+  80% {
+    transform: translateZ(26px) rotateY(-27deg) skewY(.34deg) scaleX(.997);
+    opacity: 1;
+    filter: brightness(.98);
+    box-shadow: 15px 12px 27px rgba(25,32,45,.15);
+  }
+  96% {
+    transform: translateZ(6px) rotateY(-2deg) skewY(0deg) scaleX(1);
+    opacity: 1;
+    filter: brightness(1);
+    box-shadow: 0 8px 18px rgba(25,32,45,.06);
+  }
+  100% {
+    transform: translateZ(0) rotateY(0deg) scaleX(1);
+    opacity: 0;
+    visibility: hidden;
+    filter: none;
+    box-shadow: none;
+  }
+}
+
+@keyframes notebook-edge-forward {
+  0%, 100% {
+    width: 10px;
+    opacity: .24;
+    transform: scaleY(.97);
+  }
+  42%, 56% {
+    width: 28px;
+    opacity: .95;
+    transform: scaleY(1.01);
+  }
+}
+
+@keyframes notebook-edge-backward {
+  0%, 100% {
+    width: 10px;
+    opacity: .22;
+    transform: scaleY(.97);
+  }
+  45%, 60% {
+    width: 28px;
+    opacity: .95;
+    transform: scaleY(1.01);
+  }
+}
+
+@keyframes notebook-underpage-forward {
+  0% {
+    filter: brightness(.91) contrast(.985);
+    opacity: .90;
+  }
+  45% {
+    filter: brightness(.94) contrast(.99);
+    opacity: .94;
+  }
+  78% {
+    filter: brightness(1.015);
+    opacity: 1;
+  }
+  100% {
+    filter: none;
+    opacity: 1;
+  }
+}
+
+@keyframes notebook-underpage-backward {
+  0% {
+    filter: brightness(.94) contrast(.99);
+    opacity: .93;
+  }
+  52% {
+    filter: brightness(.91) contrast(.985);
+    opacity: .92;
+  }
+  88% {
+    filter: brightness(1.012);
+    opacity: 1;
+  }
+  100% {
+    filter: none;
+    opacity: 1;
+  }
+}
+
+@media (max-width: 980px) {
+  .notebook-page-flip-front {
+    background:
+      linear-gradient(90deg, transparent 0 36px, rgba(202,88,86,.13) 36px 37px, transparent 37px),
+      repeating-linear-gradient(180deg, rgba(255,255,255,.012) 0 35px, rgba(80,113,157,.12) 35px 36px),
+      linear-gradient(90deg, #faf6ec 0%, #fffdf7 52%, #faf4e8 100%);
+  }
+}
+
+@media (max-width: 680px) {
+  .notebook-page-flip-front,
+  .notebook-page-flip-back {
+    background:
+      repeating-linear-gradient(180deg, rgba(255,255,255,.01) 0 35px, rgba(80,113,157,.12) 35px 36px),
+      #fffdf7;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .notebook-page-flip {
+    display: none !important;
+  }
+
+  .notebook-paper.notebook-turn-forward,
+  .notebook-paper.notebook-turn-backward {
+    animation: none !important;
+  }
+}
