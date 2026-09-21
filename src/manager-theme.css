@@ -1369,3 +1369,33 @@ button.stat-card.green.active {
     animation: none !important;
   }
 }
+
+
+/* ======================================================================
+   STACKING FIX — the live silk must sit inside the app stacking context,
+   not behind the isolated .app-shell/background.
+   ====================================================================== */
+.app-shell > .manager-silk-background {
+  z-index: 0 !important;
+}
+
+.app-shell > main {
+  position: relative;
+  z-index: 1;
+}
+
+.app-shell > .topbar {
+  z-index: 30;
+}
+
+/* Keep the background image visible as the first visual layer. */
+.app-shell > .manager-silk-background .manager-silk-base-image {
+  opacity: 1 !important;
+  visibility: visible !important;
+}
+
+.app-shell > .manager-silk-background .manager-silk-region,
+.app-shell > .manager-silk-background .manager-silk-flow-light,
+.app-shell > .manager-silk-background .manager-silk-readability {
+  visibility: visible !important;
+}
