@@ -896,82 +896,15 @@ function App() {
 function AmbientBackground({ className = '' }: { className?: string }) {
   return (
     <div className={`ambient-background manager-ambient manager-silk-background ${className}`.trim()} aria-hidden="true">
-      <svg
-        className="manager-silk-live"
-        viewBox="0 0 1672 941"
-        preserveAspectRatio="xMidYMid slice"
-        xmlns="http://www.w3.org/2000/svg"
-      >
-        <defs>
-          <filter id="manager-wave-upper" x="-8%" y="-12%" width="116%" height="124%" colorInterpolationFilters="sRGB">
-            <feTurbulence type="fractalNoise" baseFrequency="0.004 0.010" numOctaves="2" seed="8" result="noise">
-              <animate attributeName="baseFrequency" values="0.0035 0.009;0.0053 0.0115;0.004 0.010;0.0035 0.009" dur="24s" repeatCount="indefinite" />
-            </feTurbulence>
-            <feDisplacementMap in="SourceGraphic" in2="noise" scale="8" xChannelSelector="R" yChannelSelector="B">
-              <animate attributeName="scale" values="6;14;9;6" dur="26s" repeatCount="indefinite" />
-            </feDisplacementMap>
-          </filter>
-
-          <filter id="manager-wave-middle" x="-9%" y="-14%" width="118%" height="128%" colorInterpolationFilters="sRGB">
-            <feTurbulence type="fractalNoise" baseFrequency="0.006 0.012" numOctaves="2" seed="15" result="noise">
-              <animate attributeName="baseFrequency" values="0.0045 0.010;0.0062 0.013;0.005 0.011;0.0045 0.010" dur="26s" repeatCount="indefinite" />
-            </feTurbulence>
-            <feDisplacementMap in="SourceGraphic" in2="noise" scale="9" xChannelSelector="G" yChannelSelector="R">
-              <animate attributeName="scale" values="7;15;10;7" dur="28s" repeatCount="indefinite" />
-            </feDisplacementMap>
-          </filter>
-
-          <linearGradient id="manager-mask-upper" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0" stopColor="white" />
-            <stop offset=".28" stopColor="white" />
-            <stop offset=".47" stopColor="white" stopOpacity=".72" />
-            <stop offset=".60" stopColor="black" />
-          </linearGradient>
-          <linearGradient id="manager-mask-middle" x1="0" y1="0" x2="0" y2="1">
-            <stop offset=".18" stopColor="black" />
-            <stop offset=".31" stopColor="white" stopOpacity=".60" />
-            <stop offset=".46" stopColor="white" />
-            <stop offset=".61" stopColor="white" stopOpacity=".70" />
-            <stop offset=".70" stopColor="black" />
-          </linearGradient>
-
-          <mask id="manager-upper-mask"><rect width="1672" height="941" fill="url(#manager-mask-upper)" /></mask>
-          <mask id="manager-middle-mask"><rect width="1672" height="941" fill="url(#manager-mask-middle)" /></mask>
-
-          <linearGradient id="manager-sheen-gradient" x1="-0.4" y1="0" x2="0.2" y2="1">
-            <stop offset="0" stopColor="white" stopOpacity="0" />
-            <stop offset=".44" stopColor="white" stopOpacity="0" />
-            <stop offset=".52" stopColor="white" stopOpacity=".52" />
-            <stop offset=".60" stopColor="white" stopOpacity=".06" />
-            <stop offset="1" stopColor="white" stopOpacity="0" />
-            <animate attributeName="x1" values="-0.45;0.65;-0.45" dur="28s" repeatCount="indefinite" />
-            <animate attributeName="x2" values="0.15;1.25;0.15" dur="28s" repeatCount="indefinite" />
-          </linearGradient>
-        </defs>
-
-        <image href="/manager-silk-live.avif" x="0" y="0" width="1672" height="941" preserveAspectRatio="xMidYMid slice" />
-
-        <image
-          className="manager-silk-motion-layer"
-          href="/manager-silk-live.avif"
-          x="0" y="0" width="1672" height="941"
-          preserveAspectRatio="xMidYMid slice"
-          mask="url(#manager-upper-mask)"
-          filter="url(#manager-wave-upper)"
-          opacity=".40"
-        />
-        <image
-          className="manager-silk-motion-layer"
-          href="/manager-silk-live.avif"
-          x="0" y="0" width="1672" height="941"
-          preserveAspectRatio="xMidYMid slice"
-          mask="url(#manager-middle-mask)"
-          filter="url(#manager-wave-middle)"
-          opacity=".36"
-        />
-
-        <rect className="manager-silk-sheen" width="1672" height="941" fill="url(#manager-sheen-gradient)" opacity=".20" />
-      </svg>
+      <img
+        className="manager-silk-base-image"
+        src="/manager-silk-live.avif"
+        alt=""
+        draggable={false}
+      />
+      <span className="manager-silk-region manager-silk-region-upper" />
+      <span className="manager-silk-region manager-silk-region-middle" />
+      <span className="manager-silk-flow-light" />
       <span className="manager-silk-readability" />
     </div>
   )
