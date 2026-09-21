@@ -175,6 +175,15 @@ const sortPages = (items: NotebookPage[]) =>
     || a.page_number - b.page_number
   )
 
+const automaticPageForDate = (dayPages: NotebookPage[], allEntries: NotebookEntry[]) => {
+  if (!dayPages.length) return null
+  const ordered = [...dayPages].sort((a, b) => a.page_number - b.page_number)
+  const everyPageHasContent = ordered.every((page) =>
+    allEntries.some((entry) => entry.page_id === page.id && entry.body.trim().length > 0),
+  )
+  return everyPageHasContent ? ordered[ordered.length - 1] : ordered[0]
+}
+
 export default function NotebookDrawer({
   currentUser,
   onClose,
@@ -229,13 +238,14 @@ export default function NotebookDrawer({
     }
 
     const nextPages = sortPages((pagesResult.data || []) as NotebookPage[])
+    const nextEntries = (entriesResult.data || []) as NotebookEntry[]
     setPages(nextPages)
-    setEntries((entriesResult.data || []) as NotebookEntry[])
+    setEntries(nextEntries)
 
     setSelectedPageId((current) => {
-      if (current && nextPages.some((page) => page.id === current)) return current
       const sameDate = nextPages.filter((page) => page.page_date === selectedDate)
-      return sameDate[sameDate.length - 1]?.id || null
+      if (current && sameDate.some((page) => page.id === current)) return current
+      return automaticPageForDate(sameDate, nextEntries)?.id || null
     })
     setLoading(false)
   }, [currentUser.id, onResult, selectedDate])
@@ -301,8 +311,8 @@ export default function NotebookDrawer({
       const exact = pagesForDate.find((page) => page.id === selectedPageId)
       if (exact) return exact
     }
-    return pagesForDate[pagesForDate.length - 1] || null
-  }, [pagesForDate, selectedPageId])
+    return automaticPageForDate(pagesForDate, entries)
+  }, [pagesForDate, selectedPageId, entries])
 
   const pageEntries = useMemo(
     () => selectedPage
@@ -337,7 +347,7 @@ export default function NotebookDrawer({
     }
     setSelectedDate(date)
     const matching = pages.filter((page) => page.page_date === date).sort((a, b) => a.page_number - b.page_number)
-    setSelectedPageId(matching[matching.length - 1]?.id || null)
+    setSelectedPageId(automaticPageForDate(matching, entries)?.id || null)
     setEditingId(null)
   }
 
