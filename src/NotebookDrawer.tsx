@@ -633,7 +633,7 @@ export default function NotebookDrawer({
             </article>
 
             <nav className="notebook-date-tabs" aria-label="Дати в тефтера">
-              {distinctDates.map((date, index) => {
+              {distinctDates.map((date) => {
                 const tab = formatTabDate(date)
                 const count = pages.filter((page) => page.page_date === date).length
                 return (
@@ -641,7 +641,6 @@ export default function NotebookDrawer({
                     key={date}
                     type="button"
                     className={date === selectedDate ? 'active' : ''}
-                    style={{ '--tab-index': index } as React.CSSProperties}
                     onClick={() => chooseDate(date)}
                     title={formatLongDate(date)}
                   >
