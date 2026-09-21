@@ -661,7 +661,7 @@ export default function NotebookDrawer({
                 </div>
               </div>
 
-              <div className="notebook-entries">
+              <div className={pageTurnNonce > 0 ? 'notebook-entries notebook-entries-after-turn' : 'notebook-entries'}>
                 {loading ? (
                   <div className="notebook-empty">Отварям тефтера…</div>
                 ) : pageEntries.length === 0 ? (
