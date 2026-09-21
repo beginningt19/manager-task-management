@@ -686,7 +686,6 @@ function App() {
             </button>
           )}
           <button className={`notification-button checklist-launch${dashboardView === 'calendar' ? ' active' : ''}`} onClick={() => setDashboardView('calendar')} title="Отвори календара">◷<span>Календар</span></button>
-          <button className="notification-button checklist-launch" onClick={() => setChecklistsOpen(true)} title="Отвори чеклистите">▦<span>Чеклисти</span></button>
           <button className="notification-button checklist-launch notebook-launch" onClick={() => setNotebookOpen(true)} title="Отвори личния тефтер">✎<span>Тефтер</span></button>
           <PushButton userId={session.user.id} onResult={showToast} />
           <button className="notification-button" onClick={() => setPasswordOpen(true)} title="Смени паролата">⌘<span>Парола</span></button>
