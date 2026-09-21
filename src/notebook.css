@@ -1957,3 +1957,43 @@
     flex-wrap: wrap;
   }
 }
+
+
+/* Reveal the destination page's tasks only after the physical page turn ends. */
+.notebook-entries-after-turn {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.notebook-paper.notebook-turn-forward .notebook-entries-after-turn {
+  animation: notebook-entries-reveal .14s ease-out .88s forwards;
+}
+
+.notebook-paper.notebook-turn-backward .notebook-entries-after-turn {
+  animation: notebook-entries-reveal .14s ease-out .94s forwards;
+}
+
+@keyframes notebook-entries-reveal {
+  0% {
+    opacity: 0;
+    visibility: hidden;
+  }
+  1% {
+    visibility: visible;
+  }
+  100% {
+    opacity: 1;
+    visibility: visible;
+    pointer-events: auto;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .notebook-entries-after-turn {
+    animation: none !important;
+    opacity: 1 !important;
+    visibility: visible !important;
+    pointer-events: auto !important;
+  }
+}
