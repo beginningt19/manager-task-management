@@ -12,6 +12,8 @@ type NotebookPage = {
   page_number: number
   created_at: string
   updated_at: string
+  carried_from_entry_id: string | null
+  carried_from_date: string | null
 }
 
 type NotebookEntry = {
@@ -150,6 +152,12 @@ const formatLongDate = (key: string) =>
     weekday: 'long',
   }).format(dateFromKey(key))
 
+const formatCarryDate = (key: string) =>
+  new Intl.DateTimeFormat('bg-BG', {
+    day: '2-digit',
+    month: '2-digit',
+  }).format(dateFromKey(key))
+
 const formatTabDate = (key: string) => {
   const date = dateFromKey(key)
   const day = new Intl.DateTimeFormat('bg-BG', { day: '2-digit' }).format(date)
@@ -193,6 +201,7 @@ export default function NotebookDrawer({
   const recognitionRef = useRef<SpeechRecognitionLike | null>(null)
   const voiceBaseRef = useRef('')
   const voiceSegmentsRef = useRef<Map<number, string>>(new Map())
+  const rolloverDateRef = useRef<string | null>(null)
 
   const loadData = useCallback(async (quiet = false) => {
     if (!quiet) setLoading(true)
@@ -244,6 +253,30 @@ export default function NotebookDrawer({
       void supabase.removeChannel(channel)
     }
   }, [currentUser.id, loadData])
+
+  useEffect(() => {
+    if (rolloverDateRef.current === selectedDate) return
+    rolloverDateRef.current = selectedDate
+    let cancelled = false
+
+    const rollover = async () => {
+      const { data, error } = await supabase.rpc('rollover_notebook_day', { p_date: selectedDate })
+      if (cancelled) return
+
+      if (error) {
+        rolloverDateRef.current = null
+        onResult({ tone: 'error', message: `Незавършените задачи не можаха да се прехвърлят: ${error.message}` })
+        return
+      }
+
+      if (typeof data === 'number' && data > 0) {
+        await loadData(true)
+      }
+    }
+
+    void rollover()
+    return () => { cancelled = true }
+  }, [selectedDate, loadData, onResult])
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
@@ -637,7 +670,10 @@ export default function NotebookDrawer({
                     <p>Първият запис за този ден ще се появи тук.</p>
                   </div>
                 ) : pageEntries.map((entry, index) => (
-                  <div key={entry.id} className={entry.completed ? 'notebook-entry completed' : 'notebook-entry'}>
+                  <div
+                    key={entry.id}
+                    className={`notebook-entry${entry.completed ? ' completed' : ''}${entry.carried_from_date ? ' carried-over' : ''}`}
+                  >
                     <div className="notebook-entry-number">{String(index + 1).padStart(2, '0')}</div>
                     <button
                       type="button"
@@ -650,6 +686,13 @@ export default function NotebookDrawer({
                     </button>
 
                     <div className="notebook-entry-body">
+                      {entry.carried_from_date && (
+                        <div className="notebook-carry-badge" title={`Прехвърлена от ${formatLongDate(entry.carried_from_date)}`}>
+                          <span aria-hidden="true">↪</span>
+                          <strong>От предния ден</strong>
+                          <small>{formatCarryDate(entry.carried_from_date)}</small>
+                        </div>
+                      )}
                       {editingId === entry.id ? (
                         <textarea
                           className="notebook-edit-text"
@@ -674,7 +717,9 @@ export default function NotebookDrawer({
                           <button type="button" onClick={() => setEditingId(null)}>Отказ</button>
                         </>
                       ) : (
-                        <button type="button" onClick={() => beginEdit(entry)}>Редактирай</button>
+                        <button type="button" className="notebook-edit-action" onClick={() => beginEdit(entry)} title="Редактирай записа">
+                          <span aria-hidden="true">✎</span><span>Редактирай</span>
+                        </button>
                       )}
                     </div>
                   </div>
