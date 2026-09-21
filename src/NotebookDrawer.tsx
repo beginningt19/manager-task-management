@@ -187,6 +187,7 @@ export default function NotebookDrawer({
   const [listening, setListening] = useState(false)
   const [voiceInterim, setVoiceInterim] = useState('')
   const [voiceMessage, setVoiceMessage] = useState('')
+  const [pageTurn, setPageTurn] = useState<'forward' | 'backward'>('forward')
 
   const recognitionRef = useRef<SpeechRecognitionLike | null>(null)
   const voiceBaseRef = useRef('')
@@ -292,9 +293,19 @@ export default function NotebookDrawer({
   const activePageNumber = selectedPage?.page_number || 1
 
   const chooseDate = (date: string) => {
+    if (date !== selectedDate) {
+      setPageTurn(date > selectedDate ? 'forward' : 'backward')
+    }
     setSelectedDate(date)
     const matching = pages.filter((page) => page.page_date === date).sort((a, b) => a.page_number - b.page_number)
     setSelectedPageId(matching[matching.length - 1]?.id || null)
+    setEditingId(null)
+  }
+
+  const choosePage = (page: NotebookPage) => {
+    if (page.id === selectedPage?.id) return
+    setPageTurn(page.page_number > activePageNumber ? 'forward' : 'backward')
+    setSelectedPageId(page.id)
     setEditingId(null)
   }
 
@@ -316,6 +327,7 @@ export default function NotebookDrawer({
     }
 
     setPages((current) => sortPages([...current.filter((page) => page.id !== created.id), created]))
+    setPageTurn('forward')
     setSelectedPageId(created.id)
     onResult({ tone: 'success', message: `Добавена е страница ${created.page_number} за ${new Intl.DateTimeFormat('bg-BG').format(dateFromKey(selectedDate))}.` })
     return created
@@ -403,6 +415,8 @@ export default function NotebookDrawer({
       ? pagesForDate.findIndex((page) => page.id === selectedPage.id)
       : pagesForDate.length - 1
     const nextIndex = Math.max(0, Math.min(pagesForDate.length - 1, currentIndex + direction))
+    if (nextIndex === currentIndex) return
+    setPageTurn(direction > 0 ? 'forward' : 'backward')
     setSelectedPageId(pagesForDate[nextIndex].id)
     setEditingId(null)
   }
@@ -489,18 +503,6 @@ export default function NotebookDrawer({
             </div>
           </div>
 
-          <div className="notebook-date-control">
-            <button type="button" onClick={() => chooseDate(localDateKey())}>Днес</button>
-            <label>
-              <span>Дата</span>
-              <input
-                type="date"
-                value={selectedDate}
-                onChange={(event) => chooseDate(event.target.value || localDateKey())}
-              />
-            </label>
-          </div>
-
           <button className="notebook-close" type="button" onClick={onClose} aria-label="Затвори тефтера">×</button>
         </header>
 
@@ -509,7 +511,28 @@ export default function NotebookDrawer({
             <div className="notebook-cover-edge" aria-hidden="true" />
             <div className="notebook-paper-stack" aria-hidden="true" />
 
-            <article className="notebook-paper">
+            <article
+              key={`${selectedDate}:${selectedPage?.id || 'virtual'}`}
+              className={`notebook-paper notebook-turn-${pageTurn}`}
+            >
+              <div className="notebook-toolbar">
+                <div className="notebook-date-control notebook-date-control-paper">
+                  <button type="button" onClick={() => chooseDate(localDateKey())}>Днес</button>
+                  <label>
+                    <span>Дата</span>
+                    <input
+                      type="date"
+                      value={selectedDate}
+                      onChange={(event) => chooseDate(event.target.value || localDateKey())}
+                    />
+                  </label>
+                </div>
+
+                <button className="notebook-new-page" type="button" onClick={() => void createPage()} disabled={busy}>
+                  ＋ Нова страница
+                </button>
+              </div>
+
               <div className="notebook-paper-header">
                 <div>
                   <span className="notebook-kicker">ДНЕВНИ ЗАПИСКИ</span>
@@ -522,24 +545,24 @@ export default function NotebookDrawer({
               </div>
 
               <div className="notebook-page-controls">
-                <button type="button" onClick={() => changePage(-1)} disabled={!selectedPage || activePageNumber <= 1} aria-label="Предишна страница">‹</button>
-                <div className="notebook-page-dots" aria-label="Страници за деня">
-                  {(pagesForDate.length ? pagesForDate : [{ id: 'virtual', page_number: 1 } as NotebookPage]).map((page) => (
-                    <button
-                      key={page.id}
-                      type="button"
-                      className={(selectedPage?.id === page.id || (!selectedPage && page.id === 'virtual')) ? 'active' : ''}
-                      onClick={() => page.id !== 'virtual' && setSelectedPageId(page.id)}
-                      aria-label={`Страница ${page.page_number}`}
-                    >
-                      {page.page_number}
-                    </button>
-                  ))}
+                <span className="notebook-page-controls-label">Страници за деня</span>
+                <div className="notebook-page-nav">
+                  <button type="button" onClick={() => changePage(-1)} disabled={!selectedPage || activePageNumber <= 1} aria-label="Предишна страница">‹</button>
+                  <div className="notebook-page-dots" aria-label="Страници за деня">
+                    {(pagesForDate.length ? pagesForDate : [{ id: 'virtual', page_number: 1 } as NotebookPage]).map((page) => (
+                      <button
+                        key={page.id}
+                        type="button"
+                        className={(selectedPage?.id === page.id || (!selectedPage && page.id === 'virtual')) ? 'active' : ''}
+                        onClick={() => page.id !== 'virtual' && choosePage(page)}
+                        aria-label={`Страница ${page.page_number}`}
+                      >
+                        {page.page_number}
+                      </button>
+                    ))}
+                  </div>
+                  <button type="button" onClick={() => changePage(1)} disabled={!selectedPage || activePageNumber >= pagesForDate.length} aria-label="Следваща страница">›</button>
                 </div>
-                <button type="button" onClick={() => changePage(1)} disabled={!selectedPage || activePageNumber >= pagesForDate.length} aria-label="Следваща страница">›</button>
-                <button className="notebook-new-page" type="button" onClick={() => void createPage()} disabled={busy}>
-                  ＋ Нова страница
-                </button>
               </div>
 
               <div className="notebook-composer">
@@ -583,8 +606,7 @@ export default function NotebookDrawer({
                   <div className="notebook-empty">Отварям тефтера…</div>
                 ) : pageEntries.length === 0 ? (
                   <div className="notebook-empty">
-                    <span>✦</span>
-                    <strong>Чиста страница</strong>
+                    <strong>Празна страница</strong>
                     <p>Първият запис за този ден ще се появи тук.</p>
                   </div>
                 ) : pageEntries.map((entry, index) => (
