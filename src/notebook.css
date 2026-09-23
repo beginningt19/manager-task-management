@@ -2146,3 +2146,270 @@
       #fffdf7;
   }
 }
+
+
+/* ======================================================================
+   NOTEBOOK SCHEDULING + FREE-TIME MODE
+   Optional event times, chronological layout and clickable time gaps.
+   ====================================================================== */
+.notebook-free-time-toggle {
+  margin-left: auto;
+  min-height: 32px;
+  padding: 0 11px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: #52627a;
+  background: #fffdf8;
+  border: 1px solid #d7ccb9;
+  border-radius: 9px;
+  cursor: pointer;
+  font: inherit;
+  font-size: 9px;
+  font-weight: 850;
+  white-space: nowrap;
+  box-shadow: 0 2px 7px rgba(63,54,42,.045);
+}
+
+.notebook-free-time-toggle.active {
+  color: #fff;
+  background: #365b55;
+  border-color: #365b55;
+  box-shadow: 0 5px 14px rgba(54,91,85,.18);
+}
+
+.notebook-save-controls {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 6px;
+}
+
+.notebook-time-picker {
+  position: relative;
+  min-height: 34px;
+  padding: 0 11px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: #465b78;
+  background: #f8f3e9;
+  border: 1px solid #d9cebb;
+  border-radius: 9px;
+  cursor: pointer;
+  font-size: 10px;
+  font-weight: 850;
+  overflow: hidden;
+}
+
+.notebook-time-picker.has-time {
+  color: #234c46;
+  background: #edf6f1;
+  border-color: #b8d6cc;
+}
+
+.notebook-time-picker input {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.notebook-clear-time {
+  width: 30px;
+  min-width: 30px;
+  padding: 0 !important;
+  color: #8a5d54 !important;
+  background: #fff7f3 !important;
+  border: 1px solid #ead1c8 !important;
+  box-shadow: none !important;
+  font-size: 17px !important;
+  line-height: 1 !important;
+}
+
+.notebook-gap-compose-hint {
+  margin-top: 8px;
+  padding: 7px 9px;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  color: #5f664f;
+  background: #f2f5e8;
+  border: 1px solid #d5dcc0;
+  border-radius: 8px;
+  font-size: 9px;
+}
+
+.notebook-gap-compose-hint button {
+  margin-left: auto;
+  padding: 3px 7px;
+  color: #7d5c4e;
+  background: #fffaf4;
+  border: 1px solid #dfcec0;
+  border-radius: 6px;
+  cursor: pointer;
+  font: inherit;
+  font-size: 8px;
+  font-weight: 800;
+}
+
+.notebook-entry-badges {
+  min-height: 0;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+
+.notebook-entry-time {
+  min-height: 24px;
+  margin: 6px 0 6px;
+  padding: 4px 8px;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  color: #254b47;
+  background: #eaf4ef;
+  border: 1px solid #c3dcd3;
+  border-radius: 999px;
+  font-size: 9px;
+  font-weight: 900;
+  line-height: 1;
+  box-sizing: border-box;
+}
+
+.notebook-entry.has-scheduled-time .notebook-entry-body > p {
+  color: #223a51;
+}
+
+.notebook-edit-stack {
+  display: grid;
+  gap: 7px;
+}
+
+.notebook-edit-time {
+  width: fit-content;
+  padding: 5px 8px;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  color: #5d665c;
+  background: #f8f4eb;
+  border: 1px solid #ded3c0;
+  border-radius: 7px;
+  font-size: 9px;
+  font-weight: 800;
+}
+
+.notebook-edit-time input {
+  color: #30435e;
+  background: transparent;
+  border: 0;
+  outline: 0;
+  font: inherit;
+  font-weight: 850;
+}
+
+.notebook-free-gap {
+  width: 100%;
+  min-height: 38px;
+  padding: 8px 12px;
+  display: grid;
+  place-content: center;
+  justify-items: center;
+  gap: 4px;
+  position: relative;
+  color: #60736e;
+  background:
+    linear-gradient(90deg, rgba(237,244,239,.18), rgba(237,244,239,.55), rgba(237,244,239,.18));
+  border: 0;
+  cursor: pointer;
+  font: inherit;
+  text-align: center;
+  transition: background .16s ease, color .16s ease;
+}
+
+.notebook-free-gap:hover {
+  color: #345950;
+  background:
+    linear-gradient(90deg, rgba(223,239,230,.24), rgba(223,239,230,.75), rgba(223,239,230,.24));
+}
+
+.notebook-free-gap:disabled {
+  cursor: default;
+  opacity: .75;
+}
+
+.notebook-free-gap-line {
+  position: absolute;
+  left: 9%;
+  right: 9%;
+  top: 50%;
+  height: 1px;
+  background: repeating-linear-gradient(
+    90deg,
+    rgba(75,108,100,.26) 0 6px,
+    transparent 6px 12px
+  );
+}
+
+.notebook-free-gap strong,
+.notebook-free-gap small {
+  position: relative;
+  z-index: 1;
+  padding: 0 7px;
+  background: #fffdf7;
+}
+
+.notebook-free-gap strong {
+  font-size: 10px;
+  font-weight: 900;
+}
+
+.notebook-free-gap small {
+  color: #8b958f;
+  font-size: 8px;
+}
+
+@media (max-width: 680px) {
+  .notebook-page-controls {
+    align-items: center;
+  }
+
+  .notebook-free-time-toggle {
+    width: 100%;
+    margin-left: 0;
+    justify-content: center;
+  }
+
+  .notebook-composer-actions {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .notebook-save-controls {
+    width: 100%;
+    justify-content: stretch;
+    flex-wrap: wrap;
+  }
+
+  .notebook-time-picker {
+    flex: 1 1 130px;
+    justify-content: center;
+  }
+
+  .notebook-save-controls > button:last-child {
+    flex: 1 1 150px;
+  }
+
+  .notebook-gap-compose-hint {
+    align-items: flex-start;
+    flex-wrap: wrap;
+  }
+
+  .notebook-gap-compose-hint button {
+    margin-left: 0;
+  }
+}
