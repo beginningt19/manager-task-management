@@ -67,7 +67,6 @@ const bulgarianMonths = [
 
 const bulgarianWeekdays = ['Понеделник', 'Вторник', 'Сряда', 'Четвъртък', 'Петък', 'Събота', 'Неделя']
 const recurrenceLeadLabel = (days: number) => days === 1 ? '1 ден' : `${days} дни`
-const GALINA_PROFILE_ID = 'fbdd7dfe-82b6-48c0-9c4c-1a6edb974ca5'
 
 type SpeechRecognitionLike = {
   lang: string
@@ -711,9 +710,7 @@ function App() {
           {profile && (
             <div className="page-actions">
               <button className="secondary-button" onClick={() => openCreate('personal')} title="Създай лична задача"><span>＋</span> Лична задача</button>
-              {profile.id === GALINA_PROFILE_ID && (
-                <button className="secondary-button voice-quick-button" onClick={() => openCreate('personal')} title="Създай задача чрез гласово въвеждане"><span>🎙</span> Гласова задача</button>
-              )}
+              <button className="secondary-button voice-quick-button" onClick={() => openCreate('personal')} title="Създай задача чрез гласово въвеждане"><span>🎙</span> Гласова задача</button>
               {canCreateTeamTasks && (
                 <button className="primary-button" onClick={() => openCreate('team')} title="Създай екипна задача"><span>＋</span> Екипна задача</button>
               )}
@@ -1397,7 +1394,7 @@ function CreateTaskModal({
   const voiceStartPendingRef = useRef(false)
   const voiceRestartTimerRef = useRef<number | null>(null)
   const personal = mode === 'personal'
-  const voiceEnabled = personal && profile.id === GALINA_PROFILE_ID
+  const voiceEnabled = personal
 
   useEffect(() => () => {
     voiceShouldListenRef.current = false
