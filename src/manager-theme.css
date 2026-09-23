@@ -2939,3 +2939,36 @@ body,
     display: none;
   }
 }
+
+
+/* Keep topbar controls dimensionally stable when Low Spec toggles. */
+.topbar .account-area > .notification-button,
+.topbar .account-area > .icon-button {
+  flex: 0 0 auto;
+  white-space: nowrap;
+}
+
+.topbar .low-spec-toggle {
+  width: 112px;
+  justify-content: center;
+}
+
+.topbar .manager-visibility-toggle {
+  width: 174px;
+  min-width: 174px;
+}
+
+@media (max-width: 1180px) {
+  .topbar .low-spec-toggle,
+  .topbar .manager-visibility-toggle {
+    width: 38px;
+    min-width: 38px;
+    padding-inline: 0;
+    justify-content: center;
+  }
+
+  .topbar .low-spec-toggle > span:last-child,
+  .topbar .manager-visibility-toggle > span {
+    display: none;
+  }
+}
