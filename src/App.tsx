@@ -687,7 +687,6 @@ function App() {
           {profile && (
             <div className="page-actions">
               <button className="secondary-button" onClick={() => openCreate('personal')} title="Създай лична задача"><span>＋</span> Лична задача</button>
-              <button className="secondary-button voice-quick-button" onClick={() => openCreate('personal')} title="Създай задача чрез гласово въвеждане"><span>🎙</span> Гласова задача</button>
               {canCreateTeamTasks && (
                 <button className="primary-button" onClick={() => openCreate('team')} title="Създай екипна задача"><span>＋</span> Екипна задача</button>
               )}
