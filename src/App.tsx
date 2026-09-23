@@ -1363,9 +1363,9 @@ function CalendarView({
             <b>{notebookBusy ? '…' : notebookEnabled ? 'Включен' : 'Изключен'}</b>
           </button>
           <div className="calendar-month-nav">
-            <button type="button" onClick={() => moveMonth(-1)} aria-label="Предишен месец">‹</button>
+            <button type="button" onClick={() => moveMonth(-1)} aria-label="Предишен месец">‹ Предишен</button>
             <button type="button" onClick={showToday}>Днес</button>
-            <button type="button" onClick={() => moveMonth(1)} aria-label="Следващ месец">›</button>
+            <button type="button" onClick={() => moveMonth(1)} aria-label="Следващ месец">Следващ ›</button>
           </div>
         </div>
       </div>
