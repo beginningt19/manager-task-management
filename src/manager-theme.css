@@ -3262,8 +3262,7 @@ body,
   overflow: hidden;
   border: 1px solid rgba(191,219,254,.24);
   background:
-    radial-gradient(circle at 48% 34%, rgba(96,165,250,.28), transparent 42%),
-    linear-gradient(150deg, #071a38, #102f67 58%, #26286d);
+    linear-gradient(180deg, #0b234d 0 15%, #eef3fa 15% 100%);
   box-shadow:
     inset 0 0 0 1px rgba(255,255,255,.06),
     inset 0 -42px 82px rgba(1,9,26,.46),
@@ -3288,7 +3287,7 @@ body,
   grid-template-rows: auto auto 1fr;
   align-content: start;
   gap: 8px;
-  color: #eff6ff;
+  color: #17345f;
   opacity: .04;
   transform: scale(.88) translateY(5%);
   transform-origin: 50% 52%;
@@ -3309,7 +3308,7 @@ body,
   display: grid;
   place-items: center;
   border-radius: 8px;
-  background: linear-gradient(145deg,#3b82f6,#4f46e5);
+  background: linear-gradient(145deg,#2563eb,#1d4ed8);
   font-size: 15px;
   font-weight: 900;
   box-shadow: 0 8px 20px rgba(37,99,235,.28);
@@ -3324,7 +3323,7 @@ body,
 
 .office-intro-preview-copy small,
 .office-intro-preview-hero small {
-  color: rgba(191,219,254,.68);
+  color: rgba(37,99,235,.68);
   font-size: 5px;
   font-weight: 900;
   letter-spacing: .11em;
@@ -3343,9 +3342,9 @@ body,
   display: grid;
   align-content: center;
   gap: 3px;
-  border: 1px solid rgba(191,219,254,.12);
+  border: 1px solid rgba(148,163,184,.32);
   border-radius: 6px;
-  background: linear-gradient(120deg, rgba(37,99,235,.25), rgba(79,70,229,.17));
+  background: linear-gradient(120deg, rgba(255,255,255,.98), rgba(238,243,250,.96));
 }
 
 .office-intro-preview-hero strong {
@@ -3364,7 +3363,7 @@ body,
   min-height: 23px;
   border-radius: 5px;
   border: 1px solid rgba(191,219,254,.15);
-  background: linear-gradient(145deg, rgba(255,255,255,.13), rgba(96,165,250,.055));
+  background: linear-gradient(145deg, rgba(255,255,255,.98), rgba(241,245,249,.96));
 }
 
 .office-intro-door {
@@ -3733,7 +3732,42 @@ html.office-intro-active body {
 /* Keep the doorway itself opaque until the final dashboard dissolve. */
 html.office-intro-active .office-intro-portal {
   background:
-    radial-gradient(circle at 48% 34%, rgba(96,165,250,.30), transparent 42%),
-    linear-gradient(150deg, #071a38, #102f67 58%, #26286d) !important;
+    linear-gradient(180deg, #0b234d 0 15%, #eef3fa 15% 100%) !important;
   opacity: 1 !important;
+}
+
+
+/* Make the doorway read as the actual app rather than a blue portal. */
+.office-intro-preview-topbar {
+  margin: -7% -7% 0;
+  padding: 6px 7%;
+  background: #0b234d;
+  border-bottom: 1px solid rgba(255,255,255,.08);
+}
+
+.office-intro-preview-copy small {
+  color: rgba(219,234,254,.68) !important;
+}
+
+.office-intro-preview-copy strong {
+  color: #f8fbff;
+}
+
+.office-intro-preview-hero {
+  box-shadow: 0 4px 12px rgba(30,64,175,.08);
+}
+
+.office-intro-preview-hero strong {
+  color: #16345e;
+}
+
+.office-intro-preview-grid i {
+  box-shadow:
+    0 1px 2px rgba(15,23,42,.05),
+    0 4px 10px rgba(30,64,175,.035);
+}
+
+.office-intro-threshold-light {
+  background:
+    radial-gradient(ellipse at 50% 54%, rgba(255,255,255,.34), rgba(226,232,240,.10) 40%, transparent 74%) !important;
 }
