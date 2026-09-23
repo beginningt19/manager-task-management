@@ -193,14 +193,27 @@ export default function RecurrenceCalendarHints() {
   }, [loadRecurrences])
 
   useEffect(() => {
+    let frame = 0
+
     const refreshTargets = () => {
+      frame = 0
       const next = collectCalendarTargets()
       setTargets((current) => sameTargets(current, next) ? current : next)
     }
 
+    const scheduleRefresh = () => {
+      if (frame) return
+      frame = window.requestAnimationFrame(refreshTargets)
+    }
+
     refreshTargets()
-    const timer = window.setInterval(refreshTargets, 500)
-    return () => window.clearInterval(timer)
+    const observer = new MutationObserver(scheduleRefresh)
+    observer.observe(document.body, { childList: true, subtree: true })
+
+    return () => {
+      observer.disconnect()
+      if (frame) window.cancelAnimationFrame(frame)
+    }
   }, [])
 
   const occurrences = useMemo(() => buildOccurrences(recurrences, targets), [recurrences, targets])
