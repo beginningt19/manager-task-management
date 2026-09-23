@@ -3058,3 +3058,50 @@ body,
     max-width: none !important;
   }
 }
+
+
+/* Topbar identity block must never surrender surname space to fixed action buttons. */
+.topbar .account-area {
+  flex: 0 0 auto !important;
+  min-width: max-content !important;
+  width: auto !important;
+  overflow: visible !important;
+}
+
+.topbar .avatar {
+  flex: 0 0 auto !important;
+}
+
+.topbar .account-copy {
+  flex: 0 0 auto !important;
+  width: auto !important;
+  min-width: max-content !important;
+  max-width: none !important;
+  overflow: visible !important;
+  margin-right: 5px;
+}
+
+.topbar .account-copy strong,
+.topbar .account-copy small {
+  width: auto !important;
+  max-width: none !important;
+  min-width: max-content !important;
+  overflow: visible !important;
+  text-overflow: clip !important;
+  white-space: nowrap !important;
+}
+
+@media (min-width: 1181px) {
+  .topbar {
+    column-gap: 18px;
+  }
+
+  .topbar .brand {
+    flex: 0 1 auto;
+    min-width: 180px;
+  }
+
+  .topbar .account-area {
+    flex-shrink: 0 !important;
+  }
+}
