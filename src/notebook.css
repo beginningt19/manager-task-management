@@ -2043,3 +2043,90 @@
     min-width: 0;
   }
 }
+
+
+/* Ruled notebook writing area: text sits on the paper lines instead of floating between them. */
+.notebook-entries {
+  --notebook-rule-height: 36px;
+  padding-top: 0;
+  background:
+    repeating-linear-gradient(
+      to bottom,
+      transparent 0 calc(var(--notebook-rule-height) - 1px),
+      rgba(80,113,157,.20) calc(var(--notebook-rule-height) - 1px) var(--notebook-rule-height)
+    );
+  background-position: 0 0;
+}
+
+.notebook-entry {
+  position: relative;
+  min-height: calc(var(--notebook-rule-height) * 2);
+  grid-template-columns: 38px 42px minmax(0,1fr) auto;
+  align-items: start;
+  gap: 9px;
+  padding: 0;
+  border-bottom: 0;
+}
+
+.notebook-entry-number {
+  height: var(--notebook-rule-height);
+  padding-top: 12px;
+  box-sizing: border-box;
+}
+
+.notebook-check {
+  margin-top: 1px;
+}
+
+.notebook-entry-body {
+  min-width: 0;
+  padding: 0;
+}
+
+.notebook-entry-body p {
+  margin: 0;
+  min-height: var(--notebook-rule-height);
+  font-size: 15px;
+  line-height: var(--notebook-rule-height);
+}
+
+.notebook-entry-body > small {
+  display: block;
+  height: var(--notebook-rule-height);
+  margin: 0;
+  line-height: var(--notebook-rule-height);
+}
+
+.notebook-entry-actions {
+  min-height: var(--notebook-rule-height);
+  padding-top: 3px;
+}
+
+.notebook-carry-badge {
+  min-height: 24px;
+  margin: 6px 0 6px;
+  box-sizing: border-box;
+}
+
+.notebook-entry.carried-over::before {
+  top: 6px;
+  bottom: 6px;
+}
+
+.notebook-edit-text {
+  min-height: calc(var(--notebook-rule-height) * 2);
+  padding: 5px 9px;
+  line-height: var(--notebook-rule-height);
+  background:
+    repeating-linear-gradient(
+      to bottom,
+      rgba(255,255,255,.80) 0 calc(var(--notebook-rule-height) - 1px),
+      rgba(80,113,157,.16) calc(var(--notebook-rule-height) - 1px) var(--notebook-rule-height)
+    );
+}
+
+@media (max-width: 680px) {
+  .notebook-entry {
+    grid-template-columns: 36px minmax(0,1fr);
+  }
+}
