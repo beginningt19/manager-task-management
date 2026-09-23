@@ -2413,3 +2413,49 @@
     margin-left: 0;
   }
 }
+
+
+/* Clear editing controls for existing task start time. */
+.notebook-edit-time-row {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  flex-wrap: wrap;
+}
+
+.notebook-edit-time {
+  min-height: 36px;
+  padding: 6px 9px;
+}
+
+.notebook-edit-time > span {
+  color: #7b6d59;
+  font-size: 8px;
+  font-weight: 900;
+  letter-spacing: .04em;
+  text-transform: uppercase;
+}
+
+.notebook-edit-time input {
+  min-width: 92px;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.notebook-edit-clear-time {
+  min-height: 36px;
+  padding: 0 10px;
+  color: #785c50;
+  background: #fffaf5;
+  border: 1px solid #dfcfc1;
+  border-radius: 7px;
+  cursor: pointer;
+  font: inherit;
+  font-size: 9px;
+  font-weight: 850;
+}
+
+.notebook-edit-clear-time:disabled {
+  opacity: .42;
+  cursor: default;
+}
