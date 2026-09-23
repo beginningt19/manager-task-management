@@ -3623,7 +3623,9 @@ body,
 }
 
 @keyframes office-intro-overlay {
-  0%, 91% { opacity: 1; }
+  0%, 82% { opacity: 1; }
+  89% { opacity: .88; }
+  94% { opacity: .48; }
   100% { opacity: 0; }
 }
 
@@ -3667,3 +3669,52 @@ body,
   display: none !important;
 }
 
+
+
+/* The real authenticated dashboard is already mounted below the intro.
+   Reveal it through the doorway instead of exposing the old login screen. */
+.app-shell.office-intro-reveal-target {
+  opacity: 0;
+  transform: scale(1.035);
+  filter: blur(11px);
+  transform-origin: 29% 54%;
+  will-change: opacity, transform, filter;
+  animation: office-dashboard-doorway-reveal 6.2s cubic-bezier(.18,.72,.2,1) both;
+}
+
+@keyframes office-dashboard-doorway-reveal {
+  0%, 76% {
+    opacity: 0;
+    transform: scale(1.035);
+    filter: blur(11px);
+  }
+  84% {
+    opacity: .12;
+    transform: scale(1.028);
+    filter: blur(9px);
+  }
+  90% {
+    opacity: .38;
+    transform: scale(1.018);
+    filter: blur(6px);
+  }
+  95% {
+    opacity: .76;
+    transform: scale(1.007);
+    filter: blur(2.5px);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+    filter: blur(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .app-shell.office-intro-reveal-target {
+    animation: none !important;
+    opacity: 1 !important;
+    transform: none !important;
+    filter: none !important;
+  }
+}
