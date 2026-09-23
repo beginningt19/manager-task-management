@@ -3105,3 +3105,53 @@ body,
     flex-shrink: 0 !important;
   }
 }
+
+
+/* Calendar full workspace mode */
+@media (min-width: 981px) and (min-height: 680px) {
+  .app-shell > main.calendar-full-mode:not(.login-page):not(.fatal) {
+    grid-template-rows: minmax(0, 1fr) !important;
+    padding-block: 10px !important;
+  }
+
+  .app-shell > main.calendar-full-mode > .dashboard-hero,
+  .app-shell > main.calendar-full-mode > .stat-grid,
+  .app-shell > main.calendar-full-mode .task-panel > .filters,
+  .app-shell > main.calendar-full-mode .task-panel > .panel-heading {
+    display: none !important;
+  }
+
+  .app-shell > main.calendar-full-mode > .task-panel {
+    grid-row: 1;
+    height: 100% !important;
+    min-height: 0 !important;
+    border-radius: 18px;
+  }
+
+  .app-shell > main.calendar-full-mode .task-panel > .calendar-shell {
+    height: 100% !important;
+    min-height: 0 !important;
+    padding: 8px 12px 12px;
+    overflow-y: auto !important;
+    scrollbar-gutter: stable;
+  }
+
+  .app-shell > main.calendar-full-mode .calendar-scroll {
+    overflow-x: auto;
+    overflow-y: visible;
+  }
+
+  .app-shell > main.calendar-full-mode .calendar-grid {
+    grid-auto-rows: minmax(148px, auto);
+  }
+}
+
+/* Wheel scrolling should work from anywhere over the calendar, not only its scrollbar. */
+.task-panel > .calendar-shell {
+  overflow-y: auto !important;
+  scrollbar-gutter: stable;
+}
+
+.task-panel > .calendar-shell .calendar-scroll {
+  pointer-events: auto;
+}
