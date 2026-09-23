@@ -50,6 +50,17 @@ type TaskReminder = {
   last_error: string | null
 }
 
+type NotebookCalendarEntry = {
+  id: string
+  page_id: string
+  page_date: string
+  page_number: number
+  body: string
+  completed: boolean
+  position: number
+  carried_from_date: string | null
+}
+
 const bulgarianMonths = [
   'Януари',
   'Февруари',
@@ -486,6 +497,10 @@ function App() {
   const [passwordOpen, setPasswordOpen] = useState(false)
   const [checklistsOpen, setChecklistsOpen] = useState(false)
   const [notebookOpen, setNotebookOpen] = useState(false)
+  const [notebookTarget, setNotebookTarget] = useState<{ date: string; pageId: string } | null>(null)
+  const [notebookCalendarEnabled, setNotebookCalendarEnabled] = useState(false)
+  const [notebookCalendarBusy, setNotebookCalendarBusy] = useState(false)
+  const [notebookCalendarEntries, setNotebookCalendarEntries] = useState<NotebookCalendarEntry[]>([])
   const [query, setQuery] = useState('')
   const [statusFilter, setStatusFilter] = useState<'all' | TaskStatus>('all')
   const [priorityFilter, setPriorityFilter] = useState<'all' | Priority>('all')
@@ -504,14 +519,15 @@ function App() {
     if (!session?.user.id) return
     setLoading(true)
 
-    const [profilesResult, tasksResult, assigneesResult, visibilityResult] = await Promise.all([
+    const [profilesResult, tasksResult, assigneesResult, visibilityResult, notebookCalendarResult] = await Promise.all([
       supabase.from('profiles').select('*').order('display_name'),
       supabase.from('tasks').select('*').order('due_at'),
       supabase.from('task_assignees').select('*'),
       supabase.from('task_visibility_settings').select('manager_mode').eq('id', 'global').maybeSingle(),
+      supabase.from('notebook_calendar_settings').select('enabled').eq('user_id', session.user.id).maybeSingle(),
     ])
 
-    const firstError = profilesResult.error || tasksResult.error || assigneesResult.error || visibilityResult.error
+    const firstError = profilesResult.error || tasksResult.error || assigneesResult.error || visibilityResult.error || notebookCalendarResult.error
     if (firstError) {
       showToast({ tone: 'error', message: firstError.message })
       setLoading(false)
@@ -526,6 +542,7 @@ function App() {
     setProfiles(nextProfiles)
     setProfile(byId.get(session.user.id) || null)
     setManagerVisibilityMode((visibilityResult.data?.manager_mode as ManagerVisibilityMode) || 'all')
+    setNotebookCalendarEnabled(Boolean(notebookCalendarResult.data?.enabled))
     setTasks(
       rawTasks.map((task) => ({
         ...task,
@@ -559,6 +576,9 @@ function App() {
       setProfiles([])
       setTasks([])
       setManagerVisibilityMode('all')
+      setNotebookCalendarEnabled(false)
+      setNotebookCalendarEntries([])
+      setNotebookTarget(null)
       setLoading(false)
       return
     }
@@ -572,11 +592,100 @@ function App() {
       .on('postgres_changes', { event: '*', schema: 'public', table: 'tasks' }, loadCore)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'task_assignees' }, loadCore)
       .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'task_visibility_settings' }, loadCore)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'notebook_calendar_settings', filter: `user_id=eq.${session.user.id}` }, loadCore)
       .subscribe()
     return () => {
       void supabase.removeChannel(channel)
     }
   }, [session, loadCore])
+
+  const loadNotebookCalendarEntries = useCallback(async () => {
+    if (!session?.user.id || !notebookCalendarEnabled || dashboardView !== 'calendar') {
+      setNotebookCalendarEntries([])
+      return
+    }
+
+    const year = calendarCursor.getFullYear()
+    const month = calendarCursor.getMonth()
+    const firstDayOffset = (new Date(year, month, 1).getDay() + 6) % 7
+    const gridStart = new Date(year, month, 1 - firstDayOffset)
+    const gridEnd = new Date(gridStart)
+    gridEnd.setDate(gridStart.getDate() + 41)
+    const startKey = localDateKey(gridStart)
+    const endKey = localDateKey(gridEnd)
+
+    const pagesResult = await supabase
+      .from('notebook_pages')
+      .select('id,page_date,page_number')
+      .eq('user_id', session.user.id)
+      .gte('page_date', startKey)
+      .lte('page_date', endKey)
+      .order('page_date', { ascending: true })
+      .order('page_number', { ascending: true })
+
+    if (pagesResult.error) {
+      showToast({ tone: 'error', message: `Записите от тефтера не можаха да се заредят в календара: ${pagesResult.error.message}` })
+      return
+    }
+
+    const pages = (pagesResult.data || []) as Array<{ id: string; page_date: string; page_number: number }>
+    if (!pages.length) {
+      setNotebookCalendarEntries([])
+      return
+    }
+
+    const entriesResult = await supabase
+      .from('notebook_entries')
+      .select('id,page_id,body,completed,position,carried_from_date')
+      .eq('user_id', session.user.id)
+      .in('page_id', pages.map((page) => page.id))
+      .order('position', { ascending: true })
+      .order('created_at', { ascending: true })
+
+    if (entriesResult.error) {
+      showToast({ tone: 'error', message: `Записите от тефтера не можаха да се заредят в календара: ${entriesResult.error.message}` })
+      return
+    }
+
+    const pageById = new Map(pages.map((page) => [page.id, page]))
+    const nextEntries = (entriesResult.data || [])
+      .map((entry) => {
+        const page = pageById.get(entry.page_id)
+        if (!page) return null
+        return {
+          ...entry,
+          page_date: page.page_date,
+          page_number: page.page_number,
+        } as NotebookCalendarEntry
+      })
+      .filter((entry): entry is NotebookCalendarEntry => Boolean(entry))
+      .sort((a, b) =>
+        a.page_date.localeCompare(b.page_date)
+        || a.page_number - b.page_number
+        || a.position - b.position
+      )
+
+    setNotebookCalendarEntries(nextEntries)
+  }, [calendarCursor, dashboardView, notebookCalendarEnabled, session?.user.id, showToast])
+
+  useEffect(() => {
+    if (!session?.user.id || !notebookCalendarEnabled || dashboardView !== 'calendar') {
+      setNotebookCalendarEntries([])
+      return
+    }
+
+    void loadNotebookCalendarEntries()
+    const refresh = () => void loadNotebookCalendarEntries()
+    const channel = supabase
+      .channel(`notebook-calendar-${session.user.id}`)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'notebook_pages', filter: `user_id=eq.${session.user.id}` }, refresh)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'notebook_entries', filter: `user_id=eq.${session.user.id}` }, refresh)
+      .subscribe()
+
+    return () => {
+      void supabase.removeChannel(channel)
+    }
+  }, [dashboardView, loadNotebookCalendarEntries, notebookCalendarEnabled, session?.user.id])
 
   const filteredTasks = useMemo(() => {
     const needle = query.trim().toLocaleLowerCase('bg-BG')
@@ -630,6 +739,28 @@ function App() {
       message: nextMode === 'all'
         ? 'Режим 1 е активен: мениджърите виждат всички задачи.'
         : 'Режим 2 е активен: всеки мениджър вижда само задачите, възложени на него.',
+    })
+  }
+
+  const toggleNotebookCalendar = async () => {
+    if (!profile || notebookCalendarBusy) return
+    const next = !notebookCalendarEnabled
+    setNotebookCalendarBusy(true)
+    const { error } = await supabase.rpc('set_notebook_calendar_enabled', { p_enabled: next })
+    setNotebookCalendarBusy(false)
+
+    if (error) {
+      showToast({ tone: 'error', message: `Режимът „Тефтер в календара“ не беше променен: ${error.message}` })
+      return
+    }
+
+    setNotebookCalendarEnabled(next)
+    if (!next) setNotebookCalendarEntries([])
+    showToast({
+      tone: 'success',
+      message: next
+        ? 'Записите от личния тефтер вече се показват в календара.'
+        : 'Записите от личния тефтер са скрити от календара.',
     })
   }
 
@@ -687,7 +818,7 @@ function App() {
             </button>
           )}
           <button className={`notification-button checklist-launch${dashboardView === 'calendar' ? ' active' : ''}`} onClick={() => setDashboardView('calendar')} title="Отвори календара">◷<span>Календар</span></button>
-          <button className="notification-button checklist-launch notebook-launch" onClick={() => setNotebookOpen(true)} title="Отвори личния тефтер">✎<span>Тефтер</span></button>
+          <button className="notification-button checklist-launch notebook-launch" onClick={() => { setNotebookTarget(null); setNotebookOpen(true) }} title="Отвори личния тефтер">✎<span>Тефтер</span></button>
           <PushButton userId={session.user.id} onResult={showToast} />
           <button className="notification-button" onClick={() => setPasswordOpen(true)} title="Смени паролата">⌘<span>Парола</span></button>
           <span className="avatar" aria-hidden="true">{initials(profile?.display_name || session.user.email || 'А')}</span>
@@ -777,9 +908,17 @@ function App() {
           ) : dashboardView === 'calendar' ? (
             <CalendarView
               tasks={filteredTasks}
+              notebookEntries={notebookCalendarEntries}
+              notebookEnabled={notebookCalendarEnabled}
+              notebookBusy={notebookCalendarBusy}
               cursor={calendarCursor}
               onCursorChange={setCalendarCursor}
               onOpen={(taskId) => setSelectedTaskId(taskId)}
+              onOpenNotebook={(entry) => {
+                setNotebookTarget({ date: entry.page_date, pageId: entry.page_id })
+                setNotebookOpen(true)
+              }}
+              onToggleNotebook={() => void toggleNotebookCalendar()}
               onCreate={openCalendarCreate}
             />
           ) : visibleListCount === 0 ? (
@@ -881,7 +1020,12 @@ function App() {
       {notebookOpen && profile && (
         <NotebookDrawer
           currentUser={profile}
-          onClose={() => setNotebookOpen(false)}
+          initialDate={notebookTarget?.date}
+          initialPageId={notebookTarget?.pageId}
+          onClose={() => {
+            setNotebookOpen(false)
+            setNotebookTarget(null)
+          }}
           onResult={showToast}
         />
       )}
@@ -1139,15 +1283,25 @@ function CalendarTaskChoice({
 
 function CalendarView({
   tasks,
+  notebookEntries,
+  notebookEnabled,
+  notebookBusy,
   cursor,
   onCursorChange,
   onOpen,
+  onOpenNotebook,
+  onToggleNotebook,
   onCreate,
 }: {
   tasks: TaskView[]
+  notebookEntries: NotebookCalendarEntry[]
+  notebookEnabled: boolean
+  notebookBusy: boolean
   cursor: Date
   onCursorChange: (date: Date) => void
   onOpen: (taskId: string) => void
+  onOpenNotebook: (entry: NotebookCalendarEntry) => void
+  onToggleNotebook: () => void
   onCreate: (date: Date) => void
 }) {
   const year = cursor.getFullYear()
@@ -1161,11 +1315,18 @@ function CalendarView({
     return date
   })
   const tasksByDay = new Map<string, TaskView[]>()
+  const notebookByDay = new Map<string, NotebookCalendarEntry[]>()
 
   tasks.forEach((task) => {
     const key = bulgarianDateKey(task.due_at)
     tasksByDay.set(key, [...(tasksByDay.get(key) || []), task])
   })
+
+  if (notebookEnabled) {
+    notebookEntries.forEach((entry) => {
+      notebookByDay.set(entry.page_date, [...(notebookByDay.get(entry.page_date) || []), entry])
+    })
+  }
 
   const moveMonth = (step: number) => onCursorChange(new Date(year, month + step, 1))
   const showToday = () => {
@@ -1177,11 +1338,29 @@ function CalendarView({
     <div className="calendar-shell">
       <div className="calendar-toolbar">
         <h3>{bulgarianMonths[month]} {year}</h3>
-        <div>
-          <button type="button" onClick={() => moveMonth(-1)} aria-label="Предишен месец">‹</button>
-          <button type="button" onClick={showToday}>Днес</button>
-          <button type="button" onClick={() => moveMonth(1)} aria-label="Следващ месец">›</button>
+        <div className="calendar-toolbar-controls">
+          <button
+            type="button"
+            className={`calendar-notebook-toggle${notebookEnabled ? ' active' : ''}`}
+            onClick={onToggleNotebook}
+            disabled={notebookBusy}
+            aria-pressed={notebookEnabled}
+            title={notebookEnabled ? 'Скрий задачите от личния тефтер' : 'Покажи задачите от личния тефтер'}
+          >
+            <span aria-hidden="true">✎</span>
+            <span>Тефтер</span>
+            <b>{notebookBusy ? '…' : notebookEnabled ? 'Включен' : 'Изключен'}</b>
+          </button>
+          <div className="calendar-month-nav">
+            <button type="button" onClick={() => moveMonth(-1)} aria-label="Предишен месец">‹</button>
+            <button type="button" onClick={showToday}>Днес</button>
+            <button type="button" onClick={() => moveMonth(1)} aria-label="Следващ месец">›</button>
+          </div>
         </div>
+      </div>
+      <div className="calendar-source-note">
+        <span><i className="calendar-source-dot task" /> Задачи</span>
+        <span className={notebookEnabled ? 'active' : ''}><i className="calendar-source-dot notebook" /> Тефтер {notebookEnabled ? '· показан' : '· скрит'}</span>
       </div>
       <div className="calendar-scroll">
         <div className="calendar-grid">
@@ -1189,11 +1368,13 @@ function CalendarView({
           {days.map((date) => {
             const key = localDateKey(date)
             const dayTasks = tasksByDay.get(key) || []
+            const dayNotebookEntries = notebookByDay.get(key) || []
+            const visibleItemCount = dayTasks.length + dayNotebookEntries.length
             const isOutside = date.getMonth() !== month
             const isToday = key === todayKey
 
             return (
-              <div key={key} className={`calendar-day${isOutside ? ' outside-month' : ''}${isToday ? ' today' : ''}`}>
+              <div key={key} className={`calendar-day${isOutside ? ' outside-month' : ''}${isToday ? ' today' : ''}${dayNotebookEntries.length ? ' has-notebook-items' : ''}`}>
                 <div className="calendar-date">
                   <button
                     type="button"
@@ -1203,7 +1384,7 @@ function CalendarView({
                     title={`${String(date.getDate()).padStart(2, '0')}.${String(date.getMonth() + 1).padStart(2, '0')}.${date.getFullYear()}`}
                   >
                     <span>{date.getDate()}</span>
-                    {dayTasks.length > 0 && <small>{dayTasks.length}</small>}
+                    {visibleItemCount > 0 && <small>{visibleItemCount}</small>}
                   </button>
                   <button
                     type="button"
@@ -1218,12 +1399,27 @@ function CalendarView({
                     <button
                       type="button"
                       key={task.id}
-                      className={`calendar-task ${task.priority}${isOverdue(task.due_at, task.status) ? ' overdue' : ''}`}
+                      className={`calendar-task calendar-normal-task ${task.priority}${isOverdue(task.due_at, task.status) ? ' overdue' : ''}`}
                       onClick={() => onOpen(task.id)}
-                      title={`${formatDateTime(task.due_at)} — ${task.description}`}
                     >
                       <time>{formatBulgarianTime(task.due_at)}</time>
                       <span>{task.description}</span>
+                    </button>
+                  ))}
+                  {dayNotebookEntries.map((entry) => (
+                    <button
+                      type="button"
+                      key={`notebook-${entry.id}`}
+                      className={`calendar-notebook-entry${entry.completed ? ' completed' : ''}`}
+                      onClick={() => onOpenNotebook(entry)}
+                      aria-label={`Тефтер, страница ${entry.page_number}: ${entry.body}`}
+                    >
+                      <span className="calendar-notebook-entry-head">
+                        <b>✎ Тефтер</b>
+                        <small>стр. {entry.page_number}</small>
+                      </span>
+                      <span className="calendar-notebook-entry-text">{entry.body}</span>
+                      {entry.completed && <span className="calendar-notebook-entry-done">✓ изпълнена</span>}
                     </button>
                   ))}
                 </div>
