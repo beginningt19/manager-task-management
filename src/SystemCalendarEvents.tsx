@@ -289,15 +289,31 @@ export default function SystemCalendarEvents() {
   }, [loadAccess, loadEvents])
 
   useEffect(() => {
+    let frame = 0
+
     const refreshTargets = () => {
+      frame = 0
       const next = collectCalendarTargets()
       setTargets((current) => sameTargets(current, next) ? current : next)
-      setToolbarTarget(document.querySelector<HTMLElement>('.calendar-toolbar'))
+      setToolbarTarget((current) => {
+        const nextToolbar = document.querySelector<HTMLElement>('.calendar-toolbar')
+        return current === nextToolbar ? current : nextToolbar
+      })
+    }
+
+    const scheduleRefresh = () => {
+      if (frame) return
+      frame = window.requestAnimationFrame(refreshTargets)
     }
 
     refreshTargets()
-    const timer = window.setInterval(refreshTargets, 400)
-    return () => window.clearInterval(timer)
+    const observer = new MutationObserver(scheduleRefresh)
+    observer.observe(document.body, { childList: true, subtree: true })
+
+    return () => {
+      observer.disconnect()
+      if (frame) window.cancelAnimationFrame(frame)
+    }
   }, [])
 
   const byDay = useMemo(() => {
