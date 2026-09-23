@@ -1096,29 +1096,6 @@ function AmbientBackground({ className = '' }: { className?: string }) {
             <stop offset="100%" stopColor="#bfdbfe" stopOpacity="0" />
           </radialGradient>
 
-          <filter id="managerSoftBlur" x="-25%" y="-25%" width="150%" height="150%">
-            <feGaussianBlur stdDeviation="23" />
-          </filter>
-
-          <filter id="managerFabricDetail" x="-20%" y="-20%" width="140%" height="140%">
-            <feTurbulence
-              type="fractalNoise"
-              baseFrequency=".0025 .017"
-              numOctaves="3"
-              seed="11"
-              result="noise"
-            />
-            <feColorMatrix
-              in="noise"
-              type="matrix"
-              values="1 0 0 0 .38
-                      0 1 0 0 .48
-                      0 0 1 0 .65
-                      0 0 0 .28 0"
-              result="tintedNoise"
-            />
-            <feBlend in="SourceGraphic" in2="tintedNoise" mode="soft-light" />
-          </filter>
         </defs>
 
         <g className="manager-wave manager-wave-depth">
@@ -1128,7 +1105,7 @@ function AmbientBackground({ className = '' }: { className?: string }) {
           />
         </g>
 
-        <g className="manager-wave manager-wave-a" filter="url(#managerFabricDetail)">
+        <g className="manager-wave manager-wave-a">
           <path
             d="M-180 160 C160 12 428 310 765 168 C1100 26 1320 194 1780 22 L1780 425 C1392 534 1118 382 786 500 C426 628 122 414 -180 586 Z"
             fill="url(#managerWaveA)"
@@ -1150,7 +1127,7 @@ function AmbientBackground({ className = '' }: { className?: string }) {
           />
         </g>
 
-        <g className="manager-wave manager-wave-b" filter="url(#managerFabricDetail)">
+        <g className="manager-wave manager-wave-b">
           <path
             d="M-225 522 C128 322 395 684 748 501 C1090 325 1334 620 1805 403 L1805 818 C1427 927 1120 716 764 865 C392 1021 110 755 -225 940 Z"
             fill="url(#managerWaveB)"
@@ -1179,7 +1156,7 @@ function AmbientBackground({ className = '' }: { className?: string }) {
           />
         </g>
 
-        <g className="manager-wave manager-wave-c" filter="url(#managerSoftBlur)">
+        <g className="manager-wave manager-wave-c">
           <ellipse cx="320" cy="178" rx="330" ry="185" fill="url(#managerGlowA)" />
           <ellipse cx="1265" cy="725" rx="430" ry="250" fill="url(#managerGlowA)" />
         </g>
