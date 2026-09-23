@@ -792,8 +792,9 @@ function App() {
   if (!session) return <Login />
 
   return (
-    <div className="app-shell">
+    <>
       <AmbientBackground />
+      <div className="app-shell">
       <header className="topbar">
         <div className="brand">
           <span className="brand-mark" aria-hidden="true">✓</span>
@@ -1031,13 +1032,14 @@ function App() {
       )}
 
       {toast && <div className={`toast ${toast.tone}`} role="status">{toast.message}</div>}
-    </div>
+      </div>
+    </>
   )
 }
 
 function AmbientBackground({ className = '' }: { className?: string }) {
   return (
-    <div className={`ambient-background manager-ambient manager-silk-background manager-dynamic-background ${className}`.trim()} aria-hidden="true">
+    <div className={`manager-viewport-background ${className}`.trim()} aria-hidden="true">
       <img
         className="manager-silk-base-image"
         src="/manager-silk-live.avif"
