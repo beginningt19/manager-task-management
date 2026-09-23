@@ -2796,3 +2796,146 @@ body,
     font-size: 10px;
   }
 }
+
+
+/* Login control loop — replaces the old metric/pulse panel. */
+.executive-control-loop {
+  width: min(650px, 100%);
+  margin-top: 42px;
+  padding: 20px 22px 22px;
+  border: 1px solid rgba(147,197,253,.16);
+  border-radius: 22px;
+  background:
+    linear-gradient(145deg, rgba(13,31,69,.72), rgba(24,47,97,.36));
+  box-shadow: 0 30px 80px rgba(0,0,0,.24), inset 0 1px 0 rgba(255,255,255,.06);
+  backdrop-filter: blur(16px);
+}
+.control-loop-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  padding-bottom: 15px;
+  border-bottom: 1px solid rgba(147,197,253,.12);
+}
+.control-loop-head > span {
+  color: rgba(191,219,254,.64);
+  font-size: 9px;
+  font-weight: 900;
+  letter-spacing: .18em;
+}
+.control-loop-head b {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  color: #bfdbfe;
+  font-size: 8px;
+  font-weight: 850;
+  letter-spacing: .08em;
+}
+.control-loop-head b i {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #60a5fa;
+  box-shadow: 0 0 0 4px rgba(96,165,250,.10), 0 0 14px rgba(96,165,250,.58);
+  animation: manager-node-breathe 3.2s ease-in-out infinite;
+}
+.control-loop-track {
+  position: relative;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 18px;
+  padding-top: 24px;
+}
+.control-loop-line {
+  position: absolute;
+  left: 8%;
+  right: 8%;
+  top: 39px;
+  height: 1px;
+  background: linear-gradient(90deg, rgba(96,165,250,.14), rgba(147,197,253,.62), rgba(129,140,248,.50), rgba(96,165,250,.14));
+}
+.control-loop-line::after {
+  content: '';
+  position: absolute;
+  top: -1px;
+  width: 22%;
+  height: 3px;
+  background: linear-gradient(90deg, transparent, #dbeafe, transparent);
+  filter: drop-shadow(0 0 7px rgba(191,219,254,.7));
+  animation: executive-flow-scan 4.6s linear infinite;
+}
+.control-loop-step {
+  position: relative;
+  z-index: 1;
+  min-width: 0;
+  padding-top: 34px;
+  display: grid;
+  gap: 4px;
+}
+.control-loop-step > i {
+  position: absolute;
+  top: 4px;
+  left: 0;
+  width: 28px;
+  height: 28px;
+  display: grid;
+  place-items: center;
+  color: #dbeafe;
+  background: #14336e;
+  border: 1px solid rgba(147,197,253,.34);
+  border-radius: 8px;
+  box-shadow: 0 0 0 5px rgba(96,165,250,.055), 0 8px 20px rgba(0,0,0,.14);
+  font-style: normal;
+  font-size: 8px;
+  font-weight: 900;
+}
+.control-loop-step strong {
+  color: rgba(248,251,255,.96);
+  font-size: 12px;
+  letter-spacing: -.01em;
+}
+.control-loop-step small {
+  color: rgba(191,219,254,.50);
+  font-size: 9px;
+  line-height: 1.45;
+}
+
+/* Dashboard hero: cleaner hierarchy after removing the descriptive sentence. */
+.dashboard-hero .hero-copy {
+  display: grid;
+  align-content: center;
+  justify-items: start;
+}
+.dashboard-hero .hero-copy .eyebrow {
+  margin-bottom: 7px;
+  font-size: 10px;
+  font-weight: 850;
+  letter-spacing: .14em;
+}
+.dashboard-hero .hero-copy h1 {
+  margin: 0;
+  font-size: clamp(36px, 4vw, 50px);
+  line-height: 1;
+  letter-spacing: -.045em;
+}
+.dashboard-hero .hero-live {
+  margin-top: 17px;
+  min-height: 30px;
+  padding-inline: 12px;
+  color: rgba(235,244,255,.82);
+  background: rgba(8,31,70,.28);
+  border-color: rgba(191,219,254,.20);
+  font-size: 9px;
+  font-weight: 800;
+}
+
+@media (max-width: 760px) {
+  .control-loop-track {
+    gap: 10px;
+  }
+  .control-loop-step small {
+    display: none;
+  }
+}
