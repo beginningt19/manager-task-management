@@ -3034,3 +3034,27 @@ body,
     flex-basis: 38px;
   }
 }
+
+
+/* Calendar cleanup: remove the decorative base line that can cross visible week rows. */
+.app-shell > main:not(.login-page):not(.fatal) .calendar-shell::after {
+  display: none !important;
+}
+
+/* Full account name in the topbar — never truncate surname with an ellipsis. */
+.topbar .account-copy {
+  min-width: max-content;
+}
+
+.topbar .account-copy strong {
+  max-width: none !important;
+  overflow: visible !important;
+  text-overflow: clip !important;
+  white-space: nowrap !important;
+}
+
+@media (max-width: 1180px) and (min-width: 761px) {
+  .topbar .account-copy strong {
+    max-width: none !important;
+  }
+}
