@@ -2466,3 +2466,61 @@ body,
     animation: none !important;
   }
 }
+
+
+/* ======================================================================
+   DASHBOARD PERFORMANCE PASS
+   Keep the visible motion; stop full-screen effects that add little detail.
+   ====================================================================== */
+
+/* The wave groups already move independently, so moving the entire SVG is redundant. */
+.manager-viewport-background .manager-live-wave-svg {
+  animation: none !important;
+  transform: none !important;
+  will-change: auto !important;
+}
+
+/* Static depth/detail layers preserve the look without continuous compositing. */
+.manager-viewport-background .manager-wave-depth,
+.manager-viewport-background .manager-wave-c,
+.manager-viewport-background .manager-wave-fibers {
+  animation: none !important;
+  will-change: auto !important;
+}
+
+/* Radial gradients are already soft; extra drop-shadow filters are unnecessary. */
+.manager-viewport-background .manager-wave-fibers,
+.manager-viewport-background .manager-wave-sheen {
+  filter: none !important;
+}
+
+/* Grain remains visible but does not need to drift every frame. */
+.manager-background-grain {
+  animation: none !important;
+  transform: none !important;
+  will-change: auto !important;
+  opacity: .18;
+}
+
+/* The base texture is static; avoid an extra full-screen filtered compositing layer. */
+.manager-viewport-background .manager-silk-base-image {
+  filter: none !important;
+  opacity: .52 !important;
+}
+
+/* These surfaces are already nearly opaque; blur behind them costs GPU with minimal visual gain. */
+.app-shell > .topbar,
+.app-shell > main:not(.login-page):not(.fatal) .panel,
+.app-shell > main:not(.login-page):not(.fatal) .calendar-shell,
+.app-shell > main:not(.login-page):not(.fatal) .stat-card {
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+/* Keep only the layers whose motion is visibly useful. */
+.manager-viewport-background .manager-wave-a,
+.manager-viewport-background .manager-wave-b,
+.manager-viewport-background .manager-wave-ribbon,
+.manager-viewport-background .manager-wave-sheen {
+  will-change: transform, opacity;
+}
