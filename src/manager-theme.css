@@ -1795,3 +1795,196 @@ body,
     animation: none !important;
   }
 }
+
+
+/* ======================================================================
+   VIEWPORT BACKGROUND V4 — stronger depth, richer folds and visible detail.
+   ====================================================================== */
+.manager-viewport-background {
+  background:
+    radial-gradient(circle at 14% 10%, rgba(255,255,255,.98), rgba(218,232,252,.82) 26%, transparent 56%),
+    radial-gradient(circle at 86% 80%, rgba(151,169,246,.50), transparent 43%),
+    linear-gradient(145deg, #e8f1fc 0%, #dbe7f7 44%, #ccddef 100%);
+}
+
+.manager-viewport-background .manager-silk-base-image {
+  opacity: .56 !important;
+  filter: contrast(1.13) saturate(1.02) brightness(1.02) !important;
+}
+
+.manager-viewport-background .manager-live-wave-svg {
+  inset: -6%;
+  width: 112%;
+  height: 112%;
+  opacity: 1;
+}
+
+.manager-viewport-background .manager-wave-depth {
+  opacity: .72;
+  animation: manager-v4-depth 18s ease-in-out infinite alternate;
+}
+
+.manager-viewport-background .manager-wave-a {
+  opacity: .90;
+  animation-duration: 11.5s;
+}
+
+.manager-viewport-background .manager-wave-b {
+  opacity: .80;
+  animation-duration: 14s;
+}
+
+.manager-viewport-background .manager-wave-ribbon {
+  opacity: .74;
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: manager-v4-ribbon 13.5s ease-in-out infinite alternate;
+}
+
+.manager-viewport-background .manager-wave-c {
+  opacity: .84;
+}
+
+.manager-viewport-background .manager-wave-fibers {
+  opacity: .64;
+  fill: none;
+  stroke: rgba(255,255,255,.60);
+  stroke-width: 2.2;
+  stroke-linecap: round;
+  mix-blend-mode: screen;
+  filter: drop-shadow(0 1px 1px rgba(56,91,139,.16));
+  animation: manager-v4-fibers 10s ease-in-out infinite alternate;
+}
+
+.manager-viewport-background .manager-wave-fibers path:nth-child(even) {
+  stroke: rgba(71,104,155,.32);
+  stroke-width: 1.35;
+  mix-blend-mode: multiply;
+}
+
+.manager-viewport-background .manager-wave-sheen {
+  opacity: .72;
+  filter: blur(.35px) drop-shadow(0 0 10px rgba(255,255,255,.26));
+}
+
+.manager-viewport-background .manager-dynamic-vignette {
+  background:
+    radial-gradient(circle at 50% 43%, transparent 0 33%, rgba(43,65,106,.065) 100%),
+    linear-gradient(180deg, rgba(255,255,255,.05), transparent 30%, rgba(45,68,109,.055));
+}
+
+.manager-background-grain {
+  position: absolute;
+  inset: 0;
+  z-index: 4;
+  opacity: .22;
+  pointer-events: none;
+  background-image:
+    repeating-linear-gradient(
+      104deg,
+      rgba(255,255,255,.055) 0,
+      rgba(255,255,255,.055) 1px,
+      transparent 1px,
+      transparent 7px
+    ),
+    repeating-linear-gradient(
+      8deg,
+      rgba(46,76,121,.025) 0,
+      rgba(46,76,121,.025) 1px,
+      transparent 1px,
+      transparent 11px
+    );
+  background-size: 100% 100%;
+  mix-blend-mode: soft-light;
+  animation: manager-v4-grain-drift 22s linear infinite alternate;
+}
+
+@keyframes manager-v4-depth {
+  0% {
+    transform: translate3d(-38px,18px,0) scale(1.015) skewX(-.7deg);
+    opacity: .52;
+  }
+  50% {
+    transform: translate3d(8px,-22px,0) scale(1.05) skewX(.5deg);
+    opacity: .78;
+  }
+  100% {
+    transform: translate3d(52px,24px,0) scale(1.025) skewX(-.2deg);
+    opacity: .60;
+  }
+}
+
+@keyframes manager-v4-ribbon {
+  0% {
+    transform: translate3d(36px,-18px,0) scaleX(.98) scaleY(1.03) rotate(-.35deg);
+    opacity: .58;
+  }
+  48% {
+    transform: translate3d(-18px,24px,0) scaleX(1.06) scaleY(.98) rotate(.3deg);
+    opacity: .84;
+  }
+  100% {
+    transform: translate3d(-48px,-10px,0) scaleX(1.02) scaleY(1.06) rotate(-.1deg);
+    opacity: .66;
+  }
+}
+
+@keyframes manager-v4-fibers {
+  0% {
+    transform: translate3d(-26px,8px,0) scaleX(.99);
+    opacity: .42;
+  }
+  50% {
+    transform: translate3d(10px,-8px,0) scaleX(1.035);
+    opacity: .72;
+  }
+  100% {
+    transform: translate3d(35px,10px,0) scaleX(1.01);
+    opacity: .52;
+  }
+}
+
+@keyframes manager-v4-grain-drift {
+  from {
+    transform: translate3d(-1.2%,0,0) scale(1.015);
+    opacity: .16;
+  }
+  to {
+    transform: translate3d(1.2%,.8%,0) scale(1.025);
+    opacity: .26;
+  }
+}
+
+/* Slightly clearer glass surfaces so the background remains visible but text stays clean. */
+.app-shell > main:not(.login-page):not(.fatal) .panel {
+  background: linear-gradient(155deg, rgba(255,255,255,.80), rgba(247,249,252,.68));
+  backdrop-filter: blur(12px) saturate(108%);
+  -webkit-backdrop-filter: blur(12px) saturate(108%);
+}
+
+.app-shell > main:not(.login-page):not(.fatal) .stat-card {
+  background: linear-gradient(145deg, rgba(255,255,255,.79), rgba(247,249,252,.65));
+  backdrop-filter: blur(11px) saturate(108%);
+  -webkit-backdrop-filter: blur(11px) saturate(108%);
+}
+
+@media (max-width: 980px) {
+  .manager-viewport-background .manager-live-wave-svg {
+    inset: -10% -17%;
+    width: 134%;
+    height: 120%;
+  }
+
+  .manager-background-grain {
+    opacity: .16;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .manager-viewport-background .manager-wave-depth,
+  .manager-viewport-background .manager-wave-ribbon,
+  .manager-viewport-background .manager-wave-fibers,
+  .manager-background-grain {
+    animation: none !important;
+  }
+}
