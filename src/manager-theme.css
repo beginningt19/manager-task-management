@@ -1647,3 +1647,151 @@ body,
     animation: none !important;
   }
 }
+
+
+/* ======================================================================
+   VIEWPORT BACKGROUND V3 — isolated from every legacy background selector.
+   This layer is a sibling of .app-shell, never a child of it.
+   ====================================================================== */
+#root {
+  position: relative !important;
+  min-height: 100vh;
+  background: transparent !important;
+}
+
+.manager-viewport-background {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+  pointer-events: none;
+  background:
+    radial-gradient(circle at 18% 12%, rgba(255,255,255,.96), rgba(217,231,252,.70) 28%, transparent 58%),
+    radial-gradient(circle at 82% 78%, rgba(165,180,252,.42), transparent 44%),
+    linear-gradient(145deg, #e5eefb 0%, #dce8f8 46%, #d3e2f6 100%);
+}
+
+.manager-viewport-background .manager-silk-base-image {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+  object-fit: cover;
+  object-position: center;
+  opacity: .42 !important;
+  visibility: visible !important;
+  filter: contrast(1.06) saturate(.90) brightness(1.05) !important;
+  transform: scale(1.035);
+  pointer-events: none;
+}
+
+.manager-viewport-background .manager-live-wave-svg {
+  position: absolute;
+  inset: -8%;
+  z-index: 2;
+  width: 116%;
+  height: 116%;
+  overflow: visible;
+  opacity: 1;
+  mix-blend-mode: normal;
+  will-change: transform;
+  animation: manager-v3-stage 17s ease-in-out infinite alternate;
+}
+
+.manager-viewport-background .manager-wave {
+  transform-box: fill-box;
+  transform-origin: center;
+  will-change: transform, opacity;
+}
+
+.manager-viewport-background .manager-wave-a {
+  opacity: .78;
+  animation: manager-v3-wave-a 12s ease-in-out infinite alternate;
+}
+
+.manager-viewport-background .manager-wave-b {
+  opacity: .64;
+  animation: manager-v3-wave-b 15s ease-in-out infinite alternate;
+}
+
+.manager-viewport-background .manager-wave-c {
+  opacity: .74;
+  animation: manager-v3-glow 10s ease-in-out infinite alternate;
+}
+
+.manager-viewport-background .manager-wave-sheen {
+  opacity: .62;
+  mix-blend-mode: screen;
+  animation: manager-v3-sheen 8s ease-in-out infinite alternate;
+}
+
+.manager-viewport-background .manager-dynamic-vignette {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  background:
+    linear-gradient(180deg, rgba(255,255,255,.04), transparent 30%, rgba(44,67,108,.045)),
+    radial-gradient(circle at 50% 50%, transparent 40%, rgba(56,76,116,.06) 100%);
+}
+
+.app-shell {
+  position: relative !important;
+  z-index: 1 !important;
+  isolation: auto !important;
+  background: transparent !important;
+  background-image: none !important;
+}
+
+.app-shell > main:not(.login-page):not(.fatal) {
+  position: relative;
+  z-index: 1;
+  background: transparent !important;
+}
+
+@keyframes manager-v3-stage {
+  from { transform: translate3d(-1.8%, -1.2%, 0) scale(1.01) rotate(-.25deg); }
+  to   { transform: translate3d(1.8%, 1.4%, 0) scale(1.045) rotate(.35deg); }
+}
+
+@keyframes manager-v3-wave-a {
+  0%   { transform: translate3d(-58px,-20px,0) scaleX(.98) scaleY(.94) skewX(-1.5deg); opacity: .62; }
+  48%  { transform: translate3d(12px,34px,0) scaleX(1.08) scaleY(1.04) skewX(1.2deg); opacity: .92; }
+  100% { transform: translate3d(68px,-8px,0) scaleX(1.01) scaleY(1.10) skewX(-.35deg); opacity: .72; }
+}
+
+@keyframes manager-v3-wave-b {
+  0%   { transform: translate3d(62px,30px,0) scaleX(.96) scaleY(1.04) skewX(1deg); opacity: .52; }
+  52%  { transform: translate3d(-14px,-42px,0) scaleX(1.09) scaleY(.96) skewX(-1.2deg); opacity: .86; }
+  100% { transform: translate3d(-76px,22px,0) scaleX(1.02) scaleY(1.08) skewX(.45deg); opacity: .62; }
+}
+
+@keyframes manager-v3-glow {
+  from { transform: translate3d(-70px,34px,0) scale(.92); opacity: .45; }
+  to   { transform: translate3d(82px,-48px,0) scale(1.16); opacity: .90; }
+}
+
+@keyframes manager-v3-sheen {
+  0%   { transform: translate3d(-140px,70px,0) scaleX(.90) rotate(-1deg); opacity: .18; }
+  50%  { transform: translate3d(18px,-28px,0) scaleX(1.06) rotate(.35deg); opacity: .74; }
+  100% { transform: translate3d(150px,-68px,0) scaleX(1.12) rotate(1deg); opacity: .26; }
+}
+
+@media (max-width: 980px) {
+  .manager-viewport-background .manager-live-wave-svg {
+    inset: -12% -20%;
+    width: 140%;
+    height: 124%;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .manager-viewport-background .manager-live-wave-svg,
+  .manager-viewport-background .manager-wave-a,
+  .manager-viewport-background .manager-wave-b,
+  .manager-viewport-background .manager-wave-c,
+  .manager-viewport-background .manager-wave-sheen {
+    animation: none !important;
+  }
+}
