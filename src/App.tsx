@@ -394,17 +394,14 @@ function App() {
       if (needsInitialPassword(data.session)) setPasswordOpen(true)
     })
     const { data } = supabase.auth.onAuthStateChange((event, nextSession) => {
+      let shouldPlayOfficeIntro = false
+
       if (event === 'SIGNED_IN' && nextSession) {
-        let shouldPlayOfficeIntro = false
         try {
           shouldPlayOfficeIntro = window.sessionStorage.getItem(OFFICE_INTRO_PENDING_KEY) === '1'
           window.sessionStorage.removeItem(OFFICE_INTRO_PENDING_KEY)
         } catch {
           shouldPlayOfficeIntro = false
-        }
-
-        if (shouldPlayOfficeIntro && !lowSpecRef.current && !needsInitialPassword(nextSession)) {
-          setOfficeIntroPlaying(true)
         }
       }
 
@@ -417,9 +414,26 @@ function App() {
         }
       }
 
+      // Mount the authenticated dashboard first. The intro starts on the next
+      // painted frame so its open doorway can never reveal the old login screen.
       setSession(nextSession)
       setAuthReady(true)
-      if (event === 'PASSWORD_RECOVERY' || needsInitialPassword(nextSession)) setPasswordOpen(true)
+
+      if (event === 'PASSWORD_RECOVERY' || needsInitialPassword(nextSession)) {
+        setPasswordOpen(true)
+      }
+
+      if (
+        event === 'SIGNED_IN'
+        && nextSession
+        && shouldPlayOfficeIntro
+        && !lowSpecRef.current
+        && !needsInitialPassword(nextSession)
+      ) {
+        window.requestAnimationFrame(() => {
+          window.requestAnimationFrame(() => setOfficeIntroPlaying(true))
+        })
+      }
     })
     return () => data.subscription.unsubscribe()
   }, [])
@@ -663,7 +677,7 @@ function App() {
         <OfficeLoginIntro imageSrc={officeIntroImage} onDone={() => setOfficeIntroPlaying(false)} />
       )}
       {!lowSpec && <AmbientBackground />}
-      <div className="app-shell">
+      <div className={`app-shell${officeIntroPlaying && !lowSpec ? ' office-intro-reveal-target' : ''}`}>
       <header className="topbar">
         <div className="brand">
           <span className="brand-mark" aria-hidden="true">✓</span>
