@@ -259,11 +259,10 @@ export default function NotebookDrawer({
     if (rolloverDateRef.current === selectedDate) return
 
     const today = localDateKey()
-    const sourceDate = localDateKey(new Date(dateFromKey(selectedDate).getFullYear(), dateFromKey(selectedDate).getMonth(), dateFromKey(selectedDate).getDate() - 1))
 
-    // Never roll unfinished entries forward from today or from a future day.
-    // A rollover is only valid when its source day has already passed.
-    if (sourceDate >= today) {
+    // Rollover is only allowed for a selected day that is already in the past.
+    // Never call the RPC for today or for any future date.
+    if (selectedDate >= today) {
       rolloverDateRef.current = selectedDate
       return
     }
