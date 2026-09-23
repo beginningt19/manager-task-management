@@ -3623,9 +3623,9 @@ body,
 }
 
 @keyframes office-intro-overlay {
-  0%, 82% { opacity: 1; }
-  89% { opacity: .88; }
-  94% { opacity: .48; }
+  0%, 92% { opacity: 1; }
+  96% { opacity: .72; }
+  98% { opacity: .34; }
   100% { opacity: 0; }
 }
 
@@ -3683,27 +3683,27 @@ body,
 }
 
 @keyframes office-dashboard-doorway-reveal {
-  0%, 76% {
+  0%, 70% {
     opacity: 0;
     transform: scale(1.035);
     filter: blur(11px);
   }
+  78% {
+    opacity: .18;
+    transform: scale(1.026);
+    filter: blur(8px);
+  }
   84% {
-    opacity: .12;
-    transform: scale(1.028);
-    filter: blur(9px);
+    opacity: .52;
+    transform: scale(1.015);
+    filter: blur(4px);
   }
-  90% {
-    opacity: .38;
-    transform: scale(1.018);
-    filter: blur(6px);
+  89% {
+    opacity: .88;
+    transform: scale(1.004);
+    filter: blur(1px);
   }
-  95% {
-    opacity: .76;
-    transform: scale(1.007);
-    filter: blur(2.5px);
-  }
-  100% {
+  92%, 100% {
     opacity: 1;
     transform: scale(1);
     filter: blur(0);
@@ -3717,4 +3717,23 @@ body,
     transform: none !important;
     filter: none !important;
   }
+}
+
+
+/* Hard safety: while the cinematic intro is active, the old login UI can never
+   bleed through during door opening or overlay fade. */
+html.office-intro-active .manager-login {
+  visibility: hidden !important;
+}
+
+html.office-intro-active body {
+  background: #07101e !important;
+}
+
+/* Keep the doorway itself opaque until the final dashboard dissolve. */
+html.office-intro-active .office-intro-portal {
+  background:
+    radial-gradient(circle at 48% 34%, rgba(96,165,250,.30), transparent 42%),
+    linear-gradient(150deg, #071a38, #102f67 58%, #26286d) !important;
+  opacity: 1 !important;
 }
