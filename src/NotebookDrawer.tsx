@@ -257,6 +257,17 @@ export default function NotebookDrawer({
 
   useEffect(() => {
     if (rolloverDateRef.current === selectedDate) return
+
+    const today = localDateKey()
+    const sourceDate = localDateKey(new Date(dateFromKey(selectedDate).getFullYear(), dateFromKey(selectedDate).getMonth(), dateFromKey(selectedDate).getDate() - 1))
+
+    // Never roll unfinished entries forward from today or from a future day.
+    // A rollover is only valid when its source day has already passed.
+    if (sourceDate >= today) {
+      rolloverDateRef.current = selectedDate
+      return
+    }
+
     rolloverDateRef.current = selectedDate
     let cancelled = false
 
