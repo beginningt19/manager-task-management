@@ -1988,3 +1988,111 @@ body,
     animation: none !important;
   }
 }
+
+
+/* ======================================================================
+   STATIONARY UI SURFACES
+   The animated background moves; dashboard surfaces stay visually anchored.
+   ====================================================================== */
+.app-shell > main:not(.login-page):not(.fatal) .panel,
+.app-shell > main:not(.login-page):not(.fatal) .stat-card,
+.app-shell > main:not(.login-page):not(.fatal) .calendar-shell,
+.app-shell > main:not(.login-page):not(.fatal) .dashboard-hero,
+.app-shell > main:not(.login-page):not(.fatal) .task-card {
+  transform: none !important;
+  animation: none !important;
+  translate: none !important;
+  scale: none !important;
+}
+
+.app-shell > main:not(.login-page):not(.fatal) .panel,
+.app-shell > main:not(.login-page):not(.fatal) .calendar-shell {
+  background: rgba(249,251,255,.955) !important;
+  border-color: rgba(188,205,229,.92) !important;
+  box-shadow:
+    0 5px 14px rgba(31,55,91,.065),
+    0 1px 2px rgba(31,55,91,.08),
+    inset 0 1px 0 rgba(255,255,255,.96) !important;
+  backdrop-filter: blur(6px) saturate(104%) !important;
+  -webkit-backdrop-filter: blur(6px) saturate(104%) !important;
+}
+
+.app-shell > main:not(.login-page):not(.fatal) .stat-card {
+  background: rgba(250,252,255,.965) !important;
+  border-color: rgba(190,207,230,.94) !important;
+  box-shadow:
+    0 4px 11px rgba(31,55,91,.055),
+    0 1px 2px rgba(31,55,91,.065),
+    inset 0 1px 0 rgba(255,255,255,.98) !important;
+  backdrop-filter: blur(5px) saturate(103%) !important;
+  -webkit-backdrop-filter: blur(5px) saturate(103%) !important;
+  transition: border-color .16s ease, background .16s ease, box-shadow .16s ease !important;
+}
+
+.app-shell > main:not(.login-page):not(.fatal) .stat-card:hover,
+.app-shell > main:not(.login-page):not(.fatal) button.stat-card:hover {
+  transform: none !important;
+  background: rgba(250,252,255,.985) !important;
+  border-color: rgba(143,171,211,.94) !important;
+  box-shadow:
+    0 4px 11px rgba(31,55,91,.06),
+    0 1px 2px rgba(31,55,91,.075),
+    inset 0 1px 0 #fff !important;
+}
+
+.app-shell > main:not(.login-page):not(.fatal) .stat-card:hover::before {
+  transform: none !important;
+}
+
+.app-shell > main:not(.login-page):not(.fatal) .task-card {
+  background: rgba(255,255,255,.97) !important;
+  box-shadow:
+    0 2px 7px rgba(31,55,91,.045),
+    0 1px 1px rgba(31,55,91,.055) !important;
+  transition: border-color .15s ease, background .15s ease, box-shadow .15s ease !important;
+}
+
+.app-shell > main:not(.login-page):not(.fatal) .task-card:hover {
+  transform: none !important;
+  background: #fff !important;
+  box-shadow:
+    0 2px 7px rgba(31,55,91,.055),
+    0 1px 1px rgba(31,55,91,.06) !important;
+}
+
+.app-shell > main:not(.login-page):not(.fatal) .dashboard-hero {
+  box-shadow:
+    0 5px 14px rgba(20,47,92,.10),
+    0 1px 2px rgba(20,47,92,.12),
+    inset 0 1px 0 rgba(255,255,255,.09) !important;
+}
+
+/* A subtle base edge makes the surfaces feel attached to the page rather than suspended. */
+.app-shell > main:not(.login-page):not(.fatal) .panel,
+.app-shell > main:not(.login-page):not(.fatal) .stat-card,
+.app-shell > main:not(.login-page):not(.fatal) .calendar-shell {
+  position: relative;
+}
+
+.app-shell > main:not(.login-page):not(.fatal) .panel::after,
+.app-shell > main:not(.login-page):not(.fatal) .calendar-shell::after {
+  content: '';
+  position: absolute;
+  left: 18px;
+  right: 18px;
+  bottom: -1px;
+  height: 1px;
+  background: rgba(98,126,166,.20);
+  pointer-events: none;
+}
+
+.app-shell > main:not(.login-page):not(.fatal) .stat-card::after {
+  transform: none !important;
+}
+
+/* Buttons can still communicate hover without moving the surrounding surface. */
+.app-shell > main:not(.login-page):not(.fatal) .primary-button:hover,
+.app-shell > main:not(.login-page):not(.fatal) .secondary-button:hover,
+.app-shell > main:not(.login-page):not(.fatal) .notification-button:hover {
+  transform: none !important;
+}
