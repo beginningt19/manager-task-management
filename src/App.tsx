@@ -681,7 +681,6 @@ function App() {
           <div className="hero-copy">
             <p className="eyebrow">Общ преглед</p>
             <h1>Задачи на екипа</h1>
-            <p>Всички задачи, срокове и решения на едно място.</p>
             <span className="hero-live"><i /> Синхронизирано в реално време</span>
           </div>
           {profile && (
@@ -1109,25 +1108,28 @@ function Login({
             <p>Център за задачи, отговорности, срокове и решения на управленския екип.</p>
           </div>
 
-          <div className="executive-board">
-            <div className="executive-board-head">
-              <span>УПРАВЛЕНСКИ ПУЛС</span>
-              <b>LIVE</b>
+          <div className="executive-control-loop">
+            <div className="control-loop-head">
+              <span>CONTROL LOOP</span>
+              <b><i /> СИСТЕМАТА Е АКТИВНА</b>
             </div>
-            <div className="executive-metrics">
-              <div><strong>8</strong><small>активни профила</small></div>
-              <div><strong>24/7</strong><small>синхронизация</small></div>
-              <div><strong>1</strong><small>общ контролен център</small></div>
-            </div>
-            <div className="executive-flow">
-              <span className="flow-line" />
-              <i className="flow-dot dot-a" />
-              <i className="flow-dot dot-b" />
-              <i className="flow-dot dot-c" />
-              <i className="flow-dot dot-d" />
-              <div className="flow-label label-a"><b>ЗАДАЧА</b><small>Възлагане</small></div>
-              <div className="flow-label label-b"><b>КОНТРОЛ</b><small>Проследяване</small></div>
-              <div className="flow-label label-c"><b>РЕШЕНИЕ</b><small>Одобрение</small></div>
+            <div className="control-loop-track">
+              <span className="control-loop-line" />
+              <div className="control-loop-step">
+                <i>01</i>
+                <strong>Планирай</strong>
+                <small>Ясна задача и отговорник</small>
+              </div>
+              <div className="control-loop-step">
+                <i>02</i>
+                <strong>Проследи</strong>
+                <small>Срок, напредък и контрол</small>
+              </div>
+              <div className="control-loop-step">
+                <i>03</i>
+                <strong>Завърши</strong>
+                <small>Решение и отчетност</small>
+              </div>
             </div>
           </div>
 
