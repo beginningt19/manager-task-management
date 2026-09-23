@@ -44,12 +44,27 @@ export default function MessagingMailboxHost() {
   }, [session?.user.id])
 
   useEffect(() => {
-    const findTarget = () => setTarget(document.querySelector('.account-area'))
-    findTarget()
-    const observer = new MutationObserver(findTarget)
+    if (!session?.user.id) {
+      setTarget(null)
+      return
+    }
+
+    const existing = document.querySelector('.account-area')
+    if (existing) {
+      setTarget(existing)
+      return
+    }
+
+    const observer = new MutationObserver(() => {
+      const next = document.querySelector('.account-area')
+      if (!next) return
+      setTarget(next)
+      observer.disconnect()
+    })
+
     observer.observe(document.body, { childList: true, subtree: true })
     return () => observer.disconnect()
-  }, [])
+  }, [session?.user.id])
 
   const userId = session?.user.id || ''
   const currentProfileExists = useMemo(() => profiles.some((profile) => profile.id === userId), [profiles, userId])
