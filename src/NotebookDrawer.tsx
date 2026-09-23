@@ -911,15 +911,26 @@ export default function NotebookDrawer({
                                 onChange={(event) => setEditingText(event.target.value)}
                                 autoFocus
                               />
-                              <label className="notebook-edit-time">
-                                <span>Час</span>
-                                <input
-                                  type="time"
-                                  step="60"
-                                  value={editingScheduledTime}
-                                  onChange={(event) => setEditingScheduledTime(event.target.value)}
-                                />
-                              </label>
+                              <div className="notebook-edit-time-row">
+                                <label className="notebook-edit-time">
+                                  <span>Начален час</span>
+                                  <input
+                                    type="time"
+                                    step="60"
+                                    value={editingScheduledTime}
+                                    onChange={(event) => setEditingScheduledTime(event.target.value)}
+                                    aria-label="Редактирай началния час на задачата"
+                                  />
+                                </label>
+                                <button
+                                  type="button"
+                                  className="notebook-edit-clear-time"
+                                  onClick={() => setEditingScheduledTime('')}
+                                  disabled={!editingScheduledTime}
+                                >
+                                  Без час
+                                </button>
+                              </div>
                             </div>
                           ) : (
                             <p>{entry.body}</p>
