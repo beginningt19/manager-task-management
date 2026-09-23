@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { supabase } from './lib/supabase'
+import { checkMicrophoneForSpeech, speechRecognitionErrorMessage } from './lib/voiceSupport'
 import type { Profile } from './types'
 import './notebook.css'
 
@@ -35,6 +36,7 @@ type SpeechRecognitionLike = {
   start: () => void
   stop: () => void
   abort: () => void
+  onstart: (() => void) | null
   onresult: ((event: {
     resultIndex: number
     results: ArrayLike<{ isFinal: boolean; 0: { transcript: string } }>
@@ -211,6 +213,10 @@ export default function NotebookDrawer({
   const recognitionRef = useRef<SpeechRecognitionLike | null>(null)
   const voiceBaseRef = useRef('')
   const voiceSegmentsRef = useRef<Map<number, string>>(new Map())
+  const voiceLastDraftRef = useRef('')
+  const voiceShouldListenRef = useRef(false)
+  const voiceStartPendingRef = useRef(false)
+  const voiceRestartTimerRef = useRef<number | null>(null)
   const rolloverDateRef = useRef<string | null>(null)
 
   const loadData = useCallback(async (quiet = false) => {
@@ -260,7 +266,10 @@ export default function NotebookDrawer({
       .subscribe()
 
     return () => {
+      voiceShouldListenRef.current = false
+      if (voiceRestartTimerRef.current !== null) window.clearTimeout(voiceRestartTimerRef.current)
       recognitionRef.current?.abort()
+      recognitionRef.current = null
       void supabase.removeChannel(channel)
     }
   }, [currentUser.id, loadData])
@@ -514,19 +523,37 @@ export default function NotebookDrawer({
   }
 
   const stopVoice = () => {
+    voiceShouldListenRef.current = false
+    voiceStartPendingRef.current = false
+    if (voiceRestartTimerRef.current !== null) {
+      window.clearTimeout(voiceRestartTimerRef.current)
+      voiceRestartTimerRef.current = null
+    }
     recognitionRef.current?.stop()
     setListening(false)
+    setVoiceInterim('')
   }
 
-  const startVoice = () => {
+  const startVoice = async () => {
     if (listening) {
       stopVoice()
       return
     }
+    if (voiceStartPendingRef.current) return
 
     const Recognition = getSpeechRecognitionConstructor()
     if (!Recognition) {
-      setVoiceMessage('Гласовото въвеждане не се поддържа от този браузър. Използвайте Chrome или Edge.')
+      setVoiceMessage('Гласовото въвеждане не се поддържа от този браузър. Използвайте актуален Chrome или Edge.')
+      return
+    }
+
+    voiceStartPendingRef.current = true
+    setVoiceMessage('Проверявам микрофона…')
+    const microphone = await checkMicrophoneForSpeech()
+    voiceStartPendingRef.current = false
+
+    if (!microphone.ok) {
+      setVoiceMessage(microphone.message)
       return
     }
 
@@ -535,10 +562,18 @@ export default function NotebookDrawer({
     recognition.continuous = true
     recognition.interimResults = true
     recognitionRef.current = recognition
+    voiceShouldListenRef.current = true
     voiceBaseRef.current = draft.trim()
+    voiceLastDraftRef.current = draft.trim()
     voiceSegmentsRef.current = new Map()
     setVoiceInterim('')
-    setVoiceMessage('')
+    setVoiceMessage('Стартиране на диктовката…')
+
+    recognition.onstart = () => {
+      if (!voiceShouldListenRef.current) return
+      setListening(true)
+      setVoiceMessage('')
+    }
 
     recognition.onresult = (event) => {
       let interim = ''
@@ -556,30 +591,57 @@ export default function NotebookDrawer({
           .map(([, value]) => value),
       )
       const combined = [voiceBaseRef.current, mergedFinal].filter(Boolean).join(' ')
-      setDraft(formatVoiceText(combined))
+      const formatted = formatVoiceText(combined)
+      voiceLastDraftRef.current = formatted
+      setDraft(formatted)
       setVoiceInterim(formatVoiceText(interim))
     }
 
     recognition.onerror = (event) => {
-      const message = event.error === 'not-allowed' || event.error === 'service-not-allowed'
-        ? 'Разрешете достъпа до микрофона, за да диктувате в тефтера.'
-        : event.error === 'no-speech'
-          ? 'Не чух реч. Опитайте отново.'
-          : 'Гласовото въвеждане беше прекъснато. Опитайте отново.'
-      setVoiceMessage(message)
+      const message = speechRecognitionErrorMessage(event.error)
+      voiceShouldListenRef.current = false
+      if (voiceRestartTimerRef.current !== null) {
+        window.clearTimeout(voiceRestartTimerRef.current)
+        voiceRestartTimerRef.current = null
+      }
       setListening(false)
+      setVoiceInterim('')
+      if (message) setVoiceMessage(message)
     }
 
     recognition.onend = () => {
-      setListening(false)
       setVoiceInterim('')
+
+      if (!voiceShouldListenRef.current) {
+        setListening(false)
+        recognitionRef.current = null
+        voiceSegmentsRef.current = new Map()
+        return
+      }
+
+      voiceBaseRef.current = voiceLastDraftRef.current.trim()
+      voiceSegmentsRef.current = new Map()
+      voiceRestartTimerRef.current = window.setTimeout(() => {
+        voiceRestartTimerRef.current = null
+        if (!voiceShouldListenRef.current) return
+        try {
+          recognition.start()
+        } catch {
+          voiceShouldListenRef.current = false
+          recognitionRef.current = null
+          setListening(false)
+          setVoiceMessage('Диктовката беше прекъсната и не можа да се рестартира. Натиснете „Кажи задачата“ отново.')
+        }
+      }, 300)
     }
 
     try {
       recognition.start()
-      setListening(true)
     } catch {
-      setVoiceMessage('Микрофонът не можа да бъде стартиран. Опитайте отново.')
+      voiceShouldListenRef.current = false
+      recognitionRef.current = null
+      setListening(false)
+      setVoiceMessage('Микрофонът е достъпен, но разпознаването на реч не можа да бъде стартирано. Опитайте отново в Chrome или Edge.')
     }
   }
 
