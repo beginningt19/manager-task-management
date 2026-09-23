@@ -5,6 +5,7 @@ import { checkMicrophoneForSpeech, speechRecognitionErrorMessage } from './lib/v
 import { applyBulgarianVoiceFormatting } from './lib/bulgarianVoiceFormatting'
 import ChecklistDrawer from './ChecklistDrawer'
 import NotebookDrawer from './NotebookDrawer'
+import { officeIntroImage } from './officeIntroImage'
 import {
   approvalLabels,
   bulgarianDateKey,
@@ -63,6 +64,7 @@ type NotebookCalendarEntry = {
 }
 
 const LOW_SPEC_STORAGE_KEY = 'manager-low-spec-mode'
+const OFFICE_INTRO_PENDING_KEY = 'manager-office-intro-pending'
 
 const readLowSpecPreference = () => {
   try {
@@ -283,6 +285,8 @@ const calendarDueDate = (selectedDate: Date) => {
 
 function App() {
   const [lowSpec, setLowSpec] = useState(readLowSpecPreference)
+  const lowSpecRef = useRef(lowSpec)
+  const [officeIntroPlaying, setOfficeIntroPlaying] = useState(false)
   const [session, setSession] = useState<Session | null>(null)
   const [authReady, setAuthReady] = useState(false)
   const [profile, setProfile] = useState<Profile | null>(null)
@@ -317,12 +321,15 @@ function App() {
   const [visibilityBusy, setVisibilityBusy] = useState(false)
 
   useEffect(() => {
+    lowSpecRef.current = lowSpec
     document.documentElement.classList.toggle('low-spec', lowSpec)
     try {
       window.localStorage.setItem(LOW_SPEC_STORAGE_KEY, lowSpec ? '1' : '0')
+      if (lowSpec) window.sessionStorage.removeItem(OFFICE_INTRO_PENDING_KEY)
     } catch {
       // Keep the in-memory preference if storage is unavailable.
     }
+    if (lowSpec) setOfficeIntroPlaying(false)
   }, [lowSpec])
 
   const toggleLowSpec = useCallback(() => {
@@ -387,6 +394,29 @@ function App() {
       if (needsInitialPassword(data.session)) setPasswordOpen(true)
     })
     const { data } = supabase.auth.onAuthStateChange((event, nextSession) => {
+      if (event === 'SIGNED_IN' && nextSession) {
+        let shouldPlayOfficeIntro = false
+        try {
+          shouldPlayOfficeIntro = window.sessionStorage.getItem(OFFICE_INTRO_PENDING_KEY) === '1'
+          window.sessionStorage.removeItem(OFFICE_INTRO_PENDING_KEY)
+        } catch {
+          shouldPlayOfficeIntro = false
+        }
+
+        if (shouldPlayOfficeIntro && !lowSpecRef.current) {
+          setOfficeIntroPlaying(true)
+        }
+      }
+
+      if (event === 'SIGNED_OUT') {
+        setOfficeIntroPlaying(false)
+        try {
+          window.sessionStorage.removeItem(OFFICE_INTRO_PENDING_KEY)
+        } catch {
+          // Session storage may be unavailable in hardened browser modes.
+        }
+      }
+
       setSession(nextSession)
       setAuthReady(true)
       if (event === 'PASSWORD_RECOVERY' || needsInitialPassword(nextSession)) setPasswordOpen(true)
@@ -629,6 +659,9 @@ function App() {
 
   return (
     <>
+      {officeIntroPlaying && !lowSpec && (
+        <OfficeLoginIntro imageSrc={officeIntroImage} onDone={() => setOfficeIntroPlaying(false)} />
+      )}
       {!lowSpec && <AmbientBackground />}
       <div className="app-shell">
       <header className="topbar">
@@ -1040,6 +1073,55 @@ function AmbientBackground({ className = '' }: { className?: string }) {
   )
 }
 
+function OfficeLoginIntro({
+  imageSrc,
+  onDone,
+}: {
+  imageSrc: string
+  onDone: () => void
+}) {
+  useEffect(() => {
+    const reducedMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches
+    const timeout = window.setTimeout(onDone, reducedMotion ? 300 : 5200)
+    return () => window.clearTimeout(timeout)
+  }, [onDone])
+
+  return (
+    <div className="office-login-intro" aria-hidden="true">
+      <div className="office-intro-stage">
+        <img className="office-intro-photo" src={imageSrc} alt="" draggable={false} />
+
+        <div className="office-intro-portal">
+          <div className="office-intro-system-preview">
+            <span className="office-intro-preview-mark">✓</span>
+            <div className="office-intro-preview-copy">
+              <small>ЯВЛЕНА · ИЗТОК</small>
+              <strong>Manager Task Management</strong>
+            </div>
+            <div className="office-intro-preview-grid">
+              <i /><i /><i /><i /><i /><i />
+            </div>
+          </div>
+        </div>
+
+        <div className="office-intro-door office-intro-door-left">
+          <img src={imageSrc} alt="" draggable={false} />
+        </div>
+        <div className="office-intro-door office-intro-door-right">
+          <img src={imageSrc} alt="" draggable={false} />
+        </div>
+
+        <span className="office-intro-threshold-light" />
+        <span className="office-intro-vignette" />
+        <div className="office-intro-caption">
+          <span />
+          <strong>Добре дошли</strong>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 function Login({
   lowSpec,
   onToggleLowSpec,
@@ -1057,8 +1139,23 @@ function Login({
     event.preventDefault()
     setBusy(true)
     setMessage('')
+
+    try {
+      if (lowSpec) window.sessionStorage.removeItem(OFFICE_INTRO_PENDING_KEY)
+      else window.sessionStorage.setItem(OFFICE_INTRO_PENDING_KEY, '1')
+    } catch {
+      // Login must remain functional even when session storage is unavailable.
+    }
+
     const { error } = await supabase.auth.signInWithPassword({ email, password })
-    if (error) setMessage('Невалиден имейл или парола.')
+    if (error) {
+      try {
+        window.sessionStorage.removeItem(OFFICE_INTRO_PENDING_KEY)
+      } catch {
+        // Ignore storage failures while reporting the auth error.
+      }
+      setMessage('Невалиден имейл или парола.')
+    }
     setBusy(false)
   }
 
