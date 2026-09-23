@@ -1307,3 +1307,51 @@ button.stat-card.green.active { border-color: rgba(22,128,111,.45); box-shadow: 
     margin-top: 4px;
   }
 }
+
+
+/* Calendar month navigation: explicit, clearly clickable controls. */
+.calendar-toolbar {
+  position: relative;
+  z-index: 3;
+}
+
+.calendar-month-nav {
+  position: relative;
+  z-index: 4;
+}
+
+.calendar-month-nav button {
+  width: auto !important;
+  min-width: 78px !important;
+  height: 35px !important;
+  padding: 0 12px !important;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.calendar-month-nav button:nth-child(2) {
+  min-width: 62px !important;
+}
+
+@media (max-width: 700px) {
+  .calendar-month-nav button {
+    min-width: 38px !important;
+    padding-inline: 9px !important;
+    font-size: 0;
+  }
+
+  .calendar-month-nav button:first-child::after {
+    content: '‹';
+    font-size: 16px;
+  }
+
+  .calendar-month-nav button:nth-child(2)::after {
+    content: 'Днес';
+    font-size: 10px;
+  }
+
+  .calendar-month-nav button:last-child::after {
+    content: '›';
+    font-size: 16px;
+  }
+}
