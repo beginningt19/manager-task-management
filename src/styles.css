@@ -1355,3 +1355,35 @@ button.stat-card.green.active { border-color: rgba(22,128,111,.45); box-shadow: 
     font-size: 16px;
   }
 }
+
+
+/* Calendar grid without continuous row seams: separators belong to cells, not the grid background. */
+.calendar-grid {
+  gap: 0 !important;
+  background: transparent !important;
+  border-top: 1px solid var(--line);
+  border-left: 1px solid var(--line);
+}
+
+.calendar-weekday,
+.calendar-day {
+  box-sizing: border-box;
+  border-right: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+}
+
+.calendar-day,
+.calendar-day:hover,
+.calendar-day.today,
+.calendar-day.outside-month,
+.calendar-day.has-notebook-items {
+  position: relative;
+}
+
+.calendar-grid::before,
+.calendar-grid::after,
+.calendar-day::before,
+.calendar-day::after {
+  content: none !important;
+  display: none !important;
+}
