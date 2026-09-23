@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { supabase } from './lib/supabase'
 import { checkMicrophoneForSpeech, speechRecognitionErrorMessage } from './lib/voiceSupport'
 import { applyBulgarianVoiceFormatting } from './lib/bulgarianVoiceFormatting'
@@ -28,6 +28,7 @@ type NotebookEntry = {
   edited_at: string | null
   carried_from_entry_id: string | null
   carried_from_date: string | null
+  scheduled_time: string | null
 }
 
 type SpeechRecognitionLike = {
@@ -148,6 +149,26 @@ const formatTabDate = (key: string) => {
   return { day, month }
 }
 
+const normalizeTime = (value: string | null | undefined) => value ? value.slice(0, 5) : ''
+
+const timeToMinutes = (value: string) => {
+  const [hours, minutes] = value.split(':').map(Number)
+  return (hours * 60) + minutes
+}
+
+const minutesToTime = (value: number) => {
+  const normalized = Math.max(0, Math.min((24 * 60) - 1, Math.round(value)))
+  return `${String(Math.floor(normalized / 60)).padStart(2, '0')}:${String(normalized % 60).padStart(2, '0')}`
+}
+
+const formatFreeDuration = (minutes: number) => {
+  const hours = Math.floor(minutes / 60)
+  const rest = minutes % 60
+  if (hours && rest) return `${hours} ч ${rest} мин`
+  if (hours) return `${hours} ч`
+  return `${rest} мин`
+}
+
 const sortPages = (items: NotebookPage[]) =>
   [...items].sort((a, b) =>
     b.page_date.localeCompare(a.page_date)
@@ -181,8 +202,12 @@ export default function NotebookDrawer({
   const [selectedDate, setSelectedDate] = useState(initialDate || localDateKey())
   const [selectedPageId, setSelectedPageId] = useState<string | null>(initialPageId || null)
   const [draft, setDraft] = useState('')
+  const [scheduledTime, setScheduledTime] = useState('')
+  const [showFreeTime, setShowFreeTime] = useState(() => window.localStorage.getItem('notebook-show-free-time') === '1')
+  const [gapRange, setGapRange] = useState<{ start: string; end: string } | null>(null)
   const [editingId, setEditingId] = useState<string | null>(null)
   const [editingText, setEditingText] = useState('')
+  const [editingScheduledTime, setEditingScheduledTime] = useState('')
   const [loading, setLoading] = useState(true)
   const [busy, setBusy] = useState(false)
   const [listening, setListening] = useState(false)
@@ -191,6 +216,7 @@ export default function NotebookDrawer({
   const [pageTurn, setPageTurn] = useState<'forward' | 'backward'>('forward')
   const [pageTurnNonce, setPageTurnNonce] = useState(0)
 
+  const composerRef = useRef<HTMLDivElement | null>(null)
   const recognitionRef = useRef<SpeechRecognitionLike | null>(null)
   const voiceBaseRef = useRef('')
   const voiceSegmentsRef = useRef<Map<number, string>>(new Map())
@@ -316,7 +342,16 @@ export default function NotebookDrawer({
 
   const pageEntries = useMemo(
     () => selectedPage
-      ? entries.filter((entry) => entry.page_id === selectedPage.id).sort((a, b) => a.position - b.position || a.created_at.localeCompare(b.created_at))
+      ? entries
+        .filter((entry) => entry.page_id === selectedPage.id)
+        .sort((a, b) => {
+          const left = normalizeTime(a.scheduled_time)
+          const right = normalizeTime(b.scheduled_time)
+          if (!left && right) return -1
+          if (left && !right) return 1
+          if (left && right && left !== right) return left.localeCompare(right)
+          return a.position - b.position || a.created_at.localeCompare(b.created_at)
+        })
       : [],
     [entries, selectedPage],
   )
@@ -349,6 +384,8 @@ export default function NotebookDrawer({
     const matching = pages.filter((page) => page.page_date === date).sort((a, b) => a.page_number - b.page_number)
     setSelectedPageId(automaticPageForDate(matching, entries)?.id || null)
     setEditingId(null)
+    setGapRange(null)
+    setScheduledTime('')
   }
 
   const choosePage = (page: NotebookPage) => {
@@ -356,6 +393,8 @@ export default function NotebookDrawer({
     triggerPageTurn(page.page_number > activePageNumber ? 'forward' : 'backward')
     setSelectedPageId(page.id)
     setEditingId(null)
+    setGapRange(null)
+    setScheduledTime('')
   }
 
   const createPage = async (announce = true) => {
@@ -413,6 +452,7 @@ export default function NotebookDrawer({
       body,
       position,
       completed: false,
+      scheduled_time: scheduledTime || null,
     })
     setBusy(false)
 
@@ -422,6 +462,8 @@ export default function NotebookDrawer({
     }
 
     setDraft('')
+    setScheduledTime('')
+    setGapRange(null)
     setVoiceInterim('')
     setVoiceMessage('')
     await loadData(true)
@@ -445,22 +487,24 @@ export default function NotebookDrawer({
   const beginEdit = (entry: NotebookEntry) => {
     setEditingId(entry.id)
     setEditingText(entry.body)
+    setEditingScheduledTime(normalizeTime(entry.scheduled_time))
   }
 
   const saveEdit = async (entry: NotebookEntry) => {
     const body = editingText.trim()
     if (!body || busy) return
 
-    if (body === entry.body.trim()) {
+    if (body === entry.body.trim() && editingScheduledTime === normalizeTime(entry.scheduled_time)) {
       setEditingId(null)
       setEditingText('')
+      setEditingScheduledTime('')
       return
     }
 
     setBusy(true)
     const { error } = await supabase
       .from('notebook_entries')
-      .update({ body, edited_at: new Date().toISOString() })
+      .update({ body, scheduled_time: editingScheduledTime || null, edited_at: new Date().toISOString() })
       .eq('id', entry.id)
       .eq('user_id', currentUser.id)
     setBusy(false)
@@ -472,7 +516,26 @@ export default function NotebookDrawer({
 
     setEditingId(null)
     setEditingText('')
+    setEditingScheduledTime('')
     await loadData(true)
+  }
+
+  const toggleFreeTime = () => {
+    setShowFreeTime((current) => {
+      const next = !current
+      window.localStorage.setItem('notebook-show-free-time', next ? '1' : '0')
+      if (!next) setGapRange(null)
+      return next
+    })
+  }
+
+  const openGapComposer = (start: string, end: string) => {
+    const startMinutes = timeToMinutes(start)
+    const endMinutes = timeToMinutes(end)
+    if (endMinutes - startMinutes <= 1) return
+    setGapRange({ start, end })
+    setScheduledTime(minutesToTime(startMinutes + ((endMinutes - startMinutes) / 2)))
+    window.requestAnimationFrame(() => composerRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' }))
   }
 
   const deleteEntry = async (entry: NotebookEntry) => {
@@ -720,9 +783,18 @@ export default function NotebookDrawer({
                   </div>
                   <button type="button" onClick={() => changePage(1)} disabled={!selectedPage || activePageNumber >= pagesForDate.length} aria-label="Следваща страница">›</button>
                 </div>
+                <button
+                  type="button"
+                  className={showFreeTime ? 'notebook-free-time-toggle active' : 'notebook-free-time-toggle'}
+                  onClick={toggleFreeTime}
+                  aria-pressed={showFreeTime}
+                >
+                  <span aria-hidden="true">↕</span>
+                  Свободно време
+                </button>
               </div>
 
-              <div className="notebook-composer">
+              <div className="notebook-composer" ref={composerRef}>
                 <div className="notebook-composer-heading">
                   <div>
                     <strong>Нов запис</strong>
@@ -750,11 +822,43 @@ export default function NotebookDrawer({
                   </div>
                 )}
                 {voiceMessage && <div className="notebook-voice-message">{voiceMessage}</div>}
+                {gapRange && (
+                  <div className="notebook-gap-compose-hint">
+                    Нова задача между <strong>{gapRange.start}</strong> и <strong>{gapRange.end}</strong>
+                    <button type="button" onClick={() => { setGapRange(null); setScheduledTime('') }}>Отказ</button>
+                  </div>
+                )}
                 <div className="notebook-composer-actions">
                   <span>{draft.trim().length ? `${draft.trim().length} знака` : 'Записът ще се разпъва автоматично.'}</span>
-                  <button type="button" onClick={() => void saveDraft()} disabled={!draft.trim() || busy}>
-                    {busy ? 'Записване…' : 'Запиши задачата'}
-                  </button>
+                  <div className="notebook-save-controls">
+                    <label className={scheduledTime ? 'notebook-time-picker has-time' : 'notebook-time-picker'}>
+                      <span aria-hidden="true">🕒</span>
+                      <span>{scheduledTime || 'Добави час'}</span>
+                      <input
+                        type="time"
+                        step="60"
+                        value={scheduledTime}
+                        min={gapRange ? minutesToTime(timeToMinutes(gapRange.start) + 1) : undefined}
+                        max={gapRange ? minutesToTime(timeToMinutes(gapRange.end) - 1) : undefined}
+                        onChange={(event) => setScheduledTime(event.target.value)}
+                        aria-label="Час на задачата"
+                      />
+                    </label>
+                    {scheduledTime && (
+                      <button
+                        type="button"
+                        className="notebook-clear-time"
+                        onClick={() => { setScheduledTime(''); setGapRange(null) }}
+                        title="Премахни часа"
+                        aria-label="Премахни часа"
+                      >
+                        ×
+                      </button>
+                    )}
+                    <button type="button" onClick={() => void saveDraft()} disabled={!draft.trim() || busy}>
+                      {busy ? 'Записване…' : 'Запиши задачата'}
+                    </button>
+                  </div>
                 </div>
               </div>
 
@@ -766,72 +870,108 @@ export default function NotebookDrawer({
                     <strong>Празна страница</strong>
                     <p>Първият запис за този ден ще се появи тук.</p>
                   </div>
-                ) : pageEntries.map((entry, index) => (
-                  <div
-                    key={entry.id}
-                    className={`notebook-entry${entry.completed ? ' completed' : ''}${entry.carried_from_date ? ' carried-over' : ''}`}
-                  >
-                    <div className="notebook-entry-number">{String(index + 1).padStart(2, '0')}</div>
-                    <button
-                      type="button"
-                      className="notebook-check"
-                      onClick={() => void toggleComplete(entry)}
-                      aria-pressed={entry.completed}
-                      aria-label={entry.completed ? 'Маркирай като незавършено' : 'Маркирай като завършено'}
-                    >
-                      <span>✓</span>
-                    </button>
+                ) : pageEntries.map((entry, index) => {
+                  const currentTime = normalizeTime(entry.scheduled_time)
+                  const nextTime = normalizeTime(pageEntries[index + 1]?.scheduled_time)
+                  const gapMinutes = currentTime && nextTime ? timeToMinutes(nextTime) - timeToMinutes(currentTime) : 0
 
-                    <div className="notebook-entry-body">
-                      {entry.carried_from_date && (
-                        <div className="notebook-carry-badge" title={`Прехвърлена от ${formatLongDate(entry.carried_from_date)}`}>
-                          <span aria-hidden="true">↪</span>
-                          <strong>От предния ден</strong>
-                          <small>{formatCarryDate(entry.carried_from_date)}</small>
+                  return (
+                    <Fragment key={entry.id}>
+                      <div
+                        className={`notebook-entry${entry.completed ? ' completed' : ''}${entry.carried_from_date ? ' carried-over' : ''}${currentTime ? ' has-scheduled-time' : ''}`}
+                      >
+                        <div className="notebook-entry-number">{String(index + 1).padStart(2, '0')}</div>
+                        <button
+                          type="button"
+                          className="notebook-check"
+                          onClick={() => void toggleComplete(entry)}
+                          aria-pressed={entry.completed}
+                          aria-label={entry.completed ? 'Маркирай като незавършено' : 'Маркирай като завършено'}
+                        >
+                          <span>✓</span>
+                        </button>
+
+                        <div className="notebook-entry-body">
+                          <div className="notebook-entry-badges">
+                            {currentTime && <span className="notebook-entry-time"><span aria-hidden="true">🕒</span>{currentTime}</span>}
+                            {entry.carried_from_date && (
+                              <div className="notebook-carry-badge" title={`Прехвърлена от ${formatLongDate(entry.carried_from_date)}`}>
+                                <span aria-hidden="true">↪</span>
+                                <strong>От предния ден</strong>
+                                <small>{formatCarryDate(entry.carried_from_date)}</small>
+                              </div>
+                            )}
+                          </div>
+                          {editingId === entry.id ? (
+                            <div className="notebook-edit-stack">
+                              <textarea
+                                className="notebook-edit-text"
+                                rows={1}
+                                value={editingText}
+                                onChange={(event) => setEditingText(event.target.value)}
+                                autoFocus
+                              />
+                              <label className="notebook-edit-time">
+                                <span>Час</span>
+                                <input
+                                  type="time"
+                                  step="60"
+                                  value={editingScheduledTime}
+                                  onChange={(event) => setEditingScheduledTime(event.target.value)}
+                                />
+                              </label>
+                            </div>
+                          ) : (
+                            <p>{entry.body}</p>
+                          )}
+                          <small>
+                            добавено {new Intl.DateTimeFormat('bg-BG', { hour: '2-digit', minute: '2-digit' }).format(new Date(entry.created_at))}
+                            {entry.edited_at ? ' · редактирано' : ''}
+                          </small>
                         </div>
-                      )}
-                      {editingId === entry.id ? (
-                        <textarea
-                          className="notebook-edit-text"
-                          rows={1}
-                          value={editingText}
-                          onChange={(event) => setEditingText(event.target.value)}
-                          autoFocus
-                        />
-                      ) : (
-                        <p>{entry.body}</p>
-                      )}
-                      <small>
-                        {new Intl.DateTimeFormat('bg-BG', { hour: '2-digit', minute: '2-digit' }).format(new Date(entry.created_at))}
-                        {entry.edited_at ? ' · редактирано' : ''}
-                      </small>
-                    </div>
 
-                    <div className="notebook-entry-actions">
-                      {editingId === entry.id ? (
-                        <>
-                          <button type="button" className="save" onClick={() => void saveEdit(entry)} disabled={!editingText.trim() || busy}>Запази</button>
-                          <button type="button" onClick={() => setEditingId(null)}>Отказ</button>
-                        </>
-                      ) : (
-                        <>
-                          <button type="button" className="notebook-edit-action" onClick={() => beginEdit(entry)} title="Редактирай записа">
-                            <span aria-hidden="true">✎</span><span>Редактирай</span>
-                          </button>
-                          <button
-                            type="button"
-                            className="notebook-delete-action"
-                            onClick={() => void deleteEntry(entry)}
-                            title="Изтрий задачата"
-                            disabled={busy}
-                          >
-                            <span aria-hidden="true">⌫</span><span>Изтрий</span>
-                          </button>
-                        </>
+                        <div className="notebook-entry-actions">
+                          {editingId === entry.id ? (
+                            <>
+                              <button type="button" className="save" onClick={() => void saveEdit(entry)} disabled={!editingText.trim() || busy}>Запази</button>
+                              <button type="button" onClick={() => { setEditingId(null); setEditingScheduledTime('') }}>Отказ</button>
+                            </>
+                          ) : (
+                            <>
+                              <button type="button" className="notebook-edit-action" onClick={() => beginEdit(entry)} title="Редактирай записа">
+                                <span aria-hidden="true">✎</span><span>Редактирай</span>
+                              </button>
+                              <button
+                                type="button"
+                                className="notebook-delete-action"
+                                onClick={() => void deleteEntry(entry)}
+                                title="Изтрий задачата"
+                                disabled={busy}
+                              >
+                                <span aria-hidden="true">⌫</span><span>Изтрий</span>
+                              </button>
+                            </>
+                          )}
+                        </div>
+                      </div>
+
+                      {showFreeTime && gapMinutes > 0 && (
+                        <button
+                          type="button"
+                          className="notebook-free-gap"
+                          style={{ minHeight: `${Math.max(38, gapMinutes * 0.55)}px` }}
+                          onClick={() => openGapComposer(currentTime, nextTime)}
+                          disabled={gapMinutes <= 1}
+                          title={gapMinutes > 1 ? `Добави задача между ${currentTime} и ${nextTime}` : undefined}
+                        >
+                          <span className="notebook-free-gap-line" />
+                          <strong>{formatFreeDuration(gapMinutes)} свободно време</strong>
+                          {gapMinutes > 1 && <small>Натисни тук, за да добавиш задача в този интервал</small>}
+                        </button>
                       )}
-                    </div>
-                  </div>
-                ))}
+                    </Fragment>
+                  )
+                })}
               </div>
 
               <footer className="notebook-paper-footer">
