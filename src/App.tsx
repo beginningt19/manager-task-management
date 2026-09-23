@@ -403,7 +403,7 @@ function App() {
           shouldPlayOfficeIntro = false
         }
 
-        if (shouldPlayOfficeIntro && !lowSpecRef.current) {
+        if (shouldPlayOfficeIntro && !lowSpecRef.current && !needsInitialPassword(nextSession)) {
           setOfficeIntroPlaying(true)
         }
       }
@@ -1143,6 +1143,13 @@ function Login({
   const [busy, setBusy] = useState(false)
   const [message, setMessage] = useState('')
   const [resetSent, setResetSent] = useState(false)
+
+  useEffect(() => {
+    if (lowSpec) return
+    const image = new Image()
+    image.src = officeIntroImage
+    void image.decode?.().catch(() => undefined)
+  }, [lowSpec])
 
   const submit = async (event: FormEvent) => {
     event.preventDefault()
