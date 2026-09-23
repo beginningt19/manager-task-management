@@ -3158,9 +3158,11 @@ body,
 
 
 /* ======================================================================
-   CINEMATIC OFFICE LOGIN INTRO
-   Runs only after an explicit successful login and is never rendered in
-   Low Spec mode. The real dashboard is already mounted underneath it.
+   CINEMATIC OFFICE LOGIN INTRO — 2.5D WALK-IN
+   The still photo is split into depth bands and driven by separate motion
+   curves. A camera rig adds walking bob/roll while the facade advances.
+   The entrance uses automatic sliding glass panels, then accelerates
+   through the doorway into the already-mounted dashboard.
    ====================================================================== */
 .office-login-intro {
   position: fixed;
@@ -3170,7 +3172,7 @@ body,
   pointer-events: all;
   background: #06101f;
   isolation: isolate;
-  animation: office-intro-overlay 5.2s linear both;
+  animation: office-intro-overlay 6.2s linear both;
 }
 
 .office-intro-stage {
@@ -3179,7 +3181,17 @@ body,
   position: absolute;
   inset: 0;
   overflow: hidden;
+  perspective: 1400px;
   background: #07101e;
+}
+
+.office-intro-camera-rig {
+  position: absolute;
+  inset: -2.2%;
+  transform-origin: 50% 55%;
+  transform-style: preserve-3d;
+  will-change: transform;
+  animation: office-intro-walk 6.2s cubic-bezier(.2,.64,.18,1) both;
 }
 
 .office-intro-plane {
@@ -3189,12 +3201,13 @@ body,
   width: var(--office-plane-width);
   height: var(--office-plane-height);
   transform-origin: 28.7% 55%;
-  transform: translate(-50%, -50%) translate3d(0,0,0) scale(1.015);
+  transform-style: preserve-3d;
   will-change: transform;
-  animation: office-intro-camera 5.2s cubic-bezier(.22,.72,.2,1) both;
+  animation: office-intro-forward 6.2s cubic-bezier(.18,.68,.16,1) both;
 }
 
-.office-intro-photo {
+.office-intro-photo,
+.office-intro-depth img {
   position: absolute;
   inset: 0;
   width: 100%;
@@ -3202,6 +3215,41 @@ body,
   max-width: none;
   user-select: none;
   pointer-events: none;
+}
+
+.office-intro-photo {
+  z-index: 0;
+  transform: translateZ(0);
+}
+
+.office-intro-depth {
+  position: absolute;
+  z-index: 1;
+  inset: -1.2%;
+  overflow: hidden;
+  pointer-events: none;
+  will-change: transform;
+}
+
+.office-intro-depth img {
+  width: 102.4%;
+  height: 102.4%;
+  left: -1.2%;
+  top: -1.2%;
+}
+
+.office-intro-depth-top {
+  clip-path: polygon(0 0, 100% 0, 100% 35%, 0 35%);
+  -webkit-mask-image: linear-gradient(to bottom, #000 0 74%, transparent 100%);
+  mask-image: linear-gradient(to bottom, #000 0 74%, transparent 100%);
+  animation: office-intro-parallax-top 6.2s cubic-bezier(.2,.65,.16,1) both;
+}
+
+.office-intro-depth-pavement {
+  clip-path: polygon(0 69%, 100% 69%, 100% 100%, 0 100%);
+  -webkit-mask-image: linear-gradient(to top, #000 0 74%, transparent 100%);
+  mask-image: linear-gradient(to top, #000 0 74%, transparent 100%);
+  animation: office-intro-parallax-ground 6.2s cubic-bezier(.2,.65,.16,1) both;
 }
 
 .office-intro-portal {
@@ -3212,39 +3260,47 @@ body,
   width: 14.75%;
   height: 50.8%;
   overflow: hidden;
-  border: 1px solid rgba(191,219,254,.26);
+  border: 1px solid rgba(191,219,254,.24);
   background:
-    radial-gradient(circle at 50% 38%, rgba(96,165,250,.34), transparent 44%),
+    radial-gradient(circle at 48% 34%, rgba(96,165,250,.28), transparent 42%),
     linear-gradient(150deg, #071a38, #102f67 58%, #26286d);
   box-shadow:
     inset 0 0 0 1px rgba(255,255,255,.06),
-    inset 0 -40px 80px rgba(1,9,26,.44),
-    0 0 42px rgba(96,165,250,.15);
+    inset 0 -42px 82px rgba(1,9,26,.46),
+    0 0 48px rgba(96,165,250,.16);
 }
 
 .office-intro-portal::before {
   content: '';
   position: absolute;
   inset: 0;
-  opacity: .54;
+  opacity: .46;
   background:
-    linear-gradient(rgba(147,197,253,.10) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(147,197,253,.10) 1px, transparent 1px);
+    linear-gradient(rgba(147,197,253,.09) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(147,197,253,.09) 1px, transparent 1px);
   background-size: 19px 19px;
 }
 
 .office-intro-system-preview {
   position: absolute;
-  inset: 9% 9% 10%;
+  inset: 7% 7% 8%;
+  display: grid;
+  grid-template-rows: auto auto 1fr;
+  align-content: start;
+  gap: 8px;
+  color: #eff6ff;
+  opacity: .04;
+  transform: scale(.88) translateY(5%);
+  transform-origin: 50% 52%;
+  will-change: opacity, transform;
+  animation: office-intro-preview-arrive 6.2s cubic-bezier(.18,.72,.2,1) both;
+}
+
+.office-intro-preview-topbar {
   display: grid;
   grid-template-columns: 30px minmax(0,1fr);
-  grid-template-rows: auto 1fr;
-  align-content: start;
-  gap: 8px 9px;
-  color: #eff6ff;
-  opacity: .18;
-  transform: scale(.91);
-  animation: office-intro-preview-arrive 5.2s ease both;
+  gap: 8px;
+  align-items: center;
 }
 
 .office-intro-preview-mark {
@@ -3252,7 +3308,6 @@ body,
   height: 30px;
   display: grid;
   place-items: center;
-  grid-row: 1;
   border-radius: 8px;
   background: linear-gradient(145deg,#3b82f6,#4f46e5);
   font-size: 15px;
@@ -3267,7 +3322,8 @@ body,
   gap: 2px;
 }
 
-.office-intro-preview-copy small {
+.office-intro-preview-copy small,
+.office-intro-preview-hero small {
   color: rgba(191,219,254,.68);
   font-size: 5px;
   font-weight: 900;
@@ -3281,20 +3337,34 @@ body,
   text-overflow: ellipsis;
 }
 
+.office-intro-preview-hero {
+  min-height: 36px;
+  padding: 7px;
+  display: grid;
+  align-content: center;
+  gap: 3px;
+  border: 1px solid rgba(191,219,254,.12);
+  border-radius: 6px;
+  background: linear-gradient(120deg, rgba(37,99,235,.25), rgba(79,70,229,.17));
+}
+
+.office-intro-preview-hero strong {
+  font-size: 8px;
+  letter-spacing: -.02em;
+}
+
 .office-intro-preview-grid {
-  grid-column: 1 / -1;
   display: grid;
   grid-template-columns: repeat(2, minmax(0,1fr));
   gap: 5px;
   align-content: start;
-  margin-top: 4px;
 }
 
 .office-intro-preview-grid i {
-  min-height: 27px;
+  min-height: 23px;
   border-radius: 5px;
-  border: 1px solid rgba(191,219,254,.16);
-  background: linear-gradient(145deg, rgba(255,255,255,.14), rgba(96,165,250,.06));
+  border: 1px solid rgba(191,219,254,.15);
+  background: linear-gradient(145deg, rgba(255,255,255,.13), rgba(96,165,250,.055));
 }
 
 .office-intro-door {
@@ -3304,9 +3374,10 @@ body,
   height: 50.8%;
   overflow: hidden;
   backface-visibility: hidden;
-  transform-style: preserve-3d;
   will-change: transform, opacity;
-  box-shadow: 0 0 0 1px rgba(6,20,37,.18);
+  box-shadow:
+    0 0 0 1px rgba(6,20,37,.18),
+    inset 0 0 20px rgba(219,234,254,.035);
 }
 
 .office-intro-door img {
@@ -3322,8 +3393,7 @@ body,
 .office-intro-door-left {
   left: 21.35%;
   width: 7.25%;
-  transform-origin: 0 50%;
-  animation: office-intro-door-left 5.2s cubic-bezier(.2,.72,.18,1) both;
+  animation: office-intro-door-left 6.2s cubic-bezier(.18,.72,.18,1) both;
 }
 
 .office-intro-door-left img {
@@ -3333,13 +3403,22 @@ body,
 .office-intro-door-right {
   left: 28.6%;
   width: 7.5%;
-  transform-origin: 100% 50%;
-  animation: office-intro-door-right 5.2s cubic-bezier(.2,.72,.18,1) both;
+  animation: office-intro-door-right 6.2s cubic-bezier(.18,.72,.18,1) both;
 }
 
 .office-intro-door-right img {
   width: 1333.33%;
   left: -381.33%;
+}
+
+.office-intro-glass-glint {
+  position: absolute;
+  inset: -20% -45%;
+  pointer-events: none;
+  opacity: .08;
+  transform: skewX(-16deg) translateX(-42%);
+  background: linear-gradient(105deg, transparent 26%, rgba(255,255,255,.34) 47%, rgba(191,219,254,.13) 52%, transparent 70%);
+  animation: office-intro-glass-glint 6.2s ease both;
 }
 
 .office-intro-threshold-light {
@@ -3352,9 +3431,28 @@ body,
   opacity: 0;
   pointer-events: none;
   background:
-    radial-gradient(ellipse at 50% 54%, rgba(219,234,254,.38), rgba(96,165,250,.10) 38%, transparent 72%);
+    radial-gradient(ellipse at 50% 54%, rgba(219,234,254,.45), rgba(96,165,250,.12) 38%, transparent 72%);
   mix-blend-mode: screen;
-  animation: office-intro-threshold 5.2s ease both;
+  animation: office-intro-threshold 6.2s ease both;
+}
+
+.office-intro-motion-blur {
+  position: absolute;
+  z-index: 19;
+  inset: -8%;
+  opacity: 0;
+  pointer-events: none;
+  background:
+    repeating-conic-gradient(
+      from 0deg at 28.7% 55%,
+      transparent 0deg 4deg,
+      rgba(191,219,254,.045) 4.4deg 5deg,
+      transparent 5.4deg 9deg
+    ),
+    radial-gradient(circle at 28.7% 55%, transparent 0 16%, rgba(219,234,254,.08) 34%, rgba(8,21,45,.28) 86%);
+  mix-blend-mode: screen;
+  transform: scale(1.02);
+  animation: office-intro-motion-blur 6.2s ease both;
 }
 
 .office-intro-vignette {
@@ -3365,7 +3463,7 @@ body,
   background:
     linear-gradient(180deg, rgba(2,8,18,.24), transparent 23%, transparent 70%, rgba(2,8,18,.34)),
     radial-gradient(ellipse at center, transparent 48%, rgba(1,7,17,.36) 100%);
-  animation: office-intro-vignette 5.2s ease both;
+  animation: office-intro-vignette 6.2s ease both;
 }
 
 .office-intro-caption {
@@ -3382,7 +3480,7 @@ body,
   letter-spacing: .12em;
   text-transform: uppercase;
   text-shadow: 0 2px 14px rgba(0,0,0,.38);
-  animation: office-intro-caption 5.2s ease both;
+  animation: office-intro-caption 6.2s ease both;
 }
 
 .office-intro-caption span {
@@ -3392,71 +3490,140 @@ body,
   box-shadow: 0 0 12px rgba(96,165,250,.55);
 }
 
-@keyframes office-intro-camera {
+/* Forward motion is deliberately non-linear: walking pace first, then a short
+   acceleration once the automatic door is open. */
+@keyframes office-intro-forward {
   0% {
-    transform: translate(-50%, -50%) translate3d(0, 1.5vh, 0) scale(1.015);
+    transform: translate(-50%, -50%) translate3d(-.5vw, 1.4vh, 0) scale(1.015) rotateX(.15deg);
   }
-  18% {
-    transform: translate(-50%, -50%) translate3d(1.5vw, .5vh, 0) scale(1.08);
+  12% {
+    transform: translate(-50%, -50%) translate3d(.4vw, .9vh, 0) scale(1.07) rotateX(.12deg);
+  }
+  24% {
+    transform: translate(-50%, -50%) translate3d(2.1vw, .25vh, 0) scale(1.18) rotateX(.08deg);
+  }
+  36% {
+    transform: translate(-50%, -50%) translate3d(4.7vw, -.25vh, 0) scale(1.36) rotateX(.04deg);
   }
   48% {
-    transform: translate(-50%, -50%) translate3d(7vw, -.7vh, 0) scale(1.42);
+    transform: translate(-50%, -50%) translate3d(7.9vw, -.7vh, 0) scale(1.60) rotateX(0deg);
   }
-  69% {
-    transform: translate(-50%, -50%) translate3d(13vw, -1.5vh, 0) scale(1.92);
+  60% {
+    transform: translate(-50%, -50%) translate3d(11.5vw, -1.1vh, 0) scale(1.94) rotateX(-.04deg);
+  }
+  72% {
+    transform: translate(-50%, -50%) translate3d(15.2vw, -1.55vh, 0) scale(2.38) rotateX(-.06deg);
   }
   84% {
-    transform: translate(-50%, -50%) translate3d(18vw, -2.3vh, 0) scale(2.62);
+    transform: translate(-50%, -50%) translate3d(18.6vw, -2.1vh, 0) scale(2.92) rotateX(-.08deg);
+  }
+  92% {
+    transform: translate(-50%, -50%) translate3d(20.5vw, -2.55vh, 0) scale(3.28) rotateX(-.09deg);
   }
   100% {
-    transform: translate(-50%, -50%) translate3d(21vw, -3vh, 0) scale(3.25);
+    transform: translate(-50%, -50%) translate3d(21.8vw, -2.9vh, 0) scale(3.58) rotateX(-.10deg);
   }
 }
 
+/* The nested rig creates the subtle vertical bob and shoulder roll of walking.
+   Because this is separate from forward travel it does not read as a plain zoom. */
+@keyframes office-intro-walk {
+  0%   { transform: translate3d(0,0,0) rotateZ(0deg); }
+  7%   { transform: translate3d(-.10vw,.24vh,0) rotateZ(-.045deg); }
+  14%  { transform: translate3d(.13vw,-.16vh,0) rotateZ(.055deg); }
+  21%  { transform: translate3d(-.11vw,.20vh,0) rotateZ(-.045deg); }
+  28%  { transform: translate3d(.12vw,-.13vh,0) rotateZ(.048deg); }
+  35%  { transform: translate3d(-.08vw,.16vh,0) rotateZ(-.036deg); }
+  42%  { transform: translate3d(.09vw,-.10vh,0) rotateZ(.034deg); }
+  49%  { transform: translate3d(-.06vw,.11vh,0) rotateZ(-.026deg); }
+  56%  { transform: translate3d(.06vw,-.07vh,0) rotateZ(.022deg); }
+  64%  { transform: translate3d(-.04vw,.07vh,0) rotateZ(-.016deg); }
+  72%  { transform: translate3d(.035vw,-.04vh,0) rotateZ(.012deg); }
+  82%  { transform: translate3d(-.02vw,.025vh,0) rotateZ(-.008deg); }
+  100% { transform: translate3d(0,0,0) rotateZ(0deg); }
+}
+
+@keyframes office-intro-parallax-top {
+  0%   { transform: translate3d(0,0,0) scale(1); opacity: .96; }
+  50%  { transform: translate3d(-.18vw,-.34vh,0) scale(1.004); opacity: .92; }
+  78%  { transform: translate3d(-.36vw,-.72vh,0) scale(1.008); opacity: .82; }
+  100% { transform: translate3d(-.55vw,-1.15vh,0) scale(1.012); opacity: .65; }
+}
+
+@keyframes office-intro-parallax-ground {
+  0%   { transform: translate3d(0,0,0) scale(1); opacity: 1; }
+  42%  { transform: translate3d(.08vw,.45vh,0) scale(1.008); opacity: 1; }
+  68%  { transform: translate3d(.18vw,1.15vh,0) scale(1.018); opacity: .98; }
+  86%  { transform: translate3d(.28vw,2.45vh,0) scale(1.034); opacity: .84; }
+  100% { transform: translate3d(.38vw,4.2vh,0) scale(1.055); opacity: .35; }
+}
+
+/* The storefront entrance is an automatic sliding glass door, not a hinged door. */
 @keyframes office-intro-door-left {
-  0%, 45% { transform: perspective(900px) rotateY(0deg); opacity: 1; }
-  58% { transform: perspective(900px) rotateY(-13deg); opacity: 1; }
-  75% { transform: perspective(900px) rotateY(-67deg); opacity: 1; }
-  88% { transform: perspective(900px) rotateY(-86deg); opacity: .74; }
-  100% { transform: perspective(900px) rotateY(-89deg); opacity: .08; }
+  0%, 47% { transform: translate3d(0,0,0) scaleX(1); opacity: 1; }
+  56%     { transform: translate3d(-10%,0,0) scaleX(.995); opacity: 1; }
+  68%     { transform: translate3d(-62%,0,0) scaleX(.985); opacity: .98; }
+  78%     { transform: translate3d(-101%,0,0) scaleX(.97); opacity: .92; }
+  91%     { transform: translate3d(-108%,0,0) scaleX(.96); opacity: .74; }
+  100%    { transform: translate3d(-112%,0,0) scaleX(.95); opacity: .18; }
 }
 
 @keyframes office-intro-door-right {
-  0%, 45% { transform: perspective(900px) rotateY(0deg); opacity: 1; }
-  58% { transform: perspective(900px) rotateY(13deg); opacity: 1; }
-  75% { transform: perspective(900px) rotateY(67deg); opacity: 1; }
-  88% { transform: perspective(900px) rotateY(86deg); opacity: .74; }
-  100% { transform: perspective(900px) rotateY(89deg); opacity: .08; }
+  0%, 47% { transform: translate3d(0,0,0) scaleX(1); opacity: 1; }
+  56%     { transform: translate3d(10%,0,0) scaleX(.995); opacity: 1; }
+  68%     { transform: translate3d(62%,0,0) scaleX(.985); opacity: .98; }
+  78%     { transform: translate3d(101%,0,0) scaleX(.97); opacity: .92; }
+  91%     { transform: translate3d(108%,0,0) scaleX(.96); opacity: .74; }
+  100%    { transform: translate3d(112%,0,0) scaleX(.95); opacity: .18; }
+}
+
+@keyframes office-intro-glass-glint {
+  0%, 45% { opacity: .07; transform: skewX(-16deg) translateX(-46%); }
+  58%     { opacity: .28; transform: skewX(-16deg) translateX(-5%); }
+  72%     { opacity: .16; transform: skewX(-16deg) translateX(38%); }
+  82%,100% { opacity: 0; transform: skewX(-16deg) translateX(72%); }
 }
 
 @keyframes office-intro-preview-arrive {
-  0%, 47% { opacity: .05; transform: scale(.88); }
-  64% { opacity: .32; transform: scale(.94); }
-  82% { opacity: .9; transform: scale(1); }
-  100% { opacity: 1; transform: scale(1.03); }
+  0%, 48% { opacity: .03; transform: scale(.86) translateY(5%); }
+  61%     { opacity: .22; transform: scale(.92) translateY(3%); }
+  73%     { opacity: .56; transform: scale(.98) translateY(0); }
+  84%     { opacity: .96; transform: scale(1.02) translateY(0); }
+  93%     { opacity: 1; transform: scale(1.10) translateY(0); }
+  100%    { opacity: 1; transform: scale(1.22) translateY(0); }
 }
 
 @keyframes office-intro-threshold {
-  0%, 48% { opacity: 0; }
-  65% { opacity: .22; }
-  84% { opacity: .78; }
-  100% { opacity: 1; }
+  0%, 50% { opacity: 0; }
+  65%     { opacity: .18; }
+  78%     { opacity: .55; }
+  90%     { opacity: .92; }
+  100%    { opacity: 1; }
+}
+
+@keyframes office-intro-motion-blur {
+  0%, 76% { opacity: 0; transform: scale(1.00); }
+  84%     { opacity: .16; transform: scale(1.03); }
+  91%     { opacity: .46; transform: scale(1.10); }
+  96%     { opacity: .70; transform: scale(1.18); }
+  100%    { opacity: .18; transform: scale(1.26); }
 }
 
 @keyframes office-intro-vignette {
-  0%, 35% { opacity: 1; }
-  72% { opacity: .72; }
-  100% { opacity: .15; }
+  0%, 34% { opacity: 1; }
+  70%     { opacity: .78; }
+  90%     { opacity: .48; }
+  100%    { opacity: .08; }
 }
 
 @keyframes office-intro-caption {
   0% { opacity: 0; transform: translateY(8px); }
-  11%, 38% { opacity: 1; transform: translateY(0); }
-  54%, 100% { opacity: 0; transform: translateY(-5px); }
+  9%, 34% { opacity: 1; transform: translateY(0); }
+  48%, 100% { opacity: 0; transform: translateY(-5px); }
 }
 
 @keyframes office-intro-overlay {
-  0%, 84% { opacity: 1; }
+  0%, 91% { opacity: 1; }
   100% { opacity: 0; }
 }
 
@@ -3477,10 +3644,14 @@ body,
     animation: office-intro-reduced .3s ease both !important;
   }
 
+  .office-intro-camera-rig,
   .office-intro-plane,
+  .office-intro-depth,
   .office-intro-door,
+  .office-intro-glass-glint,
   .office-intro-system-preview,
   .office-intro-threshold-light,
+  .office-intro-motion-blur,
   .office-intro-vignette,
   .office-intro-caption {
     animation: none !important;
@@ -3495,3 +3666,4 @@ body,
 .low-spec .office-login-intro {
   display: none !important;
 }
+
