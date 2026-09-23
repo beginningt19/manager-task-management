@@ -3013,24 +3013,22 @@ body,
     flex: 0 0 38px;
   }
 
-  .low-spec .topbar .account-area > .notification-button,
-  .low-spec .topbar .account-area > .icon-button {
-    width: inherit;
-  }
-
   .low-spec .topbar .account-area > .notification-button {
+    width: 112px;
     min-width: 112px;
     max-width: 112px;
     flex-basis: 112px;
   }
 
   .low-spec .topbar .account-area > .manager-visibility-toggle {
+    width: 174px;
     min-width: 174px;
     max-width: 174px;
     flex-basis: 174px;
   }
 
   .low-spec .topbar .account-area > .icon-button {
+    width: 38px;
     min-width: 38px;
     max-width: 38px;
     flex-basis: 38px;
