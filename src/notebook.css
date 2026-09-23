@@ -2130,3 +2130,19 @@
     grid-template-columns: 36px minmax(0,1fr);
   }
 }
+
+
+/* Keep the page texture clean; ruled lines are drawn by .notebook-entries so their baseline is exact. */
+.notebook-paper {
+  background:
+    linear-gradient(90deg, transparent 0 82px, rgba(202,88,86,.17) 82px 83px, transparent 83px),
+    #fffdf7;
+}
+
+@media (max-width: 980px) {
+  .notebook-paper {
+    background:
+      linear-gradient(90deg, transparent 0 54px, rgba(202,88,86,.14) 54px 55px, transparent 55px),
+      #fffdf7;
+  }
+}
