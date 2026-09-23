@@ -1037,16 +1037,72 @@ function App() {
 
 function AmbientBackground({ className = '' }: { className?: string }) {
   return (
-    <div className={`ambient-background manager-ambient manager-silk-background ${className}`.trim()} aria-hidden="true">
+    <div className={`ambient-background manager-ambient manager-silk-background manager-dynamic-background ${className}`.trim()} aria-hidden="true">
       <img
         className="manager-silk-base-image"
         src="/manager-silk-live.avif"
         alt=""
         draggable={false}
       />
-      <span className="manager-silk-region manager-silk-region-upper" />
-      <span className="manager-silk-region manager-silk-region-middle" />
-      <span className="manager-silk-flow-light" />
+      <svg
+        className="manager-live-wave-svg"
+        viewBox="0 0 1600 1000"
+        preserveAspectRatio="xMidYMid slice"
+        focusable="false"
+      >
+        <defs>
+          <linearGradient id="managerWaveA" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0%" stopColor="#ffffff" stopOpacity=".70" />
+            <stop offset="34%" stopColor="#dbeafe" stopOpacity=".58" />
+            <stop offset="72%" stopColor="#bfdbfe" stopOpacity=".30" />
+            <stop offset="100%" stopColor="#818cf8" stopOpacity=".13" />
+          </linearGradient>
+          <linearGradient id="managerWaveB" x1="0" y1="1" x2="1" y2="0">
+            <stop offset="0%" stopColor="#eff6ff" stopOpacity=".10" />
+            <stop offset="42%" stopColor="#ffffff" stopOpacity=".54" />
+            <stop offset="72%" stopColor="#c7d2fe" stopOpacity=".34" />
+            <stop offset="100%" stopColor="#93c5fd" stopOpacity=".14" />
+          </linearGradient>
+          <radialGradient id="managerGlowA" cx="50%" cy="50%" r="50%">
+            <stop offset="0%" stopColor="#ffffff" stopOpacity=".55" />
+            <stop offset="52%" stopColor="#bfdbfe" stopOpacity=".20" />
+            <stop offset="100%" stopColor="#bfdbfe" stopOpacity="0" />
+          </radialGradient>
+          <filter id="managerSoftBlur" x="-25%" y="-25%" width="150%" height="150%">
+            <feGaussianBlur stdDeviation="24" />
+          </filter>
+        </defs>
+
+        <g className="manager-wave manager-wave-a">
+          <path
+            d="M-180 190 C180 40 420 330 760 185 C1090 45 1310 205 1780 45 L1780 430 C1380 530 1110 385 785 500 C420 625 120 420 -180 585 Z"
+            fill="url(#managerWaveA)"
+          />
+        </g>
+
+        <g className="manager-wave manager-wave-b">
+          <path
+            d="M-220 540 C140 330 390 690 745 505 C1090 325 1335 625 1800 410 L1800 815 C1430 920 1120 720 765 865 C390 1015 115 760 -220 935 Z"
+            fill="url(#managerWaveB)"
+          />
+        </g>
+
+        <g className="manager-wave manager-wave-c" filter="url(#managerSoftBlur)">
+          <ellipse cx="360" cy="180" rx="310" ry="175" fill="url(#managerGlowA)" />
+          <ellipse cx="1290" cy="710" rx="390" ry="230" fill="url(#managerGlowA)" />
+        </g>
+
+        <g className="manager-wave manager-wave-sheen">
+          <path
+            d="M-100 690 C300 520 520 745 825 635 C1150 515 1370 570 1700 420"
+            fill="none"
+            stroke="rgba(255,255,255,.52)"
+            strokeWidth="34"
+            strokeLinecap="round"
+          />
+        </g>
+      </svg>
+      <span className="manager-dynamic-vignette" />
     </div>
   )
 }
