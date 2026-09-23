@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { supabase } from './lib/supabase'
 import { checkMicrophoneForSpeech, speechRecognitionErrorMessage } from './lib/voiceSupport'
+import { applyBulgarianVoiceFormatting } from './lib/bulgarianVoiceFormatting'
 import type { Profile } from './types'
 import './notebook.css'
 
@@ -53,30 +54,6 @@ const getSpeechRecognitionConstructor = (): SpeechRecognitionConstructor | null 
     webkitSpeechRecognition?: SpeechRecognitionConstructor
   }
   return speechWindow.SpeechRecognition || speechWindow.webkitSpeechRecognition || null
-}
-
-const voiceCommands: ReadonlyArray<readonly [string, string]> = [
-  ['точка и запетая', ';'],
-  ['въпросителен знак', '?'],
-  ['удивителен знак', '!'],
-  ['двоеточие', ':'],
-  ['запетая', ','],
-  ['точка', '.'],
-  ['тире', ' - '],
-  ['нов ред', '\n'],
-]
-
-const formatVoiceText = (value: string) => {
-  let next = ` ${value} `
-  voiceCommands.forEach(([spoken, replacement]) => {
-    next = next.replace(new RegExp(`\\s+${spoken}(?=\\s|$)`, 'giu'), replacement)
-  })
-  return next
-    .replace(/[ \t]+([,.;:?!])/g, '$1')
-    .replace(/([,.;:?!])(?=\S)/g, '$1 ')
-    .replace(/[ \t]*\n[ \t]*/g, '\n')
-    .replace(/[ \t]{2,}/g, ' ')
-    .trim()
 }
 
 const normalizeSpeechWord = (word: string) =>
@@ -595,10 +572,10 @@ export default function NotebookDrawer({
           .map(([, value]) => value),
       )
       const combined = [voiceBaseRef.current, mergedFinal].filter(Boolean).join(' ')
-      const formatted = formatVoiceText(combined)
+      const formatted = applyBulgarianVoiceFormatting(combined)
       voiceLastDraftRef.current = formatted
       setDraft(formatted)
-      setVoiceInterim(formatVoiceText(interim))
+      setVoiceInterim(applyBulgarianVoiceFormatting(interim))
     }
 
     recognition.onerror = (event) => {
