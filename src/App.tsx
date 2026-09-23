@@ -1088,39 +1088,57 @@ function OfficeLoginIntro({
 
   useEffect(() => {
     const reducedMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches
-    const timeout = window.setTimeout(() => onDoneRef.current(), reducedMotion ? 300 : 5200)
+    const timeout = window.setTimeout(() => onDoneRef.current(), reducedMotion ? 300 : 6200)
     return () => window.clearTimeout(timeout)
   }, [])
 
   return (
     <div className="office-login-intro" aria-hidden="true">
       <div className="office-intro-stage">
-        <div className="office-intro-plane">
-          <img className="office-intro-photo" src={imageSrc} alt="" draggable={false} />
+        <div className="office-intro-camera-rig">
+          <div className="office-intro-plane">
+            <img className="office-intro-photo" src={imageSrc} alt="" draggable={false} />
 
-          <div className="office-intro-portal">
-            <div className="office-intro-system-preview">
-              <span className="office-intro-preview-mark">✓</span>
-              <div className="office-intro-preview-copy">
-                <small>ЯВЛЕНА · ИЗТОК</small>
-                <strong>Manager Task Management</strong>
-              </div>
-              <div className="office-intro-preview-grid">
-                <i /><i /><i /><i /><i /><i />
+            <div className="office-intro-depth office-intro-depth-top">
+              <img src={imageSrc} alt="" draggable={false} />
+            </div>
+            <div className="office-intro-depth office-intro-depth-pavement">
+              <img src={imageSrc} alt="" draggable={false} />
+            </div>
+
+            <div className="office-intro-portal">
+              <div className="office-intro-system-preview">
+                <div className="office-intro-preview-topbar">
+                  <span className="office-intro-preview-mark">✓</span>
+                  <div className="office-intro-preview-copy">
+                    <small>ЯВЛЕНА · ИЗТОК</small>
+                    <strong>Manager Task Management</strong>
+                  </div>
+                </div>
+                <div className="office-intro-preview-hero">
+                  <small>ОБЩ ПРЕГЛЕД</small>
+                  <strong>Задачи на екипа</strong>
+                </div>
+                <div className="office-intro-preview-grid">
+                  <i /><i /><i /><i /><i /><i />
+                </div>
               </div>
             </div>
-          </div>
 
-          <div className="office-intro-door office-intro-door-left">
-            <img src={imageSrc} alt="" draggable={false} />
-          </div>
-          <div className="office-intro-door office-intro-door-right">
-            <img src={imageSrc} alt="" draggable={false} />
-          </div>
+            <div className="office-intro-door office-intro-door-left">
+              <img src={imageSrc} alt="" draggable={false} />
+              <span className="office-intro-glass-glint" />
+            </div>
+            <div className="office-intro-door office-intro-door-right">
+              <img src={imageSrc} alt="" draggable={false} />
+              <span className="office-intro-glass-glint" />
+            </div>
 
-          <span className="office-intro-threshold-light" />
+            <span className="office-intro-threshold-light" />
+          </div>
         </div>
 
+        <span className="office-intro-motion-blur" />
         <span className="office-intro-vignette" />
         <div className="office-intro-caption">
           <span />
