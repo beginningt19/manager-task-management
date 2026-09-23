@@ -3155,3 +3155,343 @@ body,
 .task-panel > .calendar-shell .calendar-scroll {
   pointer-events: auto;
 }
+
+
+/* ======================================================================
+   CINEMATIC OFFICE LOGIN INTRO
+   Runs only after an explicit successful login and is never rendered in
+   Low Spec mode. The real dashboard is already mounted underneath it.
+   ====================================================================== */
+.office-login-intro {
+  position: fixed;
+  inset: 0;
+  z-index: 10000;
+  overflow: hidden;
+  pointer-events: all;
+  background: #06101f;
+  isolation: isolate;
+  animation: office-intro-overlay 5.2s linear both;
+}
+
+.office-intro-stage {
+  --office-plane-width: max(100vw, 183.063vh);
+  --office-plane-height: max(100vh, 54.626vw);
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  background: #07101e;
+}
+
+.office-intro-plane {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: var(--office-plane-width);
+  height: var(--office-plane-height);
+  transform-origin: 28.7% 55%;
+  transform: translate(-50%, -50%) translate3d(0,0,0) scale(1.015);
+  will-change: transform;
+  animation: office-intro-camera 5.2s cubic-bezier(.22,.72,.2,1) both;
+}
+
+.office-intro-photo {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  max-width: none;
+  user-select: none;
+  pointer-events: none;
+}
+
+.office-intro-portal {
+  position: absolute;
+  z-index: 2;
+  left: 21.35%;
+  top: 26.1%;
+  width: 14.75%;
+  height: 50.8%;
+  overflow: hidden;
+  border: 1px solid rgba(191,219,254,.26);
+  background:
+    radial-gradient(circle at 50% 38%, rgba(96,165,250,.34), transparent 44%),
+    linear-gradient(150deg, #071a38, #102f67 58%, #26286d);
+  box-shadow:
+    inset 0 0 0 1px rgba(255,255,255,.06),
+    inset 0 -40px 80px rgba(1,9,26,.44),
+    0 0 42px rgba(96,165,250,.15);
+}
+
+.office-intro-portal::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  opacity: .54;
+  background:
+    linear-gradient(rgba(147,197,253,.10) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(147,197,253,.10) 1px, transparent 1px);
+  background-size: 19px 19px;
+}
+
+.office-intro-system-preview {
+  position: absolute;
+  inset: 9% 9% 10%;
+  display: grid;
+  grid-template-columns: 30px minmax(0,1fr);
+  grid-template-rows: auto 1fr;
+  align-content: start;
+  gap: 8px 9px;
+  color: #eff6ff;
+  opacity: .18;
+  transform: scale(.91);
+  animation: office-intro-preview-arrive 5.2s ease both;
+}
+
+.office-intro-preview-mark {
+  width: 30px;
+  height: 30px;
+  display: grid;
+  place-items: center;
+  grid-row: 1;
+  border-radius: 8px;
+  background: linear-gradient(145deg,#3b82f6,#4f46e5);
+  font-size: 15px;
+  font-weight: 900;
+  box-shadow: 0 8px 20px rgba(37,99,235,.28);
+}
+
+.office-intro-preview-copy {
+  min-width: 0;
+  display: grid;
+  align-content: center;
+  gap: 2px;
+}
+
+.office-intro-preview-copy small {
+  color: rgba(191,219,254,.68);
+  font-size: 5px;
+  font-weight: 900;
+  letter-spacing: .11em;
+}
+
+.office-intro-preview-copy strong {
+  overflow: hidden;
+  font-size: 7px;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.office-intro-preview-grid {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0,1fr));
+  gap: 5px;
+  align-content: start;
+  margin-top: 4px;
+}
+
+.office-intro-preview-grid i {
+  min-height: 27px;
+  border-radius: 5px;
+  border: 1px solid rgba(191,219,254,.16);
+  background: linear-gradient(145deg, rgba(255,255,255,.14), rgba(96,165,250,.06));
+}
+
+.office-intro-door {
+  position: absolute;
+  z-index: 4;
+  top: 26.1%;
+  height: 50.8%;
+  overflow: hidden;
+  backface-visibility: hidden;
+  transform-style: preserve-3d;
+  will-change: transform, opacity;
+  box-shadow: 0 0 0 1px rgba(6,20,37,.18);
+}
+
+.office-intro-door img {
+  position: absolute;
+  top: -51.378%;
+  width: 1379.31%;
+  height: 196.85%;
+  max-width: none;
+  user-select: none;
+  pointer-events: none;
+}
+
+.office-intro-door-left {
+  left: 21.35%;
+  width: 7.25%;
+  transform-origin: 0 50%;
+  animation: office-intro-door-left 5.2s cubic-bezier(.2,.72,.18,1) both;
+}
+
+.office-intro-door-left img {
+  left: -294.48%;
+}
+
+.office-intro-door-right {
+  left: 28.6%;
+  width: 7.5%;
+  transform-origin: 100% 50%;
+  animation: office-intro-door-right 5.2s cubic-bezier(.2,.72,.18,1) both;
+}
+
+.office-intro-door-right img {
+  width: 1333.33%;
+  left: -381.33%;
+}
+
+.office-intro-threshold-light {
+  position: absolute;
+  z-index: 3;
+  left: 20.4%;
+  top: 25.2%;
+  width: 16.6%;
+  height: 53%;
+  opacity: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(ellipse at 50% 54%, rgba(219,234,254,.38), rgba(96,165,250,.10) 38%, transparent 72%);
+  mix-blend-mode: screen;
+  animation: office-intro-threshold 5.2s ease both;
+}
+
+.office-intro-vignette {
+  position: absolute;
+  z-index: 20;
+  inset: 0;
+  pointer-events: none;
+  background:
+    linear-gradient(180deg, rgba(2,8,18,.24), transparent 23%, transparent 70%, rgba(2,8,18,.34)),
+    radial-gradient(ellipse at center, transparent 48%, rgba(1,7,17,.36) 100%);
+  animation: office-intro-vignette 5.2s ease both;
+}
+
+.office-intro-caption {
+  position: absolute;
+  z-index: 22;
+  left: clamp(24px, 4vw, 64px);
+  bottom: clamp(24px, 5vh, 58px);
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  color: rgba(248,251,255,.90);
+  font-size: 11px;
+  font-weight: 850;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  text-shadow: 0 2px 14px rgba(0,0,0,.38);
+  animation: office-intro-caption 5.2s ease both;
+}
+
+.office-intro-caption span {
+  width: 30px;
+  height: 2px;
+  background: linear-gradient(90deg,#60a5fa,#e0e7ff);
+  box-shadow: 0 0 12px rgba(96,165,250,.55);
+}
+
+@keyframes office-intro-camera {
+  0% {
+    transform: translate(-50%, -50%) translate3d(0, 1.5vh, 0) scale(1.015);
+  }
+  18% {
+    transform: translate(-50%, -50%) translate3d(1.5vw, .5vh, 0) scale(1.08);
+  }
+  48% {
+    transform: translate(-50%, -50%) translate3d(7vw, -.7vh, 0) scale(1.42);
+  }
+  69% {
+    transform: translate(-50%, -50%) translate3d(13vw, -1.5vh, 0) scale(1.92);
+  }
+  84% {
+    transform: translate(-50%, -50%) translate3d(18vw, -2.3vh, 0) scale(2.62);
+  }
+  100% {
+    transform: translate(-50%, -50%) translate3d(21vw, -3vh, 0) scale(3.25);
+  }
+}
+
+@keyframes office-intro-door-left {
+  0%, 45% { transform: perspective(900px) rotateY(0deg); opacity: 1; }
+  58% { transform: perspective(900px) rotateY(-13deg); opacity: 1; }
+  75% { transform: perspective(900px) rotateY(-67deg); opacity: 1; }
+  88% { transform: perspective(900px) rotateY(-86deg); opacity: .74; }
+  100% { transform: perspective(900px) rotateY(-89deg); opacity: .08; }
+}
+
+@keyframes office-intro-door-right {
+  0%, 45% { transform: perspective(900px) rotateY(0deg); opacity: 1; }
+  58% { transform: perspective(900px) rotateY(13deg); opacity: 1; }
+  75% { transform: perspective(900px) rotateY(67deg); opacity: 1; }
+  88% { transform: perspective(900px) rotateY(86deg); opacity: .74; }
+  100% { transform: perspective(900px) rotateY(89deg); opacity: .08; }
+}
+
+@keyframes office-intro-preview-arrive {
+  0%, 47% { opacity: .05; transform: scale(.88); }
+  64% { opacity: .32; transform: scale(.94); }
+  82% { opacity: .9; transform: scale(1); }
+  100% { opacity: 1; transform: scale(1.03); }
+}
+
+@keyframes office-intro-threshold {
+  0%, 48% { opacity: 0; }
+  65% { opacity: .22; }
+  84% { opacity: .78; }
+  100% { opacity: 1; }
+}
+
+@keyframes office-intro-vignette {
+  0%, 35% { opacity: 1; }
+  72% { opacity: .72; }
+  100% { opacity: .15; }
+}
+
+@keyframes office-intro-caption {
+  0% { opacity: 0; transform: translateY(8px); }
+  11%, 38% { opacity: 1; transform: translateY(0); }
+  54%, 100% { opacity: 0; transform: translateY(-5px); }
+}
+
+@keyframes office-intro-overlay {
+  0%, 84% { opacity: 1; }
+  100% { opacity: 0; }
+}
+
+@media (max-width: 760px) {
+  .office-intro-plane {
+    transform-origin: 28.7% 55%;
+  }
+
+  .office-intro-caption {
+    left: 20px;
+    bottom: 24px;
+    font-size: 9px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .office-login-intro {
+    animation: office-intro-reduced .3s ease both !important;
+  }
+
+  .office-intro-plane,
+  .office-intro-door,
+  .office-intro-system-preview,
+  .office-intro-threshold-light,
+  .office-intro-vignette,
+  .office-intro-caption {
+    animation: none !important;
+  }
+
+  @keyframes office-intro-reduced {
+    from { opacity: 1; }
+    to { opacity: 0; }
+  }
+}
+
+.low-spec .office-login-intro {
+  display: none !important;
+}
