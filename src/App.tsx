@@ -332,6 +332,12 @@ function App() {
     if (lowSpec) setOfficeIntroPlaying(false)
   }, [lowSpec])
 
+  useEffect(() => {
+    const active = officeIntroPlaying && !lowSpec
+    document.documentElement.classList.toggle('office-intro-active', active)
+    return () => document.documentElement.classList.remove('office-intro-active')
+  }, [officeIntroPlaying, lowSpec])
+
   const toggleLowSpec = useCallback(() => {
     setLowSpec((current) => !current)
   }, [])
