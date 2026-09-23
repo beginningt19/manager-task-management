@@ -1046,6 +1046,7 @@ function AmbientBackground({ className = '' }: { className?: string }) {
         alt=""
         draggable={false}
       />
+
       <svg
         className="manager-live-wave-svg"
         viewBox="0 0 1600 1000"
@@ -1054,57 +1055,162 @@ function AmbientBackground({ className = '' }: { className?: string }) {
       >
         <defs>
           <linearGradient id="managerWaveA" x1="0" y1="0" x2="1" y2="1">
-            <stop offset="0%" stopColor="#ffffff" stopOpacity=".70" />
-            <stop offset="34%" stopColor="#dbeafe" stopOpacity=".58" />
-            <stop offset="72%" stopColor="#bfdbfe" stopOpacity=".30" />
-            <stop offset="100%" stopColor="#818cf8" stopOpacity=".13" />
+            <stop offset="0%" stopColor="#ffffff" stopOpacity=".88" />
+            <stop offset="28%" stopColor="#dbeafe" stopOpacity=".78" />
+            <stop offset="63%" stopColor="#93c5fd" stopOpacity=".43" />
+            <stop offset="100%" stopColor="#6366f1" stopOpacity=".20" />
           </linearGradient>
+
           <linearGradient id="managerWaveB" x1="0" y1="1" x2="1" y2="0">
-            <stop offset="0%" stopColor="#eff6ff" stopOpacity=".10" />
-            <stop offset="42%" stopColor="#ffffff" stopOpacity=".54" />
-            <stop offset="72%" stopColor="#c7d2fe" stopOpacity=".34" />
-            <stop offset="100%" stopColor="#93c5fd" stopOpacity=".14" />
+            <stop offset="0%" stopColor="#dbeafe" stopOpacity=".24" />
+            <stop offset="35%" stopColor="#ffffff" stopOpacity=".72" />
+            <stop offset="68%" stopColor="#c7d2fe" stopOpacity=".48" />
+            <stop offset="100%" stopColor="#60a5fa" stopOpacity=".22" />
           </linearGradient>
+
+          <linearGradient id="managerWaveC" x1="0" y1=".2" x2="1" y2=".8">
+            <stop offset="0%" stopColor="#3b82f6" stopOpacity=".08" />
+            <stop offset="38%" stopColor="#bfdbfe" stopOpacity=".34" />
+            <stop offset="66%" stopColor="#ffffff" stopOpacity=".58" />
+            <stop offset="100%" stopColor="#818cf8" stopOpacity=".18" />
+          </linearGradient>
+
+          <linearGradient id="managerFoldShadow" x1="0" y1="0" x2="1" y2=".4">
+            <stop offset="0%" stopColor="#244b86" stopOpacity=".05" />
+            <stop offset="48%" stopColor="#315b95" stopOpacity=".26" />
+            <stop offset="70%" stopColor="#1e3a8a" stopOpacity=".16" />
+            <stop offset="100%" stopColor="#0f2f68" stopOpacity=".02" />
+          </linearGradient>
+
+          <linearGradient id="managerFineLine" x1="0" y1="0" x2="1" y2="0">
+            <stop offset="0%" stopColor="#ffffff" stopOpacity="0" />
+            <stop offset="18%" stopColor="#ffffff" stopOpacity=".42" />
+            <stop offset="54%" stopColor="#dbeafe" stopOpacity=".78" />
+            <stop offset="82%" stopColor="#ffffff" stopOpacity=".34" />
+            <stop offset="100%" stopColor="#ffffff" stopOpacity="0" />
+          </linearGradient>
+
           <radialGradient id="managerGlowA" cx="50%" cy="50%" r="50%">
-            <stop offset="0%" stopColor="#ffffff" stopOpacity=".55" />
-            <stop offset="52%" stopColor="#bfdbfe" stopOpacity=".20" />
+            <stop offset="0%" stopColor="#ffffff" stopOpacity=".70" />
+            <stop offset="46%" stopColor="#bfdbfe" stopOpacity=".30" />
             <stop offset="100%" stopColor="#bfdbfe" stopOpacity="0" />
           </radialGradient>
+
           <filter id="managerSoftBlur" x="-25%" y="-25%" width="150%" height="150%">
-            <feGaussianBlur stdDeviation="24" />
+            <feGaussianBlur stdDeviation="23" />
+          </filter>
+
+          <filter id="managerFabricDetail" x="-20%" y="-20%" width="140%" height="140%">
+            <feTurbulence
+              type="fractalNoise"
+              baseFrequency=".0025 .017"
+              numOctaves="3"
+              seed="11"
+              result="noise"
+            />
+            <feColorMatrix
+              in="noise"
+              type="matrix"
+              values="1 0 0 0 .38
+                      0 1 0 0 .48
+                      0 0 1 0 .65
+                      0 0 0 .28 0"
+              result="tintedNoise"
+            />
+            <feBlend in="SourceGraphic" in2="tintedNoise" mode="soft-light" />
           </filter>
         </defs>
 
-        <g className="manager-wave manager-wave-a">
+        <g className="manager-wave manager-wave-depth">
           <path
-            d="M-180 190 C180 40 420 330 760 185 C1090 45 1310 205 1780 45 L1780 430 C1380 530 1110 385 785 500 C420 625 120 420 -180 585 Z"
-            fill="url(#managerWaveA)"
+            d="M-240 380 C80 210 355 495 675 330 C990 166 1280 292 1810 86 L1810 735 C1432 810 1130 660 800 785 C410 932 105 742 -240 922 Z"
+            fill="url(#managerFoldShadow)"
           />
         </g>
 
-        <g className="manager-wave manager-wave-b">
+        <g className="manager-wave manager-wave-a" filter="url(#managerFabricDetail)">
           <path
-            d="M-220 540 C140 330 390 690 745 505 C1090 325 1335 625 1800 410 L1800 815 C1430 920 1120 720 765 865 C390 1015 115 760 -220 935 Z"
+            d="M-180 160 C160 12 428 310 765 168 C1100 26 1320 194 1780 22 L1780 425 C1392 534 1118 382 786 500 C426 628 122 414 -180 586 Z"
+            fill="url(#managerWaveA)"
+          />
+          <path
+            d="M-130 245 C205 92 448 382 762 247 C1086 106 1325 244 1735 102"
+            fill="none"
+            stroke="url(#managerFineLine)"
+            strokeWidth="10"
+            strokeLinecap="round"
+            opacity=".66"
+          />
+          <path
+            d="M-92 315 C235 177 446 438 774 316 C1097 196 1334 335 1696 214"
+            fill="none"
+            stroke="rgba(80,126,183,.25)"
+            strokeWidth="5"
+            strokeLinecap="round"
+          />
+        </g>
+
+        <g className="manager-wave manager-wave-b" filter="url(#managerFabricDetail)">
+          <path
+            d="M-225 522 C128 322 395 684 748 501 C1090 325 1334 620 1805 403 L1805 818 C1427 927 1120 716 764 865 C392 1021 110 755 -225 940 Z"
             fill="url(#managerWaveB)"
+          />
+          <path
+            d="M-112 603 C172 462 447 748 766 594 C1087 439 1325 711 1718 526"
+            fill="none"
+            stroke="url(#managerFineLine)"
+            strokeWidth="12"
+            strokeLinecap="round"
+            opacity=".58"
+          />
+          <path
+            d="M-70 674 C204 551 452 796 779 671 C1110 544 1344 779 1682 628"
+            fill="none"
+            stroke="rgba(56,93,151,.22)"
+            strokeWidth="5"
+            strokeLinecap="round"
+          />
+        </g>
+
+        <g className="manager-wave manager-wave-ribbon">
+          <path
+            d="M-120 438 C202 258 430 565 745 405 C1050 252 1294 470 1725 300 L1725 493 C1338 618 1110 438 776 584 C450 726 174 491 -120 665 Z"
+            fill="url(#managerWaveC)"
           />
         </g>
 
         <g className="manager-wave manager-wave-c" filter="url(#managerSoftBlur)">
-          <ellipse cx="360" cy="180" rx="310" ry="175" fill="url(#managerGlowA)" />
-          <ellipse cx="1290" cy="710" rx="390" ry="230" fill="url(#managerGlowA)" />
+          <ellipse cx="320" cy="178" rx="330" ry="185" fill="url(#managerGlowA)" />
+          <ellipse cx="1265" cy="725" rx="430" ry="250" fill="url(#managerGlowA)" />
+        </g>
+
+        <g className="manager-wave manager-wave-fibers">
+          <path d="M-60 360 C260 220 466 480 790 354 C1112 228 1320 355 1660 246" />
+          <path d="M-25 387 C286 258 478 506 804 383 C1126 261 1338 387 1625 294" />
+          <path d="M22 722 C298 612 493 830 805 710 C1118 590 1325 785 1594 684" />
+          <path d="M55 750 C328 653 520 855 831 739 C1143 622 1349 811 1566 728" />
         </g>
 
         <g className="manager-wave manager-wave-sheen">
           <path
-            d="M-100 690 C300 520 520 745 825 635 C1150 515 1370 570 1700 420"
+            d="M-105 694 C295 516 520 749 828 633 C1153 510 1374 568 1705 414"
             fill="none"
-            stroke="rgba(255,255,255,.52)"
-            strokeWidth="34"
+            stroke="rgba(255,255,255,.62)"
+            strokeWidth="30"
+            strokeLinecap="round"
+          />
+          <path
+            d="M-35 203 C318 76 516 319 834 198 C1130 84 1348 182 1650 94"
+            fill="none"
+            stroke="rgba(255,255,255,.40)"
+            strokeWidth="17"
             strokeLinecap="round"
           />
         </g>
       </svg>
+
       <span className="manager-dynamic-vignette" />
+      <span className="manager-background-grain" />
     </div>
   )
 }
