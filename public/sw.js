@@ -4,6 +4,14 @@ const DEFAULT_PAYLOAD = {
   url: '/',
 }
 
+self.addEventListener('install', () => {
+  self.skipWaiting()
+})
+
+self.addEventListener('activate', (event) => {
+  event.waitUntil(self.clients.claim())
+})
+
 self.addEventListener('push', (event) => {
   let payload = { ...DEFAULT_PAYLOAD }
 
@@ -18,39 +26,31 @@ self.addEventListener('push', (event) => {
   const urgent = Boolean(payload.urgent || payload.type === 'task-reminder')
   const tag = payload.tag || (urgent ? `urgent-${Date.now()}` : 'manager-task-update')
 
+  const options = {
+    body: payload.body,
+    icon: '/app-icon.svg',
+    badge: '/app-icon.svg',
+    lang: 'bg',
+    dir: 'ltr',
+    data: {
+      url: payload.url || '/',
+      taskId: payload.taskId || null,
+      messageId: payload.messageId || null,
+      type: payload.type || 'task-update',
+    },
+    tag,
+    timestamp: Date.now(),
+    silent: false,
+  }
+
   event.waitUntil(
-    self.registration.showNotification(payload.title, {
-      body: payload.body,
-      icon: '/app-icon.svg',
-      badge: '/app-icon.svg',
-      lang: 'bg',
-      data: {
-        url: payload.url || '/',
-        taskId: payload.taskId || null,
-        type: payload.type || 'task-update',
-      },
-      tag,
-      timestamp: Date.now(),
-      requireInteraction: urgent,
-      renotify: urgent,
-      silent: false,
-      vibrate: urgent ? [250, 120, 250, 120, 450] : [180, 80, 180],
-      actions: urgent
-        ? [
-            { action: 'open', title: 'Отвори задачата' },
-            { action: 'dismiss', title: 'Затвори' },
-          ]
-        : [{ action: 'open', title: 'Отвори' }],
-    }),
+    self.registration.showNotification(payload.title, options),
   )
 })
 
 self.addEventListener('notificationclick', (event) => {
-  const action = event.action
   const target = new URL(event.notification.data?.url || '/', self.location.origin).href
   event.notification.close()
-
-  if (action === 'dismiss') return
 
   event.waitUntil(
     clients.matchAll({ type: 'window', includeUncontrolled: true }).then(async (windows) => {
