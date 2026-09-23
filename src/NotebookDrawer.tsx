@@ -188,17 +188,21 @@ const automaticPageForDate = (dayPages: NotebookPage[], allEntries: NotebookEntr
 
 export default function NotebookDrawer({
   currentUser,
+  initialDate,
+  initialPageId,
   onClose,
   onResult,
 }: {
   currentUser: Profile
+  initialDate?: string | null
+  initialPageId?: string | null
   onClose: () => void
   onResult: (toast: Toast) => void
 }) {
   const [pages, setPages] = useState<NotebookPage[]>([])
   const [entries, setEntries] = useState<NotebookEntry[]>([])
-  const [selectedDate, setSelectedDate] = useState(localDateKey())
-  const [selectedPageId, setSelectedPageId] = useState<string | null>(null)
+  const [selectedDate, setSelectedDate] = useState(initialDate || localDateKey())
+  const [selectedPageId, setSelectedPageId] = useState<string | null>(initialPageId || null)
   const [draft, setDraft] = useState('')
   const [editingId, setEditingId] = useState<string | null>(null)
   const [editingText, setEditingText] = useState('')
