@@ -214,6 +214,12 @@ const actionLabels: Record<string, string> = {
 const errorText = (value: unknown) =>
   value instanceof Error ? value.message : 'Възникна неочаквана грешка.'
 
+const isJwtFutureError = (value: unknown) => {
+  if (!value || typeof value !== 'object') return false
+  const error = value as { code?: string; message?: string }
+  return error.code === 'PGRST303' && /jwt issued at future/i.test(error.message || '')
+}
+
 const needsInitialPassword = (session: Session | null) => Boolean(
   session?.user.invited_at && session.user.user_metadata?.password_initialized !== true,
 )
@@ -341,7 +347,12 @@ function App() {
 
     const firstError = profilesResult.error || tasksResult.error || assigneesResult.error || visibilityResult.error || notebookCalendarResult.error
     if (firstError) {
-      showToast({ tone: 'error', message: firstError.message })
+      showToast({
+        tone: 'error',
+        message: isJwtFutureError(firstError)
+          ? 'Временна синхронизация на сесията. Изчакайте секунда и опитайте отново.'
+          : firstError.message,
+      })
       setLoading(false)
       return
     }
