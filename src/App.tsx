@@ -61,6 +61,16 @@ type NotebookCalendarEntry = {
   carried_from_date: string | null
 }
 
+const LOW_SPEC_STORAGE_KEY = 'manager-low-spec-mode'
+
+const readLowSpecPreference = () => {
+  try {
+    return window.localStorage.getItem(LOW_SPEC_STORAGE_KEY) === '1'
+  } catch {
+    return document.documentElement.classList.contains('low-spec')
+  }
+}
+
 const bulgarianMonths = [
   'Януари',
   'Февруари',
@@ -478,6 +488,7 @@ const calendarDueDate = (selectedDate: Date) => {
 }
 
 function App() {
+  const [lowSpec, setLowSpec] = useState(readLowSpecPreference)
   const [session, setSession] = useState<Session | null>(null)
   const [authReady, setAuthReady] = useState(false)
   const [profile, setProfile] = useState<Profile | null>(null)
@@ -509,6 +520,19 @@ function App() {
   const [categoryFocus, setCategoryFocus] = useState<TaskCategory | null>(null)
   const [managerVisibilityMode, setManagerVisibilityMode] = useState<ManagerVisibilityMode>('all')
   const [visibilityBusy, setVisibilityBusy] = useState(false)
+
+  useEffect(() => {
+    document.documentElement.classList.toggle('low-spec', lowSpec)
+    try {
+      window.localStorage.setItem(LOW_SPEC_STORAGE_KEY, lowSpec ? '1' : '0')
+    } catch {
+      // Keep the in-memory preference if storage is unavailable.
+    }
+  }, [lowSpec])
+
+  const toggleLowSpec = useCallback(() => {
+    setLowSpec((current) => !current)
+  }, [])
 
   const showToast = useCallback((next: Toast) => {
     setToast(next)
@@ -789,11 +813,11 @@ function App() {
 
   if (configurationError) return <FatalConfiguration message={configurationError} />
   if (!authReady) return <FullPageLoader />
-  if (!session) return <Login />
+  if (!session) return <Login lowSpec={lowSpec} onToggleLowSpec={toggleLowSpec} />
 
   return (
     <>
-      <AmbientBackground />
+      {!lowSpec && <AmbientBackground />}
       <div className="app-shell">
       <header className="topbar">
         <div className="brand">
@@ -804,6 +828,16 @@ function App() {
           </div>
         </div>
         <div className="account-area">
+          <button
+            type="button"
+            className={`notification-button low-spec-toggle${lowSpec ? ' active' : ''}`}
+            onClick={toggleLowSpec}
+            title={lowSpec ? 'Изключи Low Spec режима' : 'Включи Low Spec режима за по-ниско натоварване'}
+            aria-pressed={lowSpec}
+          >
+            <span aria-hidden="true">⚡</span>
+            <span>{lowSpec ? 'Low Spec: Вкл.' : 'Low Spec'}</span>
+          </button>
           {canControlManagerVisibility && (
             <button
               className={`notification-button manager-visibility-toggle ${managerVisibilityMode === 'own' ? 'own-mode' : 'all-mode'}`}
@@ -848,15 +882,17 @@ function App() {
               )}
             </div>
           )}
-          <div className="hero-art manager-hero-art" aria-hidden="true">
-            <span className="hero-signal signal-a" />
-            <span className="hero-signal signal-b" />
-            <span className="hero-signal signal-c" />
-            <span className="hero-data-bar bar-a" />
-            <span className="hero-data-bar bar-b" />
-            <span className="hero-data-bar bar-c" />
-            <span className="hero-data-bar bar-d" />
-          </div>
+          {!lowSpec && (
+            <div className="hero-art manager-hero-art" aria-hidden="true">
+              <span className="hero-signal signal-a" />
+              <span className="hero-signal signal-b" />
+              <span className="hero-signal signal-c" />
+              <span className="hero-data-bar bar-a" />
+              <span className="hero-data-bar bar-b" />
+              <span className="hero-data-bar bar-c" />
+              <span className="hero-data-bar bar-d" />
+            </div>
+          )}
         </section>
 
         <section className="stat-grid" aria-label="Категории задачи">
@@ -1192,7 +1228,13 @@ function AmbientBackground({ className = '' }: { className?: string }) {
   )
 }
 
-function Login() {
+function Login({
+  lowSpec,
+  onToggleLowSpec,
+}: {
+  lowSpec: boolean
+  onToggleLowSpec: () => void
+}) {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [busy, setBusy] = useState(false)
@@ -1231,12 +1273,24 @@ function Login() {
 
   return (
     <main className="login-page manager-login">
-      <div className="manager-login-background" aria-hidden="true">
-        <span className="manager-login-glow manager-login-glow-a" />
-        <span className="manager-login-glow manager-login-glow-b" />
-        <span className="manager-login-lines" />
-      </div>
-      <aside className="login-accent manager-login-hero" aria-hidden="true">
+      <button
+        type="button"
+        className={`login-low-spec-toggle${lowSpec ? ' active' : ''}`}
+        onClick={onToggleLowSpec}
+        aria-pressed={lowSpec}
+        title={lowSpec ? 'Изключи Low Spec режима' : 'Включи Low Spec режима'}
+      >
+        <span aria-hidden="true">⚡</span>
+        {lowSpec ? 'Low Spec: Включен' : 'Low Spec режим'}
+      </button>
+      {!lowSpec && (
+        <div className="manager-login-background" aria-hidden="true">
+          <span className="manager-login-glow manager-login-glow-a" />
+          <span className="manager-login-glow manager-login-glow-b" />
+          <span className="manager-login-lines" />
+        </div>
+      )}
+      {!lowSpec && <aside className="login-accent manager-login-hero" aria-hidden="true">
         <div className="executive-showcase">
           <div className="executive-kicker"><span /> MANAGER CONTROL</div>
           <div className="executive-title">
@@ -1273,7 +1327,7 @@ function Login() {
             <span>История на действията</span>
           </div>
         </div>
-      </aside>
+      </aside>}
 
       <section className="login-card manager-login-card">
         <span className="manager-login-badge">ВЪТРЕШНА УПРАВЛЕНСКА СИСТЕМА</span>
