@@ -750,7 +750,7 @@ function ValueEditor({ field, value, saving, onSave }: { field: ChecklistField; 
     return <button className={`checklist-toggle${checked ? ' checked' : ''}${saving ? ' saving' : ''}`} onClick={() => onSave(!checked)} aria-pressed={checked}><i>{checked ? '✓' : ''}</i><span>{checked ? 'Да' : 'Не'}</span></button>
   }
   if (field.field_type === 'select') {
-    return <div className={`checklist-cell-control select${saving ? ' saving' : ''}`}><select value={draft} onChange={(event) => { setDraft(event.target.value); onSave(event.target.value) }}><option value="">—</option>{field.options.map((option) => <option key={option} value={option}>{option}</option>)}</select></div>
+    return <div className={`checklist-cell-control select${saving ? ' saving' : ''}`}><select value={draft} onChange={(event) => { setDraft(event.target.value); onSave(event.target.value) }}><option value="">0</option>{field.options.map((option) => <option key={option} value={option}>{option}</option>)}</select></div>
   }
 
   if (field.field_type === 'date') {
@@ -797,7 +797,7 @@ function ValueEditor({ field, value, saving, onSave }: { field: ChecklistField; 
     if (field.field_type === 'number') onSave(draft === '' ? '' : Number(draft))
     else onSave(draft)
   }
-  return <div className={`checklist-cell-control${saving ? ' saving' : ''}`}><input type={field.field_type === 'number' ? 'number' : 'text'} value={draft} placeholder="—" onChange={(event) => setDraft(event.target.value)} onBlur={commit} onKeyDown={(event) => { if (event.key === 'Enter') event.currentTarget.blur() }} /></div>
+  return <div className={`checklist-cell-control${saving ? ' saving' : ''}`}><input type={field.field_type === 'number' ? 'number' : 'text'} value={draft} placeholder="0" onChange={(event) => setDraft(event.target.value)} onBlur={commit} onKeyDown={(event) => { if (event.key === 'Enter') event.currentTarget.blur() }} /></div>
 }
 
 function DialogShell({ title, eyebrow, onClose, children }: { title: string; eyebrow: string; onClose: () => void; children: ReactNode }) {
