@@ -744,6 +744,18 @@ function App() {
   const canControlManagerVisibility = Boolean(profile && (profile.role === 'admin' || profile.display_role === 'Управител'))
   const canCreateTeamTasks = profile?.display_role === 'Управител'
 
+  useEffect(() => {
+    if (!session?.user.id || loading) return
+    const params = new URLSearchParams(window.location.search)
+    const taskId = params.get('task')
+    if (!taskId || !tasks.some((task) => task.id === taskId)) return
+
+    setSelectedTaskId(taskId)
+    params.delete('task')
+    const nextQuery = params.toString()
+    window.history.replaceState({}, '', `${window.location.pathname}${nextQuery ? `?${nextQuery}` : ''}${window.location.hash}`)
+  }, [loading, session?.user.id, tasks])
+
   const toggleManagerVisibility = async () => {
     if (!canControlManagerVisibility || visibilityBusy) return
     const nextMode: ManagerVisibilityMode = managerVisibilityMode === 'all' ? 'own' : 'all'
@@ -2823,61 +2835,137 @@ function FileRow({
   )
 }
 
+type WebPushPlatform = 'ios' | 'ipados' | 'macos' | 'windows' | 'android' | 'linux' | 'other'
+
+function detectWebPushPlatform(): WebPushPlatform {
+  const ua = navigator.userAgent || ''
+  const nav = navigator as Navigator & { platform?: string; maxTouchPoints?: number }
+  if (/iPhone|iPod/i.test(ua)) return 'ios'
+  if (/iPad/i.test(ua) || (nav.platform === 'MacIntel' && (nav.maxTouchPoints || 0) > 1)) return 'ipados'
+  if (/Macintosh|Mac OS X/i.test(ua)) return 'macos'
+  if (/Windows/i.test(ua)) return 'windows'
+  if (/Android/i.test(ua)) return 'android'
+  if (/Linux/i.test(ua)) return 'linux'
+  return 'other'
+}
+
+function isStandaloneWebApp() {
+  const nav = navigator as Navigator & { standalone?: boolean }
+  return window.matchMedia?.('(display-mode: standalone)').matches || nav.standalone === true
+}
+
 function PushButton({ userId, onResult }: { userId: string; onResult: (toast: Toast) => void }) {
-  const [supported] = useState(() => 'serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window)
   const [busy, setBusy] = useState(false)
   const [active, setActive] = useState(false)
   const vapidKey = import.meta.env.VITE_VAPID_PUBLIC_KEY
+  const platform = useMemo(() => detectWebPushPlatform(), [])
+  const standalone = isStandaloneWebApp()
+  const appleMobileNeedsInstall = (platform === 'ios' || platform === 'ipados') && !standalone
+  const supported = !appleMobileNeedsInstall
+    && 'serviceWorker' in navigator
+    && 'PushManager' in window
+    && 'Notification' in window
+
+  const saveSubscription = useCallback(async (subscription: PushSubscription) => {
+    const json = subscription.toJSON()
+    if (!json.keys?.p256dh || !json.keys.auth) throw new Error('Браузърът не връща валиден push абонамент.')
+
+    const { error } = await supabase.from('push_subscriptions').upsert({
+      user_id: userId,
+      endpoint: subscription.endpoint,
+      p256dh: json.keys.p256dh,
+      auth: json.keys.auth,
+      user_agent: navigator.userAgent,
+      platform,
+      standalone,
+      last_seen_at: new Date().toISOString(),
+    }, { onConflict: 'user_id,endpoint' })
+
+    if (error) throw error
+  }, [platform, standalone, userId])
 
   useEffect(() => {
     if (!supported || !vapidKey || Notification.permission !== 'granted') return
     let cancelled = false
-    navigator.serviceWorker.register('/sw.js')
-      .then(() => navigator.serviceWorker.ready)
-      .then((registration) => registration.pushManager.getSubscription())
-      .then((subscription) => {
-        if (!cancelled) setActive(Boolean(subscription))
-      })
-      .catch(() => undefined)
+
+    const sync = async () => {
+      const registration = await navigator.serviceWorker.register('/sw.js', { scope: '/' })
+      const ready = await navigator.serviceWorker.ready
+      let subscription = await ready.pushManager.getSubscription()
+
+      if (!subscription) {
+        subscription = await ready.pushManager.subscribe({
+          userVisibleOnly: true,
+          applicationServerKey: urlBase64ToUint8Array(vapidKey),
+        })
+      }
+
+      await saveSubscription(subscription)
+      if (!cancelled) setActive(true)
+      void registration.update().catch(() => undefined)
+    }
+
+    void sync().catch(() => {
+      if (!cancelled) setActive(false)
+    })
+
     return () => { cancelled = true }
-  }, [supported, vapidKey])
+  }, [saveSubscription, supported, vapidKey])
 
   const enable = async () => {
     if (busy) return
+
+    if (appleMobileNeedsInstall) {
+      onResult({
+        tone: 'error',
+        message: 'На iPhone/iPad първо добавете сайта на Home Screen: Safari → Споделяне → Add to Home Screen. После отворете приложението от иконата и включете известията.',
+      })
+      return
+    }
+
     if (!supported || !vapidKey) {
-      onResult({ tone: 'error', message: 'Push известията ще бъдат активирани след финалната VAPID настройка.' })
+      onResult({ tone: 'error', message: 'Този браузър не поддържа Web Push известия или push конфигурацията липсва.' })
       return
     }
+
     if (Notification.permission === 'denied') {
-      onResult({ tone: 'error', message: 'Известията са блокирани в настройките на браузъра за този сайт.' })
+      onResult({ tone: 'error', message: 'Известията са блокирани в системните настройки за този сайт/приложение.' })
       return
     }
+
     setBusy(true)
     try {
       const permission = Notification.permission === 'granted'
         ? 'granted'
         : await Notification.requestPermission()
+
       if (permission !== 'granted') throw new Error('Разрешението за известия не е дадено.')
 
-      await navigator.serviceWorker.register('/sw.js')
+      await navigator.serviceWorker.register('/sw.js', { scope: '/' })
       const registration = await navigator.serviceWorker.ready
       const existingSubscription = await registration.pushManager.getSubscription()
       const subscription = existingSubscription || await registration.pushManager.subscribe({
-          userVisibleOnly: true,
-          applicationServerKey: urlBase64ToUint8Array(vapidKey),
-        })
-      const json = subscription.toJSON()
-      if (!json.keys?.p256dh || !json.keys.auth) throw new Error('Браузърът не връща валиден push абонамент.')
-      const { error } = await supabase.from('push_subscriptions').upsert({
-        user_id: userId,
-        endpoint: subscription.endpoint,
-        p256dh: json.keys.p256dh,
-        auth: json.keys.auth,
-        user_agent: navigator.userAgent,
-      }, { onConflict: 'user_id,endpoint' })
-      if (error) throw error
+        userVisibleOnly: true,
+        applicationServerKey: urlBase64ToUint8Array(vapidKey),
+      })
+
+      await saveSubscription(subscription)
       setActive(true)
-      onResult({ tone: 'success', message: existingSubscription ? 'Push известията вече са активни за този браузър.' : 'Push известията са активирани за този браузър.' })
+
+      const deviceLabel = platform === 'ios'
+        ? 'iPhone'
+        : platform === 'ipados'
+          ? 'iPad'
+          : platform === 'macos'
+            ? 'Mac'
+            : 'този браузър'
+
+      onResult({
+        tone: 'success',
+        message: existingSubscription
+          ? `Push известията вече са активни за ${deviceLabel}.`
+          : `Push известията са активирани за ${deviceLabel}.`,
+      })
     } catch (error) {
       const message = error instanceof DOMException && error.name === 'AbortError'
         ? 'Service worker-ът не успя да се активира. Обновете страницата и опитайте отново.'
@@ -2888,14 +2976,26 @@ function PushButton({ userId, onResult }: { userId: string; onResult: (toast: To
     }
   }
 
+  const buttonLabel = busy
+    ? 'Активиране…'
+    : active
+      ? 'Известия активни'
+      : appleMobileNeedsInstall
+        ? 'iPhone известия'
+        : 'Известия'
+
   return (
     <button
       className={`notification-button${active ? ' active' : ''}`}
       onClick={() => void enable()}
       disabled={busy}
-      title={active ? 'Push известията са активни' : 'Активирай push известия'}
+      title={active
+        ? 'Push известията са активни'
+        : appleMobileNeedsInstall
+          ? 'Добавете сайта на Home Screen, за да активирате известия на iPhone/iPad'
+          : 'Активирай push известия'}
     >
-      {active ? '●' : '♢'}<span>{busy ? 'Активиране…' : active ? 'Известия активни' : 'Известия'}</span>
+      {active ? '●' : appleMobileNeedsInstall ? '◫' : '♢'}<span>{buttonLabel}</span>
     </button>
   )
 }
