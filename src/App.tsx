@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent } from 'react'
 import type { Session } from '@supabase/supabase-js'
 import { supabase, configurationError } from './lib/supabase'
+import { checkMicrophoneForSpeech, speechRecognitionErrorMessage } from './lib/voiceSupport'
 import ChecklistDrawer from './ChecklistDrawer'
 import NotebookDrawer from './NotebookDrawer'
 import {
@@ -75,6 +76,7 @@ type SpeechRecognitionLike = {
   start: () => void
   stop: () => void
   abort: () => void
+  onstart: (() => void) | null
   onresult: ((event: { resultIndex: number; results: ArrayLike<{ isFinal: boolean; 0: { transcript: string } }> }) => void) | null
   onerror: ((event: { error: string }) => void) | null
   onend: (() => void) | null
@@ -1390,25 +1392,48 @@ function CreateTaskModal({
   const recognitionRef = useRef<SpeechRecognitionLike | null>(null)
   const voiceBaseDescriptionRef = useRef('')
   const voiceFinalSegmentsRef = useRef<Map<number, string>>(new Map())
+  const voiceLastDescriptionRef = useRef('')
+  const voiceShouldListenRef = useRef(false)
+  const voiceStartPendingRef = useRef(false)
+  const voiceRestartTimerRef = useRef<number | null>(null)
   const personal = mode === 'personal'
   const voiceEnabled = personal && profile.id === GALINA_PROFILE_ID
 
   useEffect(() => () => {
+    voiceShouldListenRef.current = false
+    if (voiceRestartTimerRef.current !== null) window.clearTimeout(voiceRestartTimerRef.current)
     recognitionRef.current?.abort()
     recognitionRef.current = null
   }, [])
 
   const stopVoiceDictation = () => {
+    voiceShouldListenRef.current = false
+    voiceStartPendingRef.current = false
+    if (voiceRestartTimerRef.current !== null) {
+      window.clearTimeout(voiceRestartTimerRef.current)
+      voiceRestartTimerRef.current = null
+    }
     recognitionRef.current?.stop()
     setVoiceListening(false)
+    setVoiceInterim('')
   }
 
-  const startVoiceDictation = () => {
-    if (!voiceEnabled || voiceListening) return
+  const startVoiceDictation = async () => {
+    if (!voiceEnabled || voiceListening || voiceStartPendingRef.current) return
     const Recognition = getSpeechRecognitionConstructor()
 
     if (!Recognition) {
-      setVoiceMessage('Този браузър не поддържа гласово въвеждане. Използвайте Chrome или Edge.')
+      setVoiceMessage('Този браузър не поддържа гласово въвеждане. Използвайте актуален Chrome или Edge.')
+      return
+    }
+
+    voiceStartPendingRef.current = true
+    setVoiceMessage('Проверявам микрофона…')
+    const microphone = await checkMicrophoneForSpeech()
+    voiceStartPendingRef.current = false
+
+    if (!microphone.ok) {
+      setVoiceMessage(microphone.message)
       return
     }
 
@@ -1416,6 +1441,19 @@ function CreateTaskModal({
     recognition.lang = 'bg-BG'
     recognition.continuous = true
     recognition.interimResults = true
+    recognitionRef.current = recognition
+    voiceShouldListenRef.current = true
+    voiceBaseDescriptionRef.current = description.trim()
+    voiceLastDescriptionRef.current = description.trim()
+    voiceFinalSegmentsRef.current = new Map()
+    setVoiceMessage('Стартиране на диктовката…')
+    setVoiceInterim('')
+
+    recognition.onstart = () => {
+      if (!voiceShouldListenRef.current) return
+      setVoiceListening(true)
+      setVoiceMessage('')
+    }
 
     recognition.onresult = (event) => {
       const interimChunks: string[] = []
@@ -1438,41 +1476,57 @@ function CreateTaskModal({
 
       const mergedFinal = mergeSpeechChunks(finalChunks)
       const combined = [voiceBaseDescriptionRef.current, mergedFinal].filter(Boolean).join(' ')
-      setDescription(applyBulgarianVoiceFormatting(combined))
+      const formatted = applyBulgarianVoiceFormatting(combined)
+      voiceLastDescriptionRef.current = formatted
+      setDescription(formatted)
       setVoiceInterim(applyBulgarianVoiceFormatting(mergeSpeechChunks(interimChunks)))
     }
 
     recognition.onerror = (event) => {
+      const message = speechRecognitionErrorMessage(event.error)
+      voiceShouldListenRef.current = false
+      if (voiceRestartTimerRef.current !== null) {
+        window.clearTimeout(voiceRestartTimerRef.current)
+        voiceRestartTimerRef.current = null
+      }
       setVoiceListening(false)
       setVoiceInterim('')
-      if (event.error === 'not-allowed' || event.error === 'service-not-allowed') {
-        setVoiceMessage('Достъпът до микрофона е отказан. Разрешете микрофона за сайта и опитайте отново.')
-      } else if (event.error === 'no-speech') {
-        setVoiceMessage('Не беше разпозната реч. Натиснете „Диктувай“ и опитайте отново.')
-      } else {
-        setVoiceMessage('Гласовото въвеждане беше прекъснато. Опитайте отново.')
-      }
+      if (message) setVoiceMessage(message)
     }
 
     recognition.onend = () => {
-      setVoiceListening(false)
       setVoiceInterim('')
-      recognitionRef.current = null
+
+      if (!voiceShouldListenRef.current) {
+        setVoiceListening(false)
+        recognitionRef.current = null
+        voiceFinalSegmentsRef.current = new Map()
+        return
+      }
+
+      voiceBaseDescriptionRef.current = voiceLastDescriptionRef.current.trim()
       voiceFinalSegmentsRef.current = new Map()
+      voiceRestartTimerRef.current = window.setTimeout(() => {
+        voiceRestartTimerRef.current = null
+        if (!voiceShouldListenRef.current) return
+        try {
+          recognition.start()
+        } catch {
+          voiceShouldListenRef.current = false
+          recognitionRef.current = null
+          setVoiceListening(false)
+          setVoiceMessage('Диктовката беше прекъсната и не можа да се рестартира. Натиснете „Диктувай“ отново.')
+        }
+      }, 300)
     }
 
-    recognitionRef.current = recognition
-    voiceBaseDescriptionRef.current = description.trim()
-    voiceFinalSegmentsRef.current = new Map()
-    setVoiceMessage('')
-    setVoiceInterim('')
     try {
       recognition.start()
-      setVoiceListening(true)
     } catch {
+      voiceShouldListenRef.current = false
       recognitionRef.current = null
       setVoiceListening(false)
-      setVoiceMessage('Микрофонът не можа да бъде стартиран. Опитайте отново.')
+      setVoiceMessage('Микрофонът е достъпен, но разпознаването на реч не можа да бъде стартирано. Опитайте отново в Chrome или Edge.')
     }
   }
 
