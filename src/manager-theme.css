@@ -2524,3 +2524,275 @@ body,
 .manager-viewport-background .manager-wave-sheen {
   will-change: transform, opacity;
 }
+
+
+/* ======================================================================
+   LOW SPEC MODE
+   Persistent per-device rendering mode. Functionality stays intact while
+   expensive decorative rendering is reduced as aggressively as possible.
+   ====================================================================== */
+.low-spec *,
+.low-spec *::before,
+.low-spec *::after {
+  animation-duration: .001ms !important;
+  animation-delay: 0ms !important;
+  animation-iteration-count: 1 !important;
+  transition: none !important;
+  scroll-behavior: auto !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  filter: none !important;
+  text-shadow: none !important;
+  will-change: auto !important;
+}
+
+.low-spec body {
+  background: #edf2f7 !important;
+}
+
+.low-spec .manager-viewport-background,
+.low-spec .manager-login-background,
+.low-spec .manager-hero-art,
+.low-spec .manager-background-grain {
+  display: none !important;
+}
+
+.low-spec .app-shell {
+  background: #edf2f7 !important;
+}
+
+.low-spec .topbar {
+  background: #172554 !important;
+  background-image: none !important;
+  box-shadow: none !important;
+  border-bottom: 1px solid #334155 !important;
+}
+
+.low-spec .dashboard-hero {
+  background: #1e3a5f !important;
+  background-image: none !important;
+  box-shadow: none !important;
+  border-color: #365575 !important;
+}
+
+.low-spec .dashboard-hero::before,
+.low-spec .dashboard-hero::after,
+.low-spec .stat-card::before {
+  display: none !important;
+}
+
+.low-spec .dashboard-hero .secondary-button {
+  background: #294967 !important;
+  background-image: none !important;
+  box-shadow: none !important;
+}
+
+.low-spec .dashboard-hero .primary-button {
+  color: #0f2d33 !important;
+  background: #b9eee4 !important;
+  background-image: none !important;
+  box-shadow: none !important;
+}
+
+.low-spec .hero-live {
+  background: #17334f !important;
+  box-shadow: none !important;
+}
+
+.low-spec .hero-live i {
+  box-shadow: none !important;
+}
+
+.low-spec .panel,
+.low-spec .calendar-shell,
+.low-spec .stat-card,
+.low-spec .task-category-column,
+.low-spec .task-card {
+  background-image: none !important;
+  box-shadow: none !important;
+}
+
+.low-spec .panel,
+.low-spec .calendar-shell {
+  background: #ffffff !important;
+  border-color: #cbd5e1 !important;
+}
+
+.low-spec .stat-card {
+  background: #ffffff !important;
+  border-color: #cbd5e1 !important;
+}
+
+.low-spec .stat-card::after {
+  opacity: .42 !important;
+  box-shadow: none !important;
+}
+
+.low-spec .task-category-column {
+  background: #f8fafc !important;
+  border-color: #d8e0ea !important;
+}
+
+.low-spec .task-category-header {
+  background: #f1f5f9 !important;
+  background-image: none !important;
+}
+
+.low-spec .task-card {
+  background: #ffffff !important;
+  border-color: #dde4ec !important;
+}
+
+.low-spec .filters {
+  background: #f8fafc !important;
+  background-image: none !important;
+}
+
+.low-spec .filters select,
+.low-spec .search-field,
+.low-spec .detail-grid select {
+  box-shadow: none !important;
+}
+
+.low-spec .calendar-day,
+.low-spec .calendar-notebook-entry,
+.low-spec .calendar-task,
+.low-spec .calendar-system-event,
+.low-spec .calendar-recurrence-hint {
+  box-shadow: none !important;
+  background-image: none !important;
+}
+
+.low-spec .calendar-notebook-entry {
+  background: #fffaf0 !important;
+}
+
+.low-spec .calendar-normal-task:hover,
+.low-spec .calendar-notebook-entry:hover,
+.low-spec .task-card:hover,
+.low-spec .stat-card:hover,
+.low-spec button.stat-card:hover {
+  transform: none !important;
+  box-shadow: none !important;
+}
+
+.low-spec .detail-drawer,
+.low-spec .modal,
+.low-spec .modal-card,
+.low-spec .system-event-modal,
+.low-spec .notebook-book,
+.low-spec .checklist-drawer,
+.low-spec .message-mailbox {
+  box-shadow: none !important;
+}
+
+.low-spec .modal-backdrop,
+.low-spec .system-event-modal-backdrop,
+.low-spec .notebook-backdrop,
+.low-spec .checklist-backdrop {
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+.low-spec .login-page.manager-login {
+  grid-template-columns: 1fr !important;
+  place-items: center;
+  background: #eef2f7 !important;
+  background-image: none !important;
+}
+
+.low-spec .manager-login-hero {
+  display: none !important;
+}
+
+.low-spec .manager-login-card {
+  align-self: center;
+  justify-self: center;
+  background: #ffffff !important;
+  background-image: none !important;
+  border-color: #cbd5e1 !important;
+  box-shadow: none !important;
+}
+
+.low-spec .manager-login-card .primary-button {
+  background: #315fcb !important;
+  background-image: none !important;
+  box-shadow: none !important;
+}
+
+.low-spec .brand-mark,
+.low-spec .avatar,
+.low-spec .stat-icon,
+.low-spec .priority-badge,
+.low-spec .status-badge,
+.low-spec .approval-badge {
+  box-shadow: none !important;
+}
+
+.low-spec .task-board-shell,
+.low-spec .calendar-scroll,
+.low-spec .notebook-pages,
+.low-spec .checklist-content {
+  overscroll-behavior: contain;
+}
+
+.low-spec .task-category-column,
+.low-spec .task-card,
+.low-spec .calendar-day {
+  contain: layout paint style;
+}
+
+.low-spec-toggle.active {
+  color: #fde68a !important;
+  border-color: rgba(253,230,138,.34) !important;
+  background: rgba(245,158,11,.14) !important;
+}
+
+.login-low-spec-toggle {
+  position: fixed;
+  top: 18px;
+  right: 18px;
+  z-index: 20;
+  min-height: 38px;
+  padding: 0 13px;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  border: 1px solid rgba(148,163,184,.48);
+  border-radius: 10px;
+  color: #334155;
+  background: rgba(255,255,255,.92);
+  font: inherit;
+  font-size: 11px;
+  font-weight: 800;
+  cursor: pointer;
+  box-shadow: 0 5px 18px rgba(30,41,59,.08);
+}
+
+.login-low-spec-toggle:hover {
+  background: #fff;
+  border-color: #94a3b8;
+}
+
+.login-low-spec-toggle.active {
+  color: #78350f;
+  background: #fef3c7;
+  border-color: #f4cf73;
+  box-shadow: none;
+}
+
+.low-spec .login-low-spec-toggle {
+  background: #fef3c7 !important;
+  border-color: #f4cf73 !important;
+  box-shadow: none !important;
+}
+
+@media (max-width: 760px) {
+  .login-low-spec-toggle {
+    top: 12px;
+    right: 12px;
+    min-height: 34px;
+    padding-inline: 10px;
+    font-size: 10px;
+  }
+}
