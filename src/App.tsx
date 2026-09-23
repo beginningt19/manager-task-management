@@ -1254,7 +1254,11 @@ function Login() {
 
   return (
     <main className="login-page manager-login">
-      <AmbientBackground className="login-ambient" />
+      <div className="manager-login-background" aria-hidden="true">
+        <span className="manager-login-glow manager-login-glow-a" />
+        <span className="manager-login-glow manager-login-glow-b" />
+        <span className="manager-login-lines" />
+      </div>
       <aside className="login-accent manager-login-hero" aria-hidden="true">
         <div className="executive-showcase">
           <div className="executive-kicker"><span /> MANAGER CONTROL</div>
