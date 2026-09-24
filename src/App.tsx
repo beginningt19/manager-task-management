@@ -198,9 +198,12 @@ const taskCategoryMeta: Record<TaskCategory, { label: string; tone: string; icon
 
 const getTaskCategory = (task: TaskView): TaskCategory => {
   if (task.status === 'completed') return 'completed'
+  // Approval is an actionable workflow state and must win over "overdue".
+  // Otherwise an overdue task awaiting a decision disappears from the
+  // governor's "За одобрение" queue.
+  if (task.status === 'waiting_approval') return 'approval'
   if (isOverdue(task.due_at, task.status)) return 'overdue'
   if (task.status === 'new') return 'open'
-  if (task.status === 'waiting_approval') return 'approval'
   return 'active'
 }
 
@@ -2602,7 +2605,8 @@ function TaskDetail({
 
   const finishTask = async () => {
     if (!canWork || busy) return
-    const approvedForCompletion = !task.approval_required || approvals.some((approval) => approval.status === 'approved')
+    const latestApproval = approvals[0] || null
+  const approvedForCompletion = !task.approval_required || latestApproval?.status === 'approved'
     if (!approvedForCompletion) {
       onResult({ tone: 'error', message: 'Задачата изисква одобрение преди да бъде отбелязана като завършена.' })
       return
@@ -2831,34 +2835,52 @@ function TaskDetail({
 
   const requestApproval = async (event: FormEvent) => {
     event.preventDefault()
+    if (busy) return
     setBusy(true)
-    const { error } = await supabase.from('approvals').insert({
-      task_id: task.id,
-      requested_by: currentUser.id,
-      request_note: approvalNote.trim() || null,
-    })
-    if (!error) await supabase.from('tasks').update({ status: 'waiting_approval' }).eq('id', task.id)
-    setBusy(false)
-    if (error) return onResult({ tone: 'error', message: error.message })
-    setApprovalNote('')
-    await Promise.all([loadDetail(), onChanged()])
-    onResult({ tone: 'success', message: 'Заявката за одобрение е изпратена.' })
+
+    try {
+      // The database RPC inserts the approval request and moves the task to
+      // waiting_approval in one transaction, so the two records can never
+      // drift apart.
+      const { error } = await supabase.rpc('request_task_approval', {
+        p_task_id: task.id,
+        p_request_note: approvalNote.trim() || null,
+      })
+      if (error) throw error
+
+      setApprovalNote('')
+      await Promise.all([loadDetail(), onChanged()])
+      onResult({ tone: 'success', message: 'Заявката за одобрение е изпратена към Управителя.' })
+    } catch (error) {
+      onResult({ tone: 'error', message: errorText(error) })
+    } finally {
+      setBusy(false)
+    }
   }
 
   const decideApproval = async (approval: Approval, status: Exclude<ApprovalStatus, 'pending'>) => {
+    if (busy) return
     const note = window.prompt('Бележка към решението (по желание):')
     if (note === null) return
-    const { error } = await supabase.from('approvals').update({
-      status,
-      reviewer_id: currentUser.id,
-      decision_note: note.trim() || null,
-      decided_at: new Date().toISOString(),
-    }).eq('id', approval.id)
-    if (error) return onResult({ tone: 'error', message: error.message })
-    if (status === 'approved') await supabase.from('tasks').update({ status: 'in_progress' }).eq('id', task.id)
-    if (status === 'changes_requested') await supabase.from('tasks').update({ status: 'in_progress' }).eq('id', task.id)
-    await Promise.all([loadDetail(), onChanged()])
-    onResult({ tone: 'success', message: `Решението е записано: ${approvalLabels[status]}.` })
+
+    setBusy(true)
+    try {
+      // Only the governor can execute this RPC. The decision and task status
+      // transition happen atomically in the database.
+      const { error } = await supabase.rpc('decide_task_approval', {
+        p_approval_id: approval.id,
+        p_status: status,
+        p_decision_note: note.trim() || null,
+      })
+      if (error) throw error
+
+      await Promise.all([loadDetail(), onChanged()])
+      onResult({ tone: 'success', message: `Решението е записано: ${approvalLabels[status]}.` })
+    } catch (error) {
+      onResult({ tone: 'error', message: errorText(error) })
+    } finally {
+      setBusy(false)
+    }
   }
 
   const taskFiles = files.filter((file) => file.parent_type === 'task')
@@ -3045,7 +3067,7 @@ function TaskDetail({
                     <div><span className={`approval-state ${approval.status}`}>{approvalLabels[approval.status]}</span><time>{formatDateTime(approval.requested_at)}</time></div>
                     <p><strong>{byId.get(approval.requested_by)?.display_name || 'Потребител'}</strong>{approval.request_note ? `: ${approval.request_note}` : ' изпрати задача за одобрение.'}</p>
                     {approval.decision_note && <blockquote>{approval.decision_note}</blockquote>}
-                    {approval.status === 'pending' && currentUser.role === 'manager' && <div className="approval-actions"><button onClick={() => void decideApproval(approval, 'changes_requested')}>Върни за промени</button><button className="danger-soft" onClick={() => void decideApproval(approval, 'rejected')}>Отхвърли</button><button className="success-button" onClick={() => void decideApproval(approval, 'approved')}>Одобри</button></div>}
+                    {approval.status === 'pending' && currentUser.display_role === 'Управител' && <div className="approval-actions"><button disabled={busy} onClick={() => void decideApproval(approval, 'changes_requested')}>Върни за промени</button><button className="danger-soft" disabled={busy} onClick={() => void decideApproval(approval, 'rejected')}>Отхвърли</button><button className="success-button" disabled={busy} onClick={() => void decideApproval(approval, 'approved')}>Одобри</button></div>}
                   </article>
                 ))}
                 {approvals.length === 0 && <EmptySmall text={task.status === 'new' ? 'Одобрение може да се заяви след приемане на задачата.' : task.approval_required ? 'Все още няма заявка за одобрение.' : 'За тази задача не е изискано одобрение.'} />}
