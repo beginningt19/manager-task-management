@@ -187,6 +187,14 @@ const mergeSpeechChunks = (chunks: string[]) => {
   return merged.join(' ')
 }
 
+const taskCategoryLabels: Record<TaskCategory, string> = {
+  open: 'Отворени',
+  active: 'В процес',
+  approval: 'За одобрение',
+  overdue: 'Просрочени',
+  completed: 'Завършени',
+}
+
 const getTaskCategory = (task: TaskView): TaskCategory => {
   if (task.status === 'completed') return 'completed'
   // Approval is an actionable workflow state and must win over "overdue".
@@ -317,6 +325,7 @@ function App() {
   const [priorityFilter, setPriorityFilter] = useState<'all' | Priority>('all')
   const [assigneeFilter, setAssigneeFilter] = useState('all')
   const [overdueOnly, setOverdueOnly] = useState(false)
+  const [categoryFocus, setCategoryFocus] = useState<TaskCategory | null>(null)
   const [managerVisibilityMode, setManagerVisibilityMode] = useState<ManagerVisibilityMode>('all')
   const [visibilityBusy, setVisibilityBusy] = useState(false)
   const [connectionEpoch, setConnectionEpoch] = useState(0)
@@ -715,7 +724,13 @@ function App() {
     return next
   }, [tasks])
 
-  const visibleListCount = filteredTasks.length
+  const visibleTasks = useMemo(
+    () => categoryFocus
+      ? filteredTasks.filter((task) => getTaskCategory(task) === categoryFocus)
+      : filteredTasks,
+    [categoryFocus, filteredTasks],
+  )
+  const visibleListCount = visibleTasks.length
   const canControlManagerVisibility = Boolean(profile && (profile.role === 'admin' || profile.display_role === 'Управител'))
   const canCreateTeamTasks = profile?.display_role === 'Управител'
 
@@ -773,6 +788,17 @@ function App() {
         ? 'Записите от личния тефтер вече се показват в календара.'
         : 'Записите от личния тефтер са скрити от календара.',
     })
+  }
+
+  const focusTaskCategory = (category: TaskCategory) => {
+    setDashboardView('list')
+    setCalendarFullView(false)
+    setStatusFilter('all')
+    setOverdueOnly(false)
+    setCategoryFocus((current) => current === category ? null : category)
+    window.setTimeout(() => {
+      document.querySelector('.task-panel')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    }, 0)
   }
 
   const openCreate = (mode: CreateMode, dueDate: Date | null = null) => {
@@ -873,12 +899,12 @@ function App() {
           )}
         </section>
 
-        <section className="stat-grid" aria-label="Обобщение на задачите">
-          <StatCard label="Отворени" value={counts.open} tone="teal" icon="□" />
-          <StatCard label="В процес" value={counts.active} tone="blue" icon="↻" />
-          <StatCard label="За одобрение" value={counts.approval} tone="amber" icon="✓" />
-          <StatCard label="Просрочени" value={counts.overdue} tone="red" icon="!" />
-          <StatCard label="Завършени" value={counts.completed} tone="green" icon="✓" />
+        <section className="stat-grid" aria-label="Филтри по състояние на задачите">
+          <StatCard label="Отворени" value={counts.open} tone="teal" icon="□" active={categoryFocus === 'open'} onClick={() => focusTaskCategory('open')} />
+          <StatCard label="В процес" value={counts.active} tone="blue" icon="↻" active={categoryFocus === 'active'} onClick={() => focusTaskCategory('active')} />
+          <StatCard label="За одобрение" value={counts.approval} tone="amber" icon="✓" active={categoryFocus === 'approval'} onClick={() => focusTaskCategory('approval')} />
+          <StatCard label="Просрочени" value={counts.overdue} tone="red" icon="!" active={categoryFocus === 'overdue'} onClick={() => focusTaskCategory('overdue')} />
+          <StatCard label="Завършени" value={counts.completed} tone="green" icon="✓" active={categoryFocus === 'completed'} onClick={() => focusTaskCategory('completed')} />
         </section>
 
         <section className={`panel task-panel${dashboardView === 'calendar' && calendarFullView ? ' calendar-full-panel' : ''}`}>
@@ -887,7 +913,7 @@ function App() {
               <span aria-hidden="true">⌕</span>
               <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Търси в описанието…" />
             </label>
-            <select value={statusFilter} onChange={(event) => setStatusFilter(event.target.value as 'all' | TaskStatus)} aria-label="Статус">
+            <select value={statusFilter} onChange={(event) => { setStatusFilter(event.target.value as 'all' | TaskStatus); setCategoryFocus(null) }} aria-label="Статус">
               <option value="all">Всички статуси</option>
               {statuses.filter((status) => status !== 'completed').map((status) => <option key={status} value={status}>{statusLabels[status]}</option>)}
             </select>
@@ -902,14 +928,15 @@ function App() {
               ))}
             </select>
             <label className="check-filter">
-              <input type="checkbox" checked={overdueOnly} onChange={(event) => setOverdueOnly(event.target.checked)} />
+              <input type="checkbox" checked={overdueOnly} onChange={(event) => { setOverdueOnly(event.target.checked); setCategoryFocus(null) }} />
               Само просрочени
             </label>
           </div>
 
           <div className="panel-heading">
-            <h2>Задачи <span>{visibleListCount}</span></h2>
+            <h2>{categoryFocus ? taskCategoryLabels[categoryFocus] : 'Задачи'} <span>{visibleListCount}</span></h2>
             <div className="panel-actions">
+              {categoryFocus && <button className="text-button" onClick={() => setCategoryFocus(null)}>Всички задачи</button>}
               <div className="view-switch" aria-label="Изглед на задачите">
                 <button className={dashboardView === 'list' ? 'active' : ''} onClick={() => { setDashboardView('list'); setCalendarFullView(false) }} aria-pressed={dashboardView === 'list'}>Списък</button>
               </div>
@@ -921,7 +948,7 @@ function App() {
             <InlineLoader />
           ) : dashboardView === 'calendar' ? (
             <CalendarView
-              tasks={filteredTasks}
+              tasks={visibleTasks}
               notebookEntries={notebookCalendarEntries}
               notebookEnabled={notebookCalendarEnabled}
               notebookBusy={notebookCalendarBusy}
@@ -945,7 +972,7 @@ function App() {
             </div>
           ) : (
             <div className="task-list">
-              {filteredTasks.map((task) => (
+              {visibleTasks.map((task) => (
                 <TaskCard key={task.id} task={task} onOpen={() => setSelectedTaskId(task.id)} />
               ))}
             </div>
@@ -1474,17 +1501,27 @@ function StatCard({
   value,
   tone,
   icon,
+  active,
+  onClick,
 }: {
   label: string
   value: number
   tone: string
   icon: string
+  active: boolean
+  onClick: () => void
 }) {
   return (
-    <div className={`stat-card ${tone}`}>
+    <button
+      type="button"
+      className={`stat-card ${tone}${active ? ' active' : ''}`}
+      onClick={onClick}
+      aria-pressed={active}
+      title={active ? `Покажи всички задачи` : `Покажи: ${label}`}
+    >
       <div><span className="stat-icon">{icon}</span><p>{label}</p></div>
       <strong>{value}</strong>
-    </div>
+    </button>
   )
 }
 
