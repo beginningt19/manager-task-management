@@ -2595,18 +2595,45 @@ function TaskDetail({
   }
 
   const changeStatus = async (status: TaskStatus) => {
-    if (status === 'new' || status === 'completed') return
+    if (status === 'new' || status === 'completed' || busy) return
+
+    if (task.status === 'waiting_approval' && status !== 'waiting_approval') {
+      onResult({ tone: 'error', message: 'Задачата чака решение от Управителя. Статусът ще се промени автоматично след решението.' })
+      return
+    }
+
+    if (status === 'waiting_approval') {
+      if (!task.approval_required) {
+        onResult({ tone: 'error', message: 'За тази задача не е включено изискване за одобрение.' })
+        return
+      }
+
+      setBusy(true)
+      try {
+        const { error } = await supabase.rpc('request_task_approval', {
+          p_task_id: task.id,
+          p_request_note: null,
+        })
+        if (error) throw error
+
+        await Promise.all([onChanged(), loadDetail()])
+        onResult({ tone: 'success', message: 'Задачата е изпратена за одобрение към Управителя.' })
+      } catch (error) {
+        onResult({ tone: 'error', message: errorText(error) })
+      } finally {
+        setBusy(false)
+      }
+      return
+    }
+
     const { error } = await supabase.from('tasks').update({ status }).eq('id', task.id)
     if (error) return onResult({ tone: 'error', message: error.message })
-    await onChanged()
-    await loadDetail()
+    await Promise.all([onChanged(), loadDetail()])
     onResult({ tone: 'success', message: `Статусът е променен на „${statusLabels[status]}“.` })
   }
 
   const finishTask = async () => {
     if (!canWork || busy) return
-    const latestApproval = approvals[0] || null
-  const approvedForCompletion = !task.approval_required || latestApproval?.status === 'approved'
     if (!approvedForCompletion) {
       onResult({ tone: 'error', message: 'Задачата изисква одобрение преди да бъде отбелязана като завършена.' })
       return
@@ -2890,7 +2917,8 @@ function TaskDetail({
     updateFileMap.set(file.progress_update_id!, [...current, file])
   })
   const canStopRecurrence = Boolean(task.recurrence_id && recurrenceActive && (currentUser.role === 'manager' || task.created_by === currentUser.id))
-  const approvedForCompletion = !task.approval_required || approvals.some((approval) => approval.status === 'approved')
+  const latestApproval = approvals[0] || null
+  const approvedForCompletion = !task.approval_required || latestApproval?.status === 'approved'
 
   return (
     <div className="drawer-backdrop" role="presentation" onMouseDown={(event) => event.target === event.currentTarget && onClose()}>
@@ -2974,9 +3002,17 @@ function TaskDetail({
                     </button>
                   )}
                 </div>
+              ) : task.status === 'waiting_approval' ? (
+                <strong style={{ color: '#b7791f' }}>За одобрение · чака решение от Управителя</strong>
               ) : canParticipate ? (
-                <select value={task.status} onChange={(event) => void changeStatus(event.target.value as TaskStatus)}>
-                  {statuses.filter((status) => status !== 'new' && status !== 'completed').map((status) => <option key={status} value={status}>{statusLabels[status]}</option>)}
+                <select value={task.status} onChange={(event) => void changeStatus(event.target.value as TaskStatus)} disabled={busy}>
+                  {statuses
+                    .filter((status) =>
+                      status !== 'new'
+                      && status !== 'completed'
+                      && (status !== 'waiting_approval' || task.approval_required)
+                    )
+                    .map((status) => <option key={status} value={status}>{statusLabels[status]}</option>)}
                 </select>
               ) : <strong>{statusLabels[task.status]}</strong>}
             </div>
