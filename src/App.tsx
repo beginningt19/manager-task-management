@@ -42,6 +42,7 @@ type ManagerVisibilityMode = 'all' | 'own'
 type DashboardView = 'list' | 'calendar'
 type TaskCategory = 'open' | 'active' | 'approval' | 'overdue' | 'completed'
 type RecurrenceFrequency = 'daily' | 'weekly' | 'monthly'
+type TaskScheduleMode = 'deadline' | 'interval'
 type TaskReminder = {
   id: string
   task_id: string
@@ -93,6 +94,7 @@ const bulgarianMonths = [
 ]
 
 const bulgarianWeekdays = ['Понеделник', 'Вторник', 'Сряда', 'Четвъртък', 'Петък', 'Събота', 'Неделя']
+const bulgarianWeekdayShort = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Нд']
 const recurrenceLeadLabel = (days: number) => days === 1 ? '1 ден' : `${days} дни`
 
 type SpeechRecognitionLike = {
@@ -1671,6 +1673,13 @@ function BulgarianDateTimeField({
   const hour = Number.isFinite(rawHour) ? rawHour : 17
   const minute = Number.isFinite(rawMinute) ? rawMinute : 0
   const daysInMonth = new Date(year, month, 0).getDate()
+  const firstDayOffset = (new Date(year, month - 1, 1).getDay() + 6) % 7
+  const selectedDate = new Date(year, month - 1, day)
+  const selectedWeekday = new Intl.DateTimeFormat('bg-BG', { weekday: 'long' }).format(selectedDate)
+  const calendarCells = [
+    ...Array.from({ length: firstDayOffset }, () => null as number | null),
+    ...Array.from({ length: daysInMonth }, (_, index) => index + 1),
+  ]
   const firstYear = Math.min(now.getFullYear() - 1, year)
   const lastYear = Math.max(now.getFullYear() + 10, year)
   const years = Array.from({ length: lastYear - firstYear + 1 }, (_, index) => firstYear + index)
@@ -1724,9 +1733,34 @@ function BulgarianDateTimeField({
           </select>
         </label>
       </div>
+      <div className="bulgarian-mini-calendar" aria-label="Мини календар за избраната дата">
+        <div className="bulgarian-mini-calendar-title">
+          <strong>{bulgarianMonths[month - 1]} {year}</strong>
+          <span>{selectedWeekday}</span>
+        </div>
+        <div className="bulgarian-mini-calendar-grid">
+          {bulgarianWeekdayShort.map((weekday) => <small key={weekday}>{weekday}</small>)}
+          {calendarCells.map((calendarDay, index) => calendarDay === null
+            ? <i key={`empty-${index}`} />
+            : (
+              <button
+                key={calendarDay}
+                type="button"
+                className={calendarDay === day ? 'active' : ''}
+                onClick={() => update({ day: calendarDay })}
+                aria-label={`${calendarDay} ${bulgarianMonths[month - 1]} ${year}`}
+              >
+                {calendarDay}
+              </button>
+            ))}
+        </div>
+      </div>
       <div className="bulgarian-datetime-preview">
         <span>◷</span>
-        <div><small>{previewLabel}</small><strong>{String(day).padStart(2, '0')}.{String(month).padStart(2, '0')}.{year} г. · {String(hour).padStart(2, '0')}:{String(minute).padStart(2, '0')} ч.</strong></div>
+        <div>
+          <small>{previewLabel}</small>
+          <strong>{selectedWeekday} · {String(day).padStart(2, '0')}.{String(month).padStart(2, '0')}.{year} г. · {String(hour).padStart(2, '0')}:{String(minute).padStart(2, '0')} ч.</strong>
+        </div>
       </div>
     </fieldset>
   )
@@ -1756,7 +1790,14 @@ function CreateTaskModal({
   const initialSchedule = initialDueDate || tomorrow
   const initialWeekday = initialSchedule.getDay() === 0 ? 7 : initialSchedule.getDay()
   const [description, setDescription] = useState('')
+  const [scheduleMode, setScheduleMode] = useState<TaskScheduleMode>('deadline')
   const [dueAt, setDueAt] = useState(dateTimeLocalValue(initialSchedule))
+  const [startAt, setStartAt] = useState(() => {
+    const start = new Date(initialSchedule)
+    start.setHours(start.getHours() - 1)
+    return dateTimeLocalValue(start)
+  })
+  const [endAt, setEndAt] = useState(dateTimeLocalValue(initialSchedule))
   const [priority, setPriority] = useState<Priority>('normal')
   const [materials, setMaterials] = useState('')
   const [approvalRequired, setApprovalRequired] = useState(false)
@@ -1956,8 +1997,19 @@ function CreateTaskModal({
       onError('Изберете между един и трима изпълнители.')
       return
     }
+
+    const effectiveDueAt = scheduleMode === 'interval' && !recurring ? endAt : dueAt
+    if (scheduleMode === 'interval' && !recurring) {
+      const start = new Date(startAt)
+      const end = new Date(endAt)
+      if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime()) || end <= start) {
+        onError('Крайният момент трябва да бъде след началния.')
+        return
+      }
+    }
+
     if (reminderEnabled && !recurring) {
-      const reminderError = validateTaskReminder(remindAt, dueAt)
+      const reminderError = validateTaskReminder(remindAt, effectiveDueAt)
       if (reminderError) {
         onError(reminderError)
         return
@@ -2021,7 +2073,7 @@ function CreateTaskModal({
 
     const { data, error } = await supabase.rpc('create_task_with_assignees', {
       p_description: description.trim(),
-      p_due_at: new Date(dueAt).toISOString(),
+      p_due_at: new Date(effectiveDueAt).toISOString(),
       p_priority: priority,
       p_required_materials: materials.trim() || null,
       p_approval_required: approvalRequired,
@@ -2037,6 +2089,18 @@ function CreateTaskModal({
 
     const taskId = data as string
     try {
+      if (scheduleMode === 'interval') {
+        const { error: intervalError } = await supabase
+          .from('tasks')
+          .update({
+            starts_at: new Date(startAt).toISOString(),
+            ends_at: new Date(endAt).toISOString(),
+          })
+          .eq('id', taskId)
+          .eq('created_by', profile.id)
+        if (intervalError) throw new Error(`Интервалът не беше записан: ${intervalError.message}`)
+      }
+
       for (const file of attachments) await uploadNewTaskFile(taskId, file)
       if (reminderEnabled) {
         const { error: reminderError } = await supabase.from('task_reminders').insert({
@@ -2086,22 +2150,59 @@ function CreateTaskModal({
           )}
           {voiceEnabled && voiceMessage && <span className="voice-help-message">{voiceMessage}</span>}
         </label>
-        <div className="task-scheduling-grid">
-          <BulgarianDateTimeField
-            value={dueAt}
-            onChange={setDueAt}
-            legend={recurring ? 'Първи срок' : 'Краен срок'}
-            previewLabel={recurring ? 'Първата задача се създава веднага с този срок' : 'Точен срок за България'}
-          />
-          <label>Приоритет<select value={priority} onChange={(event) => setPriority(event.target.value as Priority)}>{priorities.map((item) => <option key={item} value={item}>{priorityLabels[item]}</option>)}</select></label>
-        </div>
+        <fieldset className="task-schedule-mode">
+          <legend>Кога се случва задачата</legend>
+          <div className="task-schedule-mode-header">
+            <div className="view-switch" aria-label="Режим на дата и час">
+              <button
+                type="button"
+                className={scheduleMode === 'deadline' ? 'active' : ''}
+                onClick={() => setScheduleMode('deadline')}
+                aria-pressed={scheduleMode === 'deadline'}
+              >
+                Избери краен срок
+              </button>
+              <button
+                type="button"
+                className={scheduleMode === 'interval' ? 'active' : ''}
+                onClick={() => setScheduleMode('interval')}
+                aria-pressed={scheduleMode === 'interval'}
+                disabled={recurring}
+                title={recurring ? 'Повтарящите се задачи използват краен срок.' : undefined}
+              >
+                Избери начало и край
+              </button>
+            </div>
+            <small>
+              {scheduleMode === 'interval' && !recurring
+                ? 'Подходящо за срещи, огледи и събития с реална продължителност.'
+                : 'Задачата има краен срок, без фиксиран времеви интервал.'}
+            </small>
+          </div>
+
+          {scheduleMode === 'interval' && !recurring ? (
+            <div className="task-schedule-range-grid">
+              <BulgarianDateTimeField value={startAt} onChange={setStartAt} legend="Начало" previewLabel="Начало на събитието" />
+              <BulgarianDateTimeField value={endAt} onChange={setEndAt} legend="Край" previewLabel="Край на събитието" />
+            </div>
+          ) : (
+            <BulgarianDateTimeField
+              value={dueAt}
+              onChange={setDueAt}
+              legend={recurring ? 'Първи срок' : 'Краен срок'}
+              previewLabel={recurring ? 'Първата задача се създава веднага с този срок' : 'Точен краен срок за България'}
+            />
+          )}
+        </fieldset>
+
+        <label>Приоритет<select value={priority} onChange={(event) => setPriority(event.target.value as Priority)}>{priorities.map((item) => <option key={item} value={item}>{priorityLabels[item]}</option>)}</select></label>
 
         <fieldset style={{ padding: 14, border: '1px solid #dbe7f6', borderRadius: 14, background: '#f8faff' }}>
           <legend style={{ padding: '0 6px', fontWeight: 750 }}>Повторение на задачата</legend>
           <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
             <div className="view-switch" aria-label="Повторение на задачата">
               <button type="button" className={!recurring ? 'active' : ''} onClick={() => setRecurring(false)} aria-pressed={!recurring}>Не</button>
-              <button type="button" className={recurring ? 'active' : ''} onClick={() => setRecurring(true)} aria-pressed={recurring}>Да</button>
+              <button type="button" className={recurring ? 'active' : ''} onClick={() => { setRecurring(true); setScheduleMode('deadline') }} aria-pressed={recurring}>Да</button>
             </div>
             <span style={{ color: '#71809b', fontSize: 12 }}>{recurring ? recurrenceDescription : 'Задачата ще бъде еднократна.'}</span>
           </div>
