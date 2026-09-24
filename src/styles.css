@@ -1551,3 +1551,338 @@ button.stat-card.green.active { border-color: rgba(22,128,111,.45); box-shadow: 
     grid-template-columns: 1fr;
   }
 }
+
+
+/* ======================================================================
+   WIDE CREATE-TASK WORKSPACE
+   Gives start/end calendars enough room and improves small-control legibility.
+   Scoped only to task creation so other dialogs keep their compact size.
+   ====================================================================== */
+.task-create-modal {
+  width: min(1180px, calc(100vw - 40px));
+  max-height: calc(100dvh - 24px);
+  border-radius: 22px;
+  overflow-x: hidden;
+  box-shadow:
+    0 34px 110px rgba(7,35,32,.30),
+    0 0 0 1px rgba(255,255,255,.78);
+}
+
+.task-create-modal > header {
+  position: sticky;
+  top: 0;
+  z-index: 12;
+  min-height: 72px;
+  padding: 0 30px;
+  background: rgba(255,255,255,.96);
+  backdrop-filter: blur(14px) saturate(130%);
+  box-shadow: 0 1px 0 rgba(220,229,227,.9);
+}
+
+.task-create-modal > header h2 {
+  font-size: 22px;
+  letter-spacing: -.025em;
+}
+
+.task-create-modal .modal-form {
+  padding: 28px 30px 32px;
+  gap: 21px;
+}
+
+.task-create-modal .stack-form > label:not(.switch-row),
+.task-create-modal .stack-form legend {
+  color: #43565d;
+  font-family: Inter, Aptos, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-size: 12.5px;
+  font-weight: 750;
+  letter-spacing: .005em;
+}
+
+.task-create-modal .stack-form legend small,
+.task-create-modal .muted,
+.task-create-modal .selected-files {
+  font-size: 11.5px;
+  line-height: 1.45;
+}
+
+.task-create-modal textarea {
+  line-height: 1.52;
+}
+
+.task-create-modal .voice-description-field textarea {
+  min-height: 112px;
+}
+
+.task-create-modal .task-schedule-mode {
+  padding: 18px 20px 20px;
+  border-color: #cfdfec;
+  border-radius: 17px;
+  background:
+    radial-gradient(circle at 4% 0%, rgba(15,118,110,.045), transparent 26%),
+    linear-gradient(145deg, #fbfdff, #f7fafc);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.92);
+}
+
+.task-create-modal .task-schedule-mode > legend {
+  font-size: 14px;
+  letter-spacing: -.01em;
+}
+
+.task-create-modal .task-schedule-mode-header {
+  margin-bottom: 16px;
+  gap: 14px;
+}
+
+.task-create-modal .task-schedule-mode-header > small {
+  color: #697b91;
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.task-create-modal .view-switch {
+  padding: 4px;
+  border-radius: 11px;
+}
+
+.task-create-modal .view-switch button {
+  min-height: 36px;
+  padding: 0 14px;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 750;
+  letter-spacing: .005em;
+}
+
+.task-create-modal .task-schedule-range-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 18px;
+  align-items: start;
+}
+
+.task-create-modal .task-schedule-range-grid > .bulgarian-datetime,
+.task-create-modal .bulgarian-datetime {
+  min-width: 0;
+  overflow: hidden;
+}
+
+.task-create-modal .stack-form .bulgarian-datetime {
+  padding: 16px 17px 17px;
+  border-radius: 15px;
+  background:
+    linear-gradient(145deg, rgba(242,249,247,.98), rgba(247,250,253,.98));
+}
+
+.task-create-modal .stack-form .bulgarian-datetime > legend {
+  font-size: 13px;
+}
+
+.task-create-modal .bulgarian-datetime > legend small {
+  font-size: 10.5px;
+}
+
+.task-create-modal .bulgarian-datetime-controls {
+  grid-template-columns: 56px minmax(92px, 1fr) 82px 12px 60px 8px 60px;
+  gap: 8px;
+}
+
+.task-create-modal .bulgarian-datetime-controls label > span {
+  color: #60747a;
+  font-size: 10.5px;
+  font-weight: 800;
+}
+
+.task-create-modal .bulgarian-datetime-controls select {
+  min-width: 0;
+  min-height: 40px;
+  padding-inline: 7px;
+  border-radius: 9px;
+  font-size: 12.5px;
+}
+
+.task-create-modal .datetime-at,
+.task-create-modal .datetime-separator {
+  height: 40px;
+}
+
+.task-create-modal .bulgarian-mini-calendar {
+  margin-top: 12px;
+  padding: 11px;
+  border-radius: 12px;
+  background: rgba(255,255,255,.88);
+  box-shadow: 0 5px 18px rgba(34,63,72,.035);
+}
+
+.task-create-modal .bulgarian-mini-calendar-title {
+  margin-bottom: 9px;
+}
+
+.task-create-modal .bulgarian-mini-calendar-title strong {
+  font-size: 12px;
+  letter-spacing: -.01em;
+}
+
+.task-create-modal .bulgarian-mini-calendar-title span {
+  font-size: 10px;
+  font-weight: 800;
+}
+
+.task-create-modal .bulgarian-mini-calendar-grid {
+  gap: 4px;
+}
+
+.task-create-modal .bulgarian-mini-calendar-grid > small,
+.task-create-modal .bulgarian-mini-calendar-grid > i,
+.task-create-modal .bulgarian-mini-calendar-grid > button {
+  min-height: 29px;
+}
+
+.task-create-modal .bulgarian-mini-calendar-grid > small {
+  font-size: 9px;
+}
+
+.task-create-modal .bulgarian-mini-calendar-grid > button {
+  border-radius: 8px;
+  font-size: 10.5px;
+}
+
+.task-create-modal .bulgarian-datetime-preview {
+  min-height: 56px;
+  margin-top: 12px;
+  padding: 9px 11px;
+  border-radius: 11px;
+}
+
+.task-create-modal .bulgarian-datetime-preview small {
+  font-size: 9.5px;
+}
+
+.task-create-modal .bulgarian-datetime-preview strong {
+  font-size: 12.5px;
+  line-height: 1.35;
+}
+
+.task-create-modal .people-picker {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 9px;
+}
+
+.task-create-modal .people-picker label {
+  min-height: 58px;
+  padding: 9px 10px;
+  border-radius: 11px;
+  font-size: 12.5px;
+}
+
+.task-create-modal .personal-assignee {
+  min-height: 62px;
+  padding: 10px 13px;
+  border-radius: 12px;
+}
+
+.task-create-modal .switch-row {
+  font-size: 12.5px;
+}
+
+.task-create-modal .upload-drop {
+  min-height: 48px;
+  font-size: 12.5px;
+}
+
+.task-create-modal .modal-actions {
+  position: sticky;
+  bottom: -32px;
+  z-index: 8;
+  margin: 4px -30px -32px;
+  padding: 16px 30px 18px;
+  background: linear-gradient(180deg, rgba(255,255,255,.78), rgba(255,255,255,.98) 28%);
+  border-top: 1px solid rgba(220,229,227,.82);
+  backdrop-filter: blur(12px);
+}
+
+.task-create-modal .modal-actions button {
+  min-width: 126px;
+}
+
+@media (max-width: 1020px) {
+  .task-create-modal {
+    width: min(820px, calc(100vw - 24px));
+  }
+
+  .task-create-modal .task-schedule-range-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .task-create-modal .people-picker {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 720px) {
+  .task-create-modal {
+    width: calc(100vw - 16px);
+    max-height: calc(100dvh - 16px);
+    border-radius: 17px;
+  }
+
+  .task-create-modal > header {
+    min-height: 62px;
+    padding: 0 17px;
+  }
+
+  .task-create-modal > header h2 {
+    font-size: 19px;
+  }
+
+  .task-create-modal .modal-form {
+    padding: 18px 16px 24px;
+    gap: 17px;
+  }
+
+  .task-create-modal .task-schedule-mode {
+    padding: 15px 12px 16px;
+  }
+
+  .task-create-modal .task-schedule-mode-header {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .task-create-modal .view-switch {
+    width: 100%;
+  }
+
+  .task-create-modal .view-switch button {
+    flex: 1 1 0;
+    min-width: 0;
+    padding-inline: 8px;
+    font-size: 11px;
+  }
+
+  .task-create-modal .bulgarian-datetime-controls {
+    grid-template-columns: .75fr 1.35fr 1fr;
+    gap: 9px 7px;
+  }
+
+  .task-create-modal .bulgarian-datetime-controls .datetime-at,
+  .task-create-modal .bulgarian-datetime-controls .datetime-separator {
+    display: none;
+  }
+
+  .task-create-modal .bulgarian-datetime-controls label:nth-of-type(4) {
+    grid-column: 1;
+  }
+
+  .task-create-modal .bulgarian-datetime-controls label:nth-of-type(5) {
+    grid-column: 2;
+  }
+
+  .task-create-modal .people-picker {
+    grid-template-columns: 1fr;
+  }
+
+  .task-create-modal .modal-actions {
+    bottom: -24px;
+    margin: 2px -16px -24px;
+    padding: 13px 16px 15px;
+  }
+}
