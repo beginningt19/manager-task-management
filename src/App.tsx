@@ -2082,8 +2082,8 @@ function CreateTaskModal({
   const submit = async (event: FormEvent) => {
     event.preventDefault()
     if (voiceListening) stopVoiceDictation()
-    if (!personal && (selected.length < 1 || selected.length > 3)) {
-      onError('Изберете между един и трима изпълнители.')
+    if (!personal && selected.length < 1) {
+      onError('Изберете поне един изпълнител.')
       return
     }
 
@@ -2385,7 +2385,7 @@ function CreateTaskModal({
           </div>
         )}
         <fieldset>
-          <legend>{personal ? 'Изпълнител' : <>Изпълнители <small>(изберете 1–3)</small></>}</legend>
+          <legend>{personal ? 'Изпълнител' : <>Изпълнители <small>(изберете поне 1)</small></>}</legend>
           <div className="people-picker">
             {personal ? (
               <div className="personal-assignee">
