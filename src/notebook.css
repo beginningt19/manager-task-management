@@ -2459,3 +2459,253 @@
   opacity: .42;
   cursor: default;
 }
+
+
+/* ======================================================================
+   NOTEBOOK TOOLBAR + 24H TIME PICKER
+   Keeps scheduling controls explicit and browser-locale independent.
+   ====================================================================== */
+.notebook-toolbar-actions {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 7px;
+  flex-wrap: wrap;
+}
+
+.notebook-import-tasks,
+.notebook-free-time-toggle,
+.notebook-new-page {
+  min-height: 34px;
+}
+
+.notebook-import-tasks {
+  padding: 0 11px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: #31506f;
+  background: #f2f7fb;
+  border: 1px solid #cddceb;
+  border-radius: 9px;
+  cursor: pointer;
+  font: inherit;
+  font-size: 9px;
+  font-weight: 900;
+  white-space: nowrap;
+  box-shadow: 0 2px 7px rgba(49,80,111,.05);
+}
+
+.notebook-import-tasks:hover:not(:disabled) {
+  color: #1f4567;
+  background: #e8f2fa;
+  border-color: #b9d0e3;
+}
+
+.notebook-import-tasks:disabled {
+  opacity: .55;
+  cursor: default;
+}
+
+.notebook-free-time-toggle {
+  margin-left: 0 !important;
+  min-height: 34px;
+  padding: 0 10px;
+  gap: 7px;
+}
+
+.notebook-toggle-box {
+  width: 17px;
+  height: 17px;
+  display: inline-grid;
+  place-items: center;
+  flex: 0 0 17px;
+  color: transparent;
+  background: #fff;
+  border: 1px solid #bfc7c4;
+  border-radius: 5px;
+  box-shadow: inset 0 1px 2px rgba(34,50,46,.05);
+  font-size: 11px;
+  font-weight: 950;
+  line-height: 1;
+}
+
+.notebook-free-time-toggle.active {
+  color: #2f5750;
+  background: #e8f3ee;
+  border-color: #9fc8b9;
+  box-shadow: 0 4px 12px rgba(54,91,85,.10);
+}
+
+.notebook-free-time-toggle.active .notebook-toggle-box {
+  color: #fff;
+  background: #365b55;
+  border-color: #365b55;
+  box-shadow: none;
+}
+
+/* Explicit 24-hour control. Native time inputs can switch to AM/PM depending
+   on OS/browser locale, so the notebook uses 00-23 + 00-59 selectors instead. */
+.notebook-time-control {
+  position: relative;
+  display: inline-flex;
+  z-index: 8;
+}
+
+.notebook-time-trigger {
+  min-height: 34px;
+  padding: 0 10px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  color: #465b78 !important;
+  background: #f8f3e9 !important;
+  border: 1px solid #d9cebb !important;
+  border-radius: 9px !important;
+  cursor: pointer;
+  font: inherit;
+  font-size: 10px !important;
+  font-weight: 850 !important;
+  box-shadow: none !important;
+  white-space: nowrap;
+}
+
+.notebook-time-control.has-time .notebook-time-trigger {
+  color: #234c46 !important;
+  background: #edf6f1 !important;
+  border-color: #b8d6cc !important;
+}
+
+.notebook-time-trigger > i {
+  margin-left: 2px;
+  color: #8a7c68;
+  font-style: normal;
+  font-size: 10px;
+  transition: transform .15s ease;
+}
+
+.notebook-time-control.open .notebook-time-trigger > i {
+  transform: rotate(180deg);
+}
+
+.notebook-time-popover {
+  position: absolute;
+  right: 0;
+  bottom: calc(100% + 7px);
+  z-index: 40;
+  min-width: 218px;
+  padding: 10px;
+  display: grid;
+  gap: 8px;
+  color: #3e4d61;
+  background: #fffdf8;
+  border: 1px solid #d8cdbb;
+  border-radius: 11px;
+  box-shadow: 0 14px 32px rgba(63,54,42,.16);
+}
+
+.notebook-time-popover > small {
+  color: #8b7a62;
+  font-size: 8px;
+  font-weight: 950;
+  letter-spacing: .08em;
+}
+
+.notebook-time-selects {
+  display: grid;
+  grid-template-columns: minmax(0,1fr) auto minmax(0,1fr);
+  align-items: center;
+  gap: 6px;
+}
+
+.notebook-time-selects select {
+  width: 100%;
+  min-height: 38px;
+  padding: 0 8px;
+  color: #243f5c;
+  background: #fff;
+  border: 1px solid #ccd4dc;
+  border-radius: 8px;
+  outline: 0;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 900;
+  font-variant-numeric: tabular-nums;
+  cursor: pointer;
+}
+
+.notebook-time-selects select:focus {
+  border-color: #83a4c5;
+  box-shadow: 0 0 0 3px rgba(83,126,169,.11);
+}
+
+.notebook-time-selects select:disabled {
+  opacity: .45;
+  cursor: default;
+}
+
+.notebook-time-selects b {
+  color: #6b7787;
+  font-size: 14px;
+}
+
+.notebook-time-popover-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 6px;
+}
+
+.notebook-time-popover-actions button {
+  min-height: 29px;
+  padding: 0 9px;
+  color: #725d4c;
+  background: #fff8ef;
+  border: 1px solid #e1d2c2;
+  border-radius: 7px;
+  cursor: pointer;
+  font: inherit;
+  font-size: 8px;
+  font-weight: 900;
+  box-shadow: none;
+}
+
+.notebook-time-popover-actions button.done {
+  color: #fff;
+  background: #365b55;
+  border-color: #365b55;
+}
+
+.notebook-edit-time-row .notebook-time-popover {
+  right: auto;
+  left: 0;
+}
+
+@media (max-width: 760px) {
+  .notebook-toolbar-actions {
+    width: 100%;
+    margin-left: 0;
+    justify-content: stretch;
+  }
+
+  .notebook-import-tasks,
+  .notebook-free-time-toggle,
+  .notebook-new-page {
+    flex: 1 1 140px;
+    justify-content: center;
+  }
+
+  .notebook-time-control {
+    flex: 1 1 145px;
+  }
+
+  .notebook-time-trigger {
+    width: 100%;
+  }
+
+  .notebook-time-popover {
+    right: 0;
+    min-width: min(240px, 82vw);
+  }
+}
