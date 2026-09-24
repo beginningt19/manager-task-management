@@ -438,6 +438,10 @@ export default function NotebookDrawer({
         .sort((a, b) => {
           const left = normalizeTime(a.scheduled_time)
           const right = normalizeTime(b.scheduled_time)
+          const leftDeadlineOnly = Boolean(a.source_task_id) && !left
+          const rightDeadlineOnly = Boolean(b.source_task_id) && !right
+
+          if (leftDeadlineOnly !== rightDeadlineOnly) return leftDeadlineOnly ? -1 : 1
           if (!left && right) return -1
           if (left && !right) return 1
           if (left && right && left !== right) return left.localeCompare(right)
@@ -925,6 +929,7 @@ export default function NotebookDrawer({
     if (endMinutes - startMinutes <= 1) return
     setGapRange({ start, end })
     setScheduledTime(minutesToTime(startMinutes + ((endMinutes - startMinutes) / 2)))
+    setEndTime('')
     window.requestAnimationFrame(() => composerRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' }))
   }
 
@@ -1275,7 +1280,7 @@ export default function NotebookDrawer({
                   const currentTime = normalizeTime(entry.scheduled_time)
                   const currentEndTime = normalizeTime(entry.end_time) || currentTime
                   const nextTime = normalizeTime(pageEntries[index + 1]?.scheduled_time)
-                  const gapMinutes = currentEndTime && nextTime
+                  const gapMinutes = currentTime && currentEndTime && nextTime
                     ? timeToMinutes(nextTime) - timeToMinutes(currentEndTime)
                     : 0
 
