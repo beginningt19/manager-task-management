@@ -2618,15 +2618,24 @@ function TaskDetail({
   const changeStatus = async (status: TaskStatus) => {
     if (status === 'new' || status === 'completed' || busy) return
 
-    if (task.status === 'waiting_approval' && status !== 'waiting_approval') {
-      onResult({ tone: 'error', message: 'Задачата чака решение от Управителя. Статусът ще се промени автоматично след решението.' })
+    if (task.status === 'waiting_approval' && hasPendingApproval && status !== 'waiting_approval') {
+      onResult({ tone: 'error', message: 'Задачата вече е изпратена за одобрение и чака решение от Управителя.' })
       return
     }
 
-    const { error } = await supabase.from('tasks').update({ status }).eq('id', task.id)
+    const updatePayload = status === 'waiting_approval'
+      ? { status, approval_required: true }
+      : { status }
+
+    const { error } = await supabase.from('tasks').update(updatePayload).eq('id', task.id)
     if (error) return onResult({ tone: 'error', message: error.message })
     await Promise.all([onChanged(), loadDetail()])
-    onResult({ tone: 'success', message: `Статусът е променен на „${statusLabels[status]}“.` })
+    onResult({
+      tone: 'success',
+      message: status === 'waiting_approval'
+        ? 'Статусът е „Изчаква одобрение“. Натиснете „Изпрати за одобрение“, когато сте готови.'
+        : `Статусът е променен на „${statusLabels[status]}“.`,
+    })
   }
 
   const finishTask = async () => {
@@ -2924,7 +2933,11 @@ function TaskDetail({
   const latestApproval = approvals[0] || null
   const hasPendingApproval = approvals.some((approval) => approval.status === 'pending')
   const approvedForCompletion = !task.approval_required || latestApproval?.status === 'approved'
-  const canSendForApproval = Boolean(canWork && !hasPendingApproval && latestApproval?.status !== 'approved')
+  const canSendForApproval = Boolean(
+    canWork
+    && task.status === 'waiting_approval'
+    && !hasPendingApproval
+  )
 
   return (
     <div className="drawer-backdrop" role="presentation" onMouseDown={(event) => event.target === event.currentTarget && onClose()}>
@@ -3008,12 +3021,12 @@ function TaskDetail({
                     </button>
                   )}
                 </div>
-              ) : task.status === 'waiting_approval' ? (
-                <strong style={{ color: '#b7791f' }}>За одобрение · чака решение от Управителя</strong>
+              ) : task.status === 'waiting_approval' && hasPendingApproval ? (
+                <strong style={{ color: '#b7791f' }}>Изчаква одобрение · изпратена към Управителя</strong>
               ) : canParticipate ? (
                 <select value={task.status} onChange={(event) => void changeStatus(event.target.value as TaskStatus)} disabled={busy}>
                   {statuses
-                    .filter((status) => status !== 'new' && status !== 'completed' && status !== 'waiting_approval')
+                    .filter((status) => status !== 'new' && status !== 'completed')
                     .map((status) => <option key={status} value={status}>{statusLabels[status]}</option>)}
                 </select>
               ) : <strong>{statusLabels[task.status]}</strong>}
@@ -3037,9 +3050,11 @@ function TaskDetail({
                 <strong>
                   {hasPendingApproval
                     ? 'Задачата е изпратена за одобрение и чака решение от Управителя.'
-                    : approvedForCompletion
-                      ? 'Когато работата е готова, отбележете задачата като завършена или я изпратете за одобрение.'
-                      : 'Преди завършване задачата трябва да бъде одобрена.'}
+                    : task.status === 'waiting_approval'
+                      ? 'Задачата е в „Изчаква одобрение“. Изпратете я към Управителя.'
+                      : approvedForCompletion
+                        ? 'Когато работата е готова, отбележете задачата като завършена.'
+                        : 'Преди завършване задачата трябва да бъде одобрена.'}
                 </strong>
               </div>
               <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
@@ -3050,7 +3065,7 @@ function TaskDetail({
                     disabled={busy}
                     onClick={() => void submitApprovalRequest()}
                   >
-                    {latestApproval ? '↻ Изпрати отново за одобрение' : '✓ Изпрати за одобрение'}
+                    ✓ Изпрати за одобрение
                   </button>
                 )}
                 <button type="button" className="success-button complete-task-button" disabled={busy || !approvedForCompletion} onClick={() => void finishTask()}>✓ Завърши задачата</button>
@@ -3114,7 +3129,7 @@ function TaskDetail({
             </section>
           ) : tab === 'approvals' ? (
             <section className="detail-section">
-              {canWork && !approvals.some((approval) => approval.status === 'pending') && (
+              {canSendForApproval && (
                 <form className="approval-request" onSubmit={requestApproval}><input value={approvalNote} onChange={(event) => setApprovalNote(event.target.value)} placeholder="Бележка към заявката (по желание)" /><button className="primary-button" disabled={busy}>Изпрати за одобрение</button></form>
               )}
               <div className="approval-list">
