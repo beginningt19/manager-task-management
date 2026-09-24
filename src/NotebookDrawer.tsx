@@ -242,14 +242,14 @@ function NotebookTimeControl({
           <small>24-ЧАСОВ ФОРМАТ</small>
           <div className="notebook-time-selects">
             <select value={hour} onChange={(event) => chooseHour(event.target.value)} aria-label="Час от 00 до 23">
-              <option value="">чч</option>
+              <option value="" aria-label="Без избран час">—</option>
               {Array.from({ length: 24 }, (_, index) => String(index).padStart(2, '0')).map((item) => (
                 <option key={item} value={item}>{item}</option>
               ))}
             </select>
             <b>:</b>
             <select value={minute} onChange={(event) => chooseMinute(event.target.value)} aria-label="Минути" disabled={!hour}>
-              <option value="">мм</option>
+              <option value="" aria-label="Без избрани минути">—</option>
               {Array.from({ length: 60 }, (_, index) => String(index).padStart(2, '0')).map((item) => (
                 <option key={item} value={item}>{item}</option>
               ))}
