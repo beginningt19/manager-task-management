@@ -2763,31 +2763,31 @@
 /* ======================================================================
    NOTEBOOK ENTRY SOURCE BORDERS
    Match the source colors already used by the calendar legend:
-   notebook = brown (#c79c4c), imported system task = blue (#4f46e5).
+   notebook = brown (#c69a48), imported system task = blue (#3577ad).
    ====================================================================== */
 .notebook-entry.native-note,
 .notebook-entry.imported-task {
   margin: 5px 0;
   padding: 6px 8px;
-  border: 1px solid #c79c4c;
+  border: 1px solid #c69a48;
   border-radius: 10px;
   background: rgba(255,253,247,.32);
   box-sizing: border-box;
 }
 
 .notebook-entry.imported-task {
-  border-color: #4f46e5;
-  background: rgba(79,70,229,.025);
+  border-color: #3577ad;
+  background: rgba(53,119,173,.025);
 }
 
 .notebook-entry.native-note:hover {
-  border-color: #c79c4c;
-  box-shadow: 0 3px 10px rgba(199,156,76,.08);
+  border-color: #c69a48;
+  box-shadow: 0 3px 10px rgba(198,154,72,.08);
 }
 
 .notebook-entry.imported-task:hover {
-  border-color: #4f46e5;
-  box-shadow: 0 3px 10px rgba(79,70,229,.08);
+  border-color: #3577ad;
+  box-shadow: 0 3px 10px rgba(53,119,173,.08);
 }
 
 .notebook-entry.carried-over.native-note::before {
