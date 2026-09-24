@@ -2723,3 +2723,38 @@
     min-width: min(240px, 82vw);
   }
 }
+
+
+/* ======================================================================
+   NOTEBOOK START / END TIME RANGES
+   ====================================================================== */
+.notebook-save-controls .notebook-time-control {
+  flex: 0 1 auto;
+}
+
+.notebook-source-deadline {
+  min-height: 24px;
+  margin: 6px 0;
+  padding: 4px 8px;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  color: #6c5635;
+  background: #fff5df;
+  border: 1px solid #ead4a8;
+  border-radius: 999px;
+  font-size: 9px;
+  font-weight: 900;
+  line-height: 1;
+}
+
+.notebook-edit-time-row .notebook-time-control {
+  flex: 0 1 auto;
+}
+
+@media (max-width: 680px) {
+  .notebook-save-controls .notebook-time-control,
+  .notebook-edit-time-row .notebook-time-control {
+    flex: 1 1 135px;
+  }
+}
