@@ -29,6 +29,7 @@ type NotebookEntry = {
   carried_from_entry_id: string | null
   carried_from_date: string | null
   scheduled_time: string | null
+  source_task_id: string | null
 }
 
 type SpeechRecognitionLike = {
@@ -184,6 +185,84 @@ const automaticPageForDate = (dayPages: NotebookPage[], allEntries: NotebookEntr
   return everyPageHasContent ? ordered[ordered.length - 1] : ordered[0]
 }
 
+const clampTimeToBounds = (value: string, min?: string, max?: string) => {
+  if (!value) return ''
+  let minutes = timeToMinutes(value)
+  if (min) minutes = Math.max(minutes, timeToMinutes(min))
+  if (max) minutes = Math.min(minutes, timeToMinutes(max))
+  return minutesToTime(minutes)
+}
+
+function NotebookTimeControl({
+  value,
+  onChange,
+  min,
+  max,
+  label = 'Добави час',
+}: {
+  value: string
+  onChange: (value: string) => void
+  min?: string
+  max?: string
+  label?: string
+}) {
+  const [open, setOpen] = useState(false)
+  const hour = value ? value.slice(0, 2) : ''
+  const minute = value ? value.slice(3, 5) : ''
+
+  const chooseHour = (nextHour: string) => {
+    if (!nextHour) {
+      onChange('')
+      return
+    }
+    onChange(clampTimeToBounds(`${nextHour}:${minute || '00'}`, min, max))
+  }
+
+  const chooseMinute = (nextMinute: string) => {
+    if (!hour) return
+    onChange(clampTimeToBounds(`${hour}:${nextMinute}`, min, max))
+  }
+
+  return (
+    <div className={`notebook-time-control${value ? ' has-time' : ''}${open ? ' open' : ''}`}>
+      <button
+        type="button"
+        className="notebook-time-trigger"
+        onClick={() => setOpen((current) => !current)}
+        aria-expanded={open}
+      >
+        <span aria-hidden="true">🕒</span>
+        <span>{value || label}</span>
+        <i aria-hidden="true">⌄</i>
+      </button>
+      {open && (
+        <div className="notebook-time-popover">
+          <small>24-ЧАСОВ ФОРМАТ</small>
+          <div className="notebook-time-selects">
+            <select value={hour} onChange={(event) => chooseHour(event.target.value)} aria-label="Час от 00 до 23">
+              <option value="">чч</option>
+              {Array.from({ length: 24 }, (_, index) => String(index).padStart(2, '0')).map((item) => (
+                <option key={item} value={item}>{item}</option>
+              ))}
+            </select>
+            <b>:</b>
+            <select value={minute} onChange={(event) => chooseMinute(event.target.value)} aria-label="Минути" disabled={!hour}>
+              <option value="">мм</option>
+              {Array.from({ length: 60 }, (_, index) => String(index).padStart(2, '0')).map((item) => (
+                <option key={item} value={item}>{item}</option>
+              ))}
+            </select>
+          </div>
+          <div className="notebook-time-popover-actions">
+            {value && <button type="button" onClick={() => { onChange(''); setOpen(false) }}>Без час</button>}
+            <button type="button" className="done" onClick={() => setOpen(false)}>Готово</button>
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
 export default function NotebookDrawer({
   currentUser,
   initialDate,
@@ -210,6 +289,7 @@ export default function NotebookDrawer({
   const [editingScheduledTime, setEditingScheduledTime] = useState('')
   const [loading, setLoading] = useState(true)
   const [busy, setBusy] = useState(false)
+  const [importingTasks, setImportingTasks] = useState(false)
   const [listening, setListening] = useState(false)
   const [voiceInterim, setVoiceInterim] = useState('')
   const [voiceMessage, setVoiceMessage] = useState('')
@@ -520,6 +600,124 @@ export default function NotebookDrawer({
     await loadData(true)
   }
 
+  const importSystemTasks = async () => {
+    if (importingTasks || busy) return
+
+    const page = await ensurePage()
+    if (!page) return
+
+    setImportingTasks(true)
+    try {
+      const [danielaResult, myAssignmentsResult] = await Promise.all([
+        supabase
+          .from('profiles')
+          .select('id')
+          .eq('display_name', 'Даниела Димитрова')
+          .maybeSingle(),
+        supabase
+          .from('task_assignees')
+          .select('task_id')
+          .eq('user_id', currentUser.id),
+      ])
+
+      if (danielaResult.error || myAssignmentsResult.error) {
+        throw danielaResult.error || myAssignmentsResult.error
+      }
+
+      const taskIds = [...new Set((myAssignmentsResult.data || []).map((item) => item.task_id))]
+      if (!taskIds.length) {
+        onResult({ tone: 'success', message: 'Няма задачи от системата за добавяне в тефтера.' })
+        return
+      }
+
+      const [tasksResult, allAssigneesResult] = await Promise.all([
+        supabase
+          .from('tasks')
+          .select('id,created_by,description,due_at,status')
+          .in('id', taskIds),
+        supabase
+          .from('task_assignees')
+          .select('task_id,user_id')
+          .in('task_id', taskIds),
+      ])
+
+      if (tasksResult.error || allAssigneesResult.error) {
+        throw tasksResult.error || allAssigneesResult.error
+      }
+
+      const assigneesByTask = new Map<string, string[]>()
+      ;(allAssigneesResult.data || []).forEach((assignment) => {
+        assigneesByTask.set(
+          assignment.task_id,
+          [...(assigneesByTask.get(assignment.task_id) || []), assignment.user_id],
+        )
+      })
+
+      const danielaId = danielaResult.data?.id || null
+      const alreadyImported = new Set(
+        entries
+          .map((entry) => entry.source_task_id)
+          .filter((id): id is string => Boolean(id)),
+      )
+
+      const eligible = (tasksResult.data || []).filter((task) => {
+        if (task.status === 'completed') return false
+        if (localDateKey(new Date(task.due_at)) !== selectedDate) return false
+        if (alreadyImported.has(task.id)) return false
+
+        const assignees = assigneesByTask.get(task.id) || []
+        const fromDaniela = Boolean(danielaId) && task.created_by === danielaId
+        const personalToSelf =
+          task.created_by === currentUser.id
+          && assignees.length === 1
+          && assignees[0] === currentUser.id
+
+        return fromDaniela || personalToSelf
+      })
+
+      if (!eligible.length) {
+        onResult({ tone: 'success', message: 'За този ден няма нови подходящи задачи за наливане в тефтера.' })
+        return
+      }
+
+      const pageItems = entries.filter((entry) => entry.page_id === page.id)
+      const startPosition = pageItems.reduce((max, entry) => Math.max(max, entry.position), -1) + 1
+
+      const payload = eligible
+        .sort((left, right) => new Date(left.due_at).getTime() - new Date(right.due_at).getTime())
+        .map((task, index) => {
+          const due = new Date(task.due_at)
+          const taskTime = `${String(due.getHours()).padStart(2, '0')}:${String(due.getMinutes()).padStart(2, '0')}`
+          return {
+            page_id: page.id,
+            user_id: currentUser.id,
+            body: task.description.trim(),
+            position: startPosition + index,
+            completed: false,
+            scheduled_time: taskTime,
+            source_task_id: task.id,
+          }
+        })
+
+      const { error } = await supabase
+        .from('notebook_entries')
+        .upsert(payload, { onConflict: 'user_id,source_task_id', ignoreDuplicates: true })
+
+      if (error) throw error
+
+      await loadData(true)
+      onResult({
+        tone: 'success',
+        message: `Добавени в тефтера: ${payload.length} ${payload.length === 1 ? 'задача' : 'задачи'}.`,
+      })
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Неизвестна грешка'
+      onResult({ tone: 'error', message: `Задачите не можаха да се налеят в тефтера: ${message}` })
+    } finally {
+      setImportingTasks(false)
+    }
+  }
+
   const toggleFreeTime = () => {
     setShowFreeTime((current) => {
       const next = !current
@@ -748,9 +946,30 @@ export default function NotebookDrawer({
                   </label>
                 </div>
 
-                <button className="notebook-new-page" type="button" onClick={() => void addPage()} disabled={busy}>
-                  ＋ Нова страница
-                </button>
+                <div className="notebook-toolbar-actions">
+                  <button
+                    className="notebook-import-tasks"
+                    type="button"
+                    onClick={() => void importSystemTasks()}
+                    disabled={busy || importingTasks}
+                    title="Добави задачите за този ден, възложени от Даниела Димитрова, и личните задачи към себе си"
+                  >
+                    <span aria-hidden="true">↓</span>
+                    {importingTasks ? 'Наливам…' : 'Налей задачи'}
+                  </button>
+                  <button
+                    type="button"
+                    className={showFreeTime ? 'notebook-free-time-toggle active' : 'notebook-free-time-toggle'}
+                    onClick={toggleFreeTime}
+                    aria-pressed={showFreeTime}
+                  >
+                    <span className="notebook-toggle-box" aria-hidden="true">{showFreeTime ? '✓' : ''}</span>
+                    <span>Свободно време</span>
+                  </button>
+                  <button className="notebook-new-page" type="button" onClick={() => void addPage()} disabled={busy}>
+                    ＋ Нова страница
+                  </button>
+                </div>
               </div>
 
               <div className="notebook-paper-header">
@@ -783,15 +1002,6 @@ export default function NotebookDrawer({
                   </div>
                   <button type="button" onClick={() => changePage(1)} disabled={!selectedPage || activePageNumber >= pagesForDate.length} aria-label="Следваща страница">›</button>
                 </div>
-                <button
-                  type="button"
-                  className={showFreeTime ? 'notebook-free-time-toggle active' : 'notebook-free-time-toggle'}
-                  onClick={toggleFreeTime}
-                  aria-pressed={showFreeTime}
-                >
-                  <span aria-hidden="true">↕</span>
-                  Свободно време
-                </button>
               </div>
 
               <div className="notebook-composer" ref={composerRef}>
@@ -831,30 +1041,16 @@ export default function NotebookDrawer({
                 <div className="notebook-composer-actions">
                   <span>{draft.trim().length ? `${draft.trim().length} знака` : 'Записът ще се разпъва автоматично.'}</span>
                   <div className="notebook-save-controls">
-                    <label className={scheduledTime ? 'notebook-time-picker has-time' : 'notebook-time-picker'}>
-                      <span aria-hidden="true">🕒</span>
-                      <span>{scheduledTime || 'Добави час'}</span>
-                      <input
-                        type="time"
-                        step="60"
-                        value={scheduledTime}
-                        min={gapRange ? minutesToTime(timeToMinutes(gapRange.start) + 1) : undefined}
-                        max={gapRange ? minutesToTime(timeToMinutes(gapRange.end) - 1) : undefined}
-                        onChange={(event) => setScheduledTime(event.target.value)}
-                        aria-label="Час на задачата"
-                      />
-                    </label>
-                    {scheduledTime && (
-                      <button
-                        type="button"
-                        className="notebook-clear-time"
-                        onClick={() => { setScheduledTime(''); setGapRange(null) }}
-                        title="Премахни часа"
-                        aria-label="Премахни часа"
-                      >
-                        ×
-                      </button>
-                    )}
+                    <NotebookTimeControl
+                      value={scheduledTime}
+                      onChange={(value) => {
+                        setScheduledTime(value)
+                        if (!value) setGapRange(null)
+                      }}
+                      min={gapRange ? minutesToTime(timeToMinutes(gapRange.start) + 1) : undefined}
+                      max={gapRange ? minutesToTime(timeToMinutes(gapRange.end) - 1) : undefined}
+                      label="Добави час"
+                    />
                     <button type="button" onClick={() => void saveDraft()} disabled={!draft.trim() || busy}>
                       {busy ? 'Записване…' : 'Запиши задачата'}
                     </button>
@@ -912,24 +1108,11 @@ export default function NotebookDrawer({
                                 autoFocus
                               />
                               <div className="notebook-edit-time-row">
-                                <label className="notebook-edit-time">
-                                  <span>Начален час</span>
-                                  <input
-                                    type="time"
-                                    step="60"
-                                    value={editingScheduledTime}
-                                    onChange={(event) => setEditingScheduledTime(event.target.value)}
-                                    aria-label="Редактирай началния час на задачата"
-                                  />
-                                </label>
-                                <button
-                                  type="button"
-                                  className="notebook-edit-clear-time"
-                                  onClick={() => setEditingScheduledTime('')}
-                                  disabled={!editingScheduledTime}
-                                >
-                                  Без час
-                                </button>
+                                <NotebookTimeControl
+                                  value={editingScheduledTime}
+                                  onChange={setEditingScheduledTime}
+                                  label="Начален час"
+                                />
                               </div>
                             </div>
                           ) : (
