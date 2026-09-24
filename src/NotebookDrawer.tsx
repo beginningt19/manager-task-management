@@ -880,14 +880,19 @@ export default function NotebookDrawer({
     }
 
     setSystemTaskSyncEnabled(next)
-    setImportingTasks(false)
 
     if (next) {
+      setImportingTasks(false)
       await syncSystemTasks(true)
     } else {
+      // The OFF state means: show only native notebook entries.
+      // Imported system tasks are removed atomically by the RPC above.
+      setEntries((current) => current.filter((entry) => !entry.source_task_id))
+      await loadData(true)
+      setImportingTasks(false)
       onResult({
         tone: 'success',
-        message: 'Автоматичното наливане е изключено. Вече добавените записи остават в тефтера.',
+        message: 'Задачите от системата са махнати от тефтера. Остават само тефтерните записи.',
       })
     }
   }
