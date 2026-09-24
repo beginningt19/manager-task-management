@@ -61,6 +61,8 @@ type NotebookCalendarEntry = {
   body: string
   completed: boolean
   position: number
+  scheduled_time: string | null
+  end_time: string | null
   carried_from_date: string | null
 }
 
@@ -600,7 +602,7 @@ function App() {
 
     const entriesResult = await supabase
       .from('notebook_entries')
-      .select('id,page_id,body,completed,position,carried_from_date')
+      .select('id,page_id,body,completed,position,scheduled_time,end_time,carried_from_date')
       .eq('user_id', session.user.id)
       .in('page_id', pages.map((page) => page.id))
       .order('position', { ascending: true })
@@ -1697,7 +1699,14 @@ function CalendarView({
                         <b>✎ Тефтер</b>
                         <small>стр. {entry.page_number}</small>
                       </span>
-                      <span className="calendar-notebook-entry-text">{entry.body}</span>
+                      <span className="calendar-notebook-entry-content">
+                        {entry.scheduled_time && (
+                          <time className="calendar-notebook-entry-time">
+                            {entry.scheduled_time.slice(0, 5)}
+                          </time>
+                        )}
+                        <span className="calendar-notebook-entry-text">{entry.body}</span>
+                      </span>
                       {entry.completed && <span className="calendar-notebook-entry-done">✓ изпълнена</span>}
                     </button>
                   ))}
