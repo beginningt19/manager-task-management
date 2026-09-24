@@ -2352,7 +2352,10 @@ function TaskDetail({
   const [busy, setBusy] = useState(false)
   const [editing, setEditing] = useState(false)
   const [editDescription, setEditDescription] = useState('')
+  const [editScheduleMode, setEditScheduleMode] = useState<TaskScheduleMode>('deadline')
   const [editDueAt, setEditDueAt] = useState('')
+  const [editStartAt, setEditStartAt] = useState('')
+  const [editEndAt, setEditEndAt] = useState('')
   const [editPriority, setEditPriority] = useState<Priority>('normal')
   const [editMaterials, setEditMaterials] = useState('')
   const [editApprovalRequired, setEditApprovalRequired] = useState(false)
@@ -2372,7 +2375,19 @@ function TaskDetail({
   useEffect(() => {
     if (!task) return
     setEditDescription(task.description)
-    setEditDueAt(`${bulgarianDateKey(task.due_at)}T${formatBulgarianTime(task.due_at)}`)
+    const dueLocal = `${bulgarianDateKey(task.due_at)}T${formatBulgarianTime(task.due_at)}`
+    setEditDueAt(dueLocal)
+    setEditScheduleMode(task.starts_at && task.ends_at ? 'interval' : 'deadline')
+    if (task.starts_at && task.ends_at) {
+      setEditStartAt(`${bulgarianDateKey(task.starts_at)}T${formatBulgarianTime(task.starts_at)}`)
+      setEditEndAt(`${bulgarianDateKey(task.ends_at)}T${formatBulgarianTime(task.ends_at)}`)
+    } else {
+      const fallbackEnd = new Date(task.due_at)
+      const fallbackStart = new Date(fallbackEnd)
+      fallbackStart.setHours(fallbackStart.getHours() - 1)
+      setEditStartAt(dateTimeLocalValue(fallbackStart))
+      setEditEndAt(dueLocal)
+    }
     setEditPriority(task.priority)
     setEditMaterials(task.required_materials || '')
     setEditApprovalRequired(task.approval_required)
@@ -2520,8 +2535,19 @@ function TaskDetail({
   const saveTaskEdits = async (event: FormEvent) => {
     event.preventDefault()
     if (!isCreator || !editDescription.trim() || !editDueAt) return
+
+    const effectiveEditDueAt = editScheduleMode === 'interval' ? editEndAt : editDueAt
+    if (editScheduleMode === 'interval') {
+      const start = new Date(editStartAt)
+      const end = new Date(editEndAt)
+      if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime()) || end <= start) {
+        onResult({ tone: 'error', message: 'Крайният момент трябва да бъде след началния.' })
+        return
+      }
+    }
+
     if (editReminderEnabled) {
-      const reminderError = validateTaskReminder(editRemindAt, editDueAt)
+      const reminderError = validateTaskReminder(editRemindAt, effectiveEditDueAt)
       if (reminderError) {
         onResult({ tone: 'error', message: reminderError })
         return
@@ -2530,7 +2556,9 @@ function TaskDetail({
     setBusy(true)
     const { error } = await supabase.from('tasks').update({
       description: editDescription.trim(),
-      due_at: new Date(editDueAt).toISOString(),
+      due_at: new Date(effectiveEditDueAt).toISOString(),
+      starts_at: editScheduleMode === 'interval' ? new Date(editStartAt).toISOString() : null,
+      ends_at: editScheduleMode === 'interval' ? new Date(editEndAt).toISOString() : null,
       priority: editPriority,
       required_materials: editMaterials.trim() || null,
       approval_required: editApprovalRequired,
@@ -2736,10 +2764,25 @@ function TaskDetail({
                 <span className="approval-badge">Само вие можете да редактирате</span>
               </div>
               <label>Описание<textarea required rows={3} value={editDescription} onChange={(event) => setEditDescription(event.target.value)} /></label>
-              <div className="task-scheduling-grid">
-                <BulgarianDateTimeField value={editDueAt} onChange={setEditDueAt} />
-                <label>Приоритет<select value={editPriority} onChange={(event) => setEditPriority(event.target.value as Priority)}>{priorities.map((item) => <option key={item} value={item}>{priorityLabels[item]}</option>)}</select></label>
-              </div>
+              <fieldset className="task-schedule-mode">
+                <legend>Дата и време</legend>
+                <div className="task-schedule-mode-header">
+                  <div className="view-switch" aria-label="Режим на дата и час при редакция">
+                    <button type="button" className={editScheduleMode === 'deadline' ? 'active' : ''} onClick={() => setEditScheduleMode('deadline')} aria-pressed={editScheduleMode === 'deadline'}>Краен срок</button>
+                    <button type="button" className={editScheduleMode === 'interval' ? 'active' : ''} onClick={() => setEditScheduleMode('interval')} aria-pressed={editScheduleMode === 'interval'}>Начало и край</button>
+                  </div>
+                  <small>{editScheduleMode === 'interval' ? 'Задачата ще се третира като събитие с продължителност.' : 'Задачата има само краен срок.'}</small>
+                </div>
+                {editScheduleMode === 'interval' ? (
+                  <div className="task-schedule-range-grid">
+                    <BulgarianDateTimeField value={editStartAt} onChange={setEditStartAt} legend="Начало" previewLabel="Начало на събитието" />
+                    <BulgarianDateTimeField value={editEndAt} onChange={setEditEndAt} legend="Край" previewLabel="Край на събитието" />
+                  </div>
+                ) : (
+                  <BulgarianDateTimeField value={editDueAt} onChange={setEditDueAt} />
+                )}
+              </fieldset>
+              <label>Приоритет<select value={editPriority} onChange={(event) => setEditPriority(event.target.value as Priority)}>{priorities.map((item) => <option key={item} value={item}>{priorityLabels[item]}</option>)}</select></label>
               <label>Необходими материали<textarea rows={2} value={editMaterials} onChange={(event) => setEditMaterials(event.target.value)} placeholder="Линкове, документи или допълнителна информация" /></label>
               <label className="switch-row"><input type="checkbox" checked={editApprovalRequired} onChange={(event) => setEditApprovalRequired(event.target.checked)} /><span>Необходимо е одобрение преди завършване</span></label>
               {task.recurrence_id && recurrenceActive && (
@@ -2789,7 +2832,14 @@ function TaskDetail({
                 </select>
               ) : <strong>{statusLabels[task.status]}</strong>}
             </div>
-            <div><small>Краен срок</small><strong className={isOverdue(task.due_at, task.status) ? 'overdue-text' : ''}>{formatDateTime(task.due_at)}</strong></div>
+            {task.starts_at && task.ends_at ? (
+              <>
+                <div><small>Начало</small><strong>{formatDateTime(task.starts_at)}</strong></div>
+                <div><small>Край</small><strong className={isOverdue(task.due_at, task.status) ? 'overdue-text' : ''}>{formatDateTime(task.ends_at)}</strong></div>
+              </>
+            ) : (
+              <div><small>Краен срок</small><strong className={isOverdue(task.due_at, task.status) ? 'overdue-text' : ''}>{formatDateTime(task.due_at)}</strong></div>
+            )}
             <div><small>Напомняне</small><strong>{reminder ? (reminder.sent_at ? `Изпратено · ${formatDateTime(reminder.sent_at)}` : formatDateTime(reminder.remind_at)) : 'Няма'}</strong></div>
             <div><small>Възложил</small><strong>{task.creator?.display_name || '—'}</strong></div>
             <div><small>Изпълнители</small><strong>{task.assignees.map((person) => person.display_name).join(', ')}</strong></div>
