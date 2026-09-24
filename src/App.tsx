@@ -1912,7 +1912,7 @@ function CreateTaskModal({
   const voiceStartPendingRef = useRef(false)
   const voiceRestartTimerRef = useRef<number | null>(null)
   const personal = mode === 'personal'
-  const voiceEnabled = personal
+  const voiceEnabled = true
 
   useEffect(() => () => {
     voiceShouldListenRef.current = false
