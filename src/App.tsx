@@ -2651,25 +2651,6 @@ function TaskDetail({
       return
     }
 
-    if (status === 'waiting_approval') {
-      setBusy(true)
-      try {
-        const { error } = await supabase.rpc('request_task_approval', {
-          p_task_id: task.id,
-          p_request_note: null,
-        })
-        if (error) throw error
-
-        await Promise.all([onChanged(), loadDetail()])
-        onResult({ tone: 'success', message: 'Задачата е изпратена за одобрение към Управителя.' })
-      } catch (error) {
-        onResult({ tone: 'error', message: errorText(error) })
-      } finally {
-        setBusy(false)
-      }
-      return
-    }
-
     const { error } = await supabase.from('tasks').update({ status }).eq('id', task.id)
     if (error) return onResult({ tone: 'error', message: error.message })
     await Promise.all([onChanged(), loadDetail()])
@@ -2904,9 +2885,8 @@ function TaskDetail({
     window.open(data.signedUrl, '_blank', 'noopener,noreferrer')
   }
 
-  const requestApproval = async (event: FormEvent) => {
-    event.preventDefault()
-    if (busy) return
+  const submitApprovalRequest = async (note: string | null = null) => {
+    if (busy) return false
     setBusy(true)
 
     try {
@@ -2915,18 +2895,26 @@ function TaskDetail({
       // drift apart.
       const { error } = await supabase.rpc('request_task_approval', {
         p_task_id: task.id,
-        p_request_note: approvalNote.trim() || null,
+        p_request_note: note?.trim() || null,
       })
       if (error) throw error
 
       setApprovalNote('')
+      setTab('approvals')
       await Promise.all([loadDetail(), onChanged()])
       onResult({ tone: 'success', message: 'Заявката за одобрение е изпратена към Управителя.' })
+      return true
     } catch (error) {
       onResult({ tone: 'error', message: errorText(error) })
+      return false
     } finally {
       setBusy(false)
     }
+  }
+
+  const requestApproval = async (event: FormEvent) => {
+    event.preventDefault()
+    await submitApprovalRequest(approvalNote)
   }
 
   const decideApproval = async (approval: Approval, status: Exclude<ApprovalStatus, 'pending'>) => {
@@ -2962,7 +2950,9 @@ function TaskDetail({
   })
   const canStopRecurrence = Boolean(task.recurrence_id && recurrenceActive && (currentUser.role === 'manager' || task.created_by === currentUser.id))
   const latestApproval = approvals[0] || null
+  const hasPendingApproval = approvals.some((approval) => approval.status === 'pending')
   const approvedForCompletion = !task.approval_required || latestApproval?.status === 'approved'
+  const canSendForApproval = Boolean(canWork && !hasPendingApproval && latestApproval?.status !== 'approved')
 
   return (
     <div className="drawer-backdrop" role="presentation" onMouseDown={(event) => event.target === event.currentTarget && onClose()}>
@@ -3051,12 +3041,8 @@ function TaskDetail({
               ) : canParticipate ? (
                 <select value={task.status} onChange={(event) => void changeStatus(event.target.value as TaskStatus)} disabled={busy}>
                   {statuses
-                    .filter((status) => status !== 'new' && status !== 'completed')
-                    .map((status) => (
-                      <option key={status} value={status}>
-                        {status === 'waiting_approval' ? 'Изпрати за одобрение' : statusLabels[status]}
-                      </option>
-                    ))}
+                    .filter((status) => status !== 'new' && status !== 'completed' && status !== 'waiting_approval')
+                    .map((status) => <option key={status} value={status}>{statusLabels[status]}</option>)}
                 </select>
               ) : <strong>{statusLabels[task.status]}</strong>}
             </div>
@@ -3076,9 +3062,27 @@ function TaskDetail({
             <div className={`task-completion-panel${approvedForCompletion ? '' : ' waiting-approval'}`}>
               <div>
                 <small>Приключване на задачата</small>
-                <strong>{approvedForCompletion ? 'Когато работата е готова, отбележете задачата като завършена.' : 'Преди завършване задачата трябва да бъде одобрена.'}</strong>
+                <strong>
+                  {hasPendingApproval
+                    ? 'Задачата е изпратена за одобрение и чака решение от Управителя.'
+                    : approvedForCompletion
+                      ? 'Когато работата е готова, отбележете задачата като завършена или я изпратете за одобрение.'
+                      : 'Преди завършване задачата трябва да бъде одобрена.'}
+                </strong>
               </div>
-              <button type="button" className="success-button complete-task-button" disabled={busy || !approvedForCompletion} onClick={() => void finishTask()}>✓ Завърши задачата</button>
+              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+                {canSendForApproval && (
+                  <button
+                    type="button"
+                    className="primary-button"
+                    disabled={busy}
+                    onClick={() => void submitApprovalRequest()}
+                  >
+                    {latestApproval ? '↻ Изпрати отново за одобрение' : '✓ Изпрати за одобрение'}
+                  </button>
+                )}
+                <button type="button" className="success-button complete-task-button" disabled={busy || !approvedForCompletion} onClick={() => void finishTask()}>✓ Завърши задачата</button>
+              </div>
             </div>
           )}
           {task.status === 'completed' && (
@@ -3087,7 +3091,7 @@ function TaskDetail({
           {task.status === 'new' && (
             <div style={{ marginTop: 12, padding: '12px 14px', background: '#eef4ff', border: '1px solid #d6e4f7', borderRadius: 12 }}>
               <small style={{ display: 'block', color: '#7789a8', marginBottom: 3 }}>Работен поток</small>
-              <strong style={{ color: '#4b6595' }}>{canAccept ? 'Приемете задачата, за да започнете работа по нея.' : 'Задачата чака да бъде приета от назначен изпълнител.'}</strong>
+              <strong style={{ color: '#4b6595' }}>{canAccept ? 'Първо приемете задачата. След приемането ще можете да я изпратите за одобрение.' : 'Задачата чака да бъде приета от назначен изпълнител.'}</strong>
             </div>
           )}
           {task.recurrence_id && (
