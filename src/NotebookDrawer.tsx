@@ -448,7 +448,7 @@ export default function NotebookDrawer({
           const leftDeadlineOnly = Boolean(a.source_task_id) && !left
           const rightDeadlineOnly = Boolean(b.source_task_id) && !right
 
-          if (leftDeadlineOnly !== rightDeadlineOnly) return leftDeadlineOnly ? -1 : 1
+          if (leftDeadlineOnly !== rightDeadlineOnly) return leftDeadlineOnly ? 1 : -1
           if (!left && right) return -1
           if (left && !right) return 1
           if (left && right && left !== right) return left.localeCompare(right)
@@ -1234,11 +1234,11 @@ export default function NotebookDrawer({
                     disabled={busy || importingTasks}
                     aria-pressed={systemTaskSyncEnabled}
                     title={systemTaskSyncEnabled
-                      ? 'Изключи автоматичното синхронизиране на задачите с тефтера'
-                      : 'Включи задачите от Даниела Димитрова и личните задачи към себе си в тефтера'}
+                      ? 'Изключи синхронизирането Календар+Тефтер'
+                      : 'Включи синхронизирането Календар+Тефтер'}
                   >
                     <span className="notebook-toggle-box" aria-hidden="true">{systemTaskSyncEnabled ? '✓' : ''}</span>
-                    <span>{importingTasks ? 'Синхронизирам…' : systemTaskSyncEnabled ? 'Задачи в тефтера: Вкл.' : 'Задачи в тефтера: Изкл.'}</span>
+                    <span>{importingTasks ? 'Синхронизирам…' : 'Календар+Тефтер'}</span>
                   </button>
                   <button
                     type="button"
