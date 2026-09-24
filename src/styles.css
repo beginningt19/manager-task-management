@@ -108,7 +108,7 @@ main:not(.login-page):not(.fatal) { width: min(1340px, calc(100% - 56px)); margi
 .stat-card.red .stat-icon { background: var(--red-soft); color: var(--red); }
 
 .panel { background: rgba(255,255,255,.86); border: 1px solid rgba(216,229,226,.92); border-radius: 16px; box-shadow: 0 18px 55px rgba(28,59,56,.105); backdrop-filter: blur(20px) saturate(118%); }
-.filters { padding: 15px 17px; display: grid; grid-template-columns: minmax(240px, 1.5fr) repeat(3, minmax(145px, .7fr)) auto; gap: 9px; border-bottom: 1px solid var(--line); }
+.filters { padding: 15px 17px; display: grid; grid-template-columns: minmax(240px, 1.5fr) repeat(2, minmax(145px, .7fr)) auto; gap: 9px; border-bottom: 1px solid var(--line); }
 .filters select, .search-field, .detail-grid select { height: 38px; border-radius: 9px; border: 1px solid var(--line); background: #fff; color: var(--ink); font-size: 11px; padding: 0 10px; }
 .search-field { display: flex; align-items: center; gap: 8px; }
 .search-field span { color: var(--muted); font-size: 18px; }
