@@ -2216,7 +2216,7 @@ function CreateTaskModal({
       : `Всеки месец · ${recurrenceMonthDay}-во/число · ${recurrenceLeadLabel(recurrenceLeadDays)} предварително`
 
   return (
-    <Modal title={personal ? 'Нова лична задача' : 'Нова екипна задача'} onClose={onClose}>
+    <Modal title={personal ? 'Нова лична задача' : 'Нова екипна задача'} onClose={onClose} className="task-create-modal">
       <form onSubmit={submit} className="stack-form modal-form">
         <label className={voiceEnabled ? 'voice-description-field' : undefined}>
           <span className="voice-description-heading">
@@ -3256,10 +3256,20 @@ function urlBase64ToUint8Array(value: string) {
   return Uint8Array.from([...raw].map((character) => character.charCodeAt(0)))
 }
 
-function Modal({ title, onClose, children }: { title: string; onClose: () => void; children: React.ReactNode }) {
+function Modal({
+  title,
+  onClose,
+  children,
+  className = '',
+}: {
+  title: string
+  onClose: () => void
+  children: React.ReactNode
+  className?: string
+}) {
   return (
     <div className="modal-backdrop" role="presentation" onMouseDown={(event) => event.target === event.currentTarget && onClose()}>
-      <section className="modal" role="dialog" aria-modal="true" aria-label={title}>
+      <section className={`modal${className ? ` ${className}` : ''}`} role="dialog" aria-modal="true" aria-label={title}>
         <header><h2>{title}</h2><button className="icon-button" onClick={onClose} aria-label="Затвори">×</button></header>
         {children}
       </section>
