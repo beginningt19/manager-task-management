@@ -290,6 +290,7 @@ export default function NotebookDrawer({
   const [loading, setLoading] = useState(true)
   const [busy, setBusy] = useState(false)
   const [importingTasks, setImportingTasks] = useState(false)
+  const [systemTaskSyncEnabled, setSystemTaskSyncEnabled] = useState(false)
   const [listening, setListening] = useState(false)
   const [voiceInterim, setVoiceInterim] = useState('')
   const [voiceMessage, setVoiceMessage] = useState('')
@@ -305,10 +306,11 @@ export default function NotebookDrawer({
   const voiceStartPendingRef = useRef(false)
   const voiceRestartTimerRef = useRef<number | null>(null)
   const rolloverDateRef = useRef<string | null>(null)
+  const systemTaskSyncBusyRef = useRef(false)
 
   const loadData = useCallback(async (quiet = false) => {
     if (!quiet) setLoading(true)
-    const [pagesResult, entriesResult] = await Promise.all([
+    const [pagesResult, entriesResult, taskSyncSettingResult] = await Promise.all([
       supabase
         .from('notebook_pages')
         .select('*')
@@ -321,9 +323,14 @@ export default function NotebookDrawer({
         .eq('user_id', currentUser.id)
         .order('position', { ascending: true })
         .order('created_at', { ascending: true }),
+      supabase
+        .from('notebook_calendar_settings')
+        .select('task_sync_enabled')
+        .eq('user_id', currentUser.id)
+        .maybeSingle(),
     ])
 
-    const error = pagesResult.error || entriesResult.error
+    const error = pagesResult.error || entriesResult.error || taskSyncSettingResult.error
     if (error) {
       onResult({ tone: 'error', message: `Тефтерът не можа да се зареди: ${error.message}` })
       setLoading(false)
@@ -334,6 +341,7 @@ export default function NotebookDrawer({
     const nextEntries = (entriesResult.data || []) as NotebookEntry[]
     setPages(nextPages)
     setEntries(nextEntries)
+    setSystemTaskSyncEnabled(Boolean(taskSyncSettingResult.data?.task_sync_enabled))
 
     setSelectedPageId((current) => {
       const sameDate = nextPages.filter((page) => page.page_date === selectedDate)
@@ -600,15 +608,13 @@ export default function NotebookDrawer({
     await loadData(true)
   }
 
-  const importSystemTasks = async () => {
-    if (importingTasks || busy) return
-
-    const page = await ensurePage()
-    if (!page) return
-
+  const syncSystemTasks = useCallback(async (announce = false) => {
+    if (systemTaskSyncBusyRef.current) return
+    systemTaskSyncBusyRef.current = true
     setImportingTasks(true)
+
     try {
-      const [danielaResult, myAssignmentsResult] = await Promise.all([
+      const [danielaResult, myAssignmentsResult, notebookPagesResult, notebookEntriesResult] = await Promise.all([
         supabase
           .from('profiles')
           .select('id')
@@ -618,19 +624,50 @@ export default function NotebookDrawer({
           .from('task_assignees')
           .select('task_id')
           .eq('user_id', currentUser.id),
+        supabase
+          .from('notebook_pages')
+          .select('*')
+          .eq('user_id', currentUser.id)
+          .order('page_date', { ascending: false })
+          .order('page_number', { ascending: true }),
+        supabase
+          .from('notebook_entries')
+          .select('id,page_id,source_task_id,position')
+          .eq('user_id', currentUser.id),
       ])
 
-      if (danielaResult.error || myAssignmentsResult.error) {
-        throw danielaResult.error || myAssignmentsResult.error
-      }
+      const firstError =
+        danielaResult.error
+        || myAssignmentsResult.error
+        || notebookPagesResult.error
+        || notebookEntriesResult.error
 
-      const taskIds = [...new Set((myAssignmentsResult.data || []).map((item) => item.task_id))]
+      if (firstError) throw firstError
+
+      const notebookPages = (notebookPagesResult.data || []) as NotebookPage[]
+      const notebookItems = (notebookEntriesResult.data || []) as Array<{
+        id: string
+        page_id: string
+        source_task_id: string | null
+        position: number
+      }>
+
+      const linkedByTask = new Map(
+        notebookItems
+          .filter((entry): entry is typeof entry & { source_task_id: string } => Boolean(entry.source_task_id))
+          .map((entry) => [entry.source_task_id, entry]),
+      )
+
+      const assignedTaskIds = (myAssignmentsResult.data || []).map((item) => item.task_id)
+      const linkedTaskIds = [...linkedByTask.keys()]
+      const taskIds = [...new Set([...assignedTaskIds, ...linkedTaskIds])]
+
       if (!taskIds.length) {
-        onResult({ tone: 'success', message: 'Няма задачи от системата за добавяне в тефтера.' })
+        if (announce) onResult({ tone: 'success', message: 'Няма задачи от системата за синхронизиране с тефтера.' })
         return
       }
 
-      const [tasksResult, allAssigneesResult] = await Promise.all([
+      const [tasksResult, assigneesResult] = await Promise.all([
         supabase
           .from('tasks')
           .select('id,created_by,description,due_at,status')
@@ -641,12 +678,12 @@ export default function NotebookDrawer({
           .in('task_id', taskIds),
       ])
 
-      if (tasksResult.error || allAssigneesResult.error) {
-        throw tasksResult.error || allAssigneesResult.error
+      if (tasksResult.error || assigneesResult.error) {
+        throw tasksResult.error || assigneesResult.error
       }
 
       const assigneesByTask = new Map<string, string[]>()
-      ;(allAssigneesResult.data || []).forEach((assignment) => {
+      ;(assigneesResult.data || []).forEach((assignment) => {
         assigneesByTask.set(
           assignment.task_id,
           [...(assigneesByTask.get(assignment.task_id) || []), assignment.user_id],
@@ -654,18 +691,16 @@ export default function NotebookDrawer({
       })
 
       const danielaId = danielaResult.data?.id || null
-      const alreadyImported = new Set(
-        entries
-          .map((entry) => entry.source_task_id)
-          .filter((id): id is string => Boolean(id)),
-      )
-
-      const eligible = (tasksResult.data || []).filter((task) => {
-        if (task.status === 'completed') return false
-        if (localDateKey(new Date(task.due_at)) !== selectedDate) return false
-        if (alreadyImported.has(task.id)) return false
-
+      const isEligible = (task: {
+        id: string
+        created_by: string
+        description: string
+        due_at: string
+        status: string
+      }) => {
         const assignees = assigneesByTask.get(task.id) || []
+        if (!assignees.includes(currentUser.id)) return false
+
         const fromDaniela = Boolean(danielaId) && task.created_by === danielaId
         const personalToSelf =
           task.created_by === currentUser.id
@@ -673,50 +708,154 @@ export default function NotebookDrawer({
           && assignees[0] === currentUser.id
 
         return fromDaniela || personalToSelf
+      }
+
+      // Existing linked tasks are reconciled regardless of their date, so if a
+      // due date/time or description changes the notebook entry follows it.
+      // New tasks are added when their notebook day is opened.
+      const tasksToSync = (tasksResult.data || []).filter((task) => {
+        if (!isEligible(task)) return false
+        if (linkedByTask.has(task.id)) return true
+        if (task.status === 'completed') return false
+        return localDateKey(new Date(task.due_at)) === selectedDate
       })
 
-      if (!eligible.length) {
-        onResult({ tone: 'success', message: 'За този ден няма нови подходящи задачи за наливане в тефтера.' })
+      if (!tasksToSync.length) {
+        if (announce) onResult({ tone: 'success', message: 'Няма нови или променени задачи за синхронизиране.' })
         return
       }
 
-      const pageItems = entries.filter((entry) => entry.page_id === page.id)
-      const startPosition = pageItems.reduce((max, entry) => Math.max(max, entry.position), -1) + 1
+      const pagesByDate = new Map<string, NotebookPage[]>()
+      notebookPages.forEach((page) => {
+        pagesByDate.set(page.page_date, [...(pagesByDate.get(page.page_date) || []), page])
+      })
 
-      const payload = eligible
-        .sort((left, right) => new Date(left.due_at).getTime() - new Date(right.due_at).getTime())
-        .map((task, index) => {
-          const due = new Date(task.due_at)
-          const taskTime = `${String(due.getHours()).padStart(2, '0')}:${String(due.getMinutes()).padStart(2, '0')}`
-          return {
-            page_id: page.id,
-            user_id: currentUser.id,
-            body: task.description.trim(),
-            position: startPosition + index,
-            completed: false,
-            scheduled_time: taskTime,
-            source_task_id: task.id,
-          }
+      const nextPositionByPage = new Map<string, number>()
+      notebookItems.forEach((entry) => {
+        nextPositionByPage.set(
+          entry.page_id,
+          Math.max(nextPositionByPage.get(entry.page_id) ?? -1, entry.position),
+        )
+      })
+
+      const ensurePageForDate = async (dateKey: string) => {
+        const existing = (pagesByDate.get(dateKey) || [])
+          .slice()
+          .sort((left, right) => left.page_number - right.page_number)[0]
+
+        if (existing) return existing
+
+        const { data, error } = await supabase.rpc('create_notebook_page', { p_date: dateKey })
+        if (error) throw error
+
+        const created = (Array.isArray(data) ? data[0] : data) as NotebookPage | null
+        if (!created?.id) throw new Error(`Не можа да се създаде страница за ${dateKey}.`)
+
+        pagesByDate.set(dateKey, [created])
+        nextPositionByPage.set(created.id, -1)
+        return created
+      }
+
+      const payload = []
+      for (const task of tasksToSync.sort(
+        (left, right) => new Date(left.due_at).getTime() - new Date(right.due_at).getTime(),
+      )) {
+        const due = new Date(task.due_at)
+        const dateKey = localDateKey(due)
+        const targetPage = await ensurePageForDate(dateKey)
+        const linked = linkedByTask.get(task.id)
+        const nextPosition = linked?.page_id === targetPage.id
+          ? linked.position
+          : (nextPositionByPage.get(targetPage.id) ?? -1) + 1
+
+        nextPositionByPage.set(targetPage.id, Math.max(nextPositionByPage.get(targetPage.id) ?? -1, nextPosition))
+
+        payload.push({
+          page_id: targetPage.id,
+          user_id: currentUser.id,
+          body: task.description.trim(),
+          position: nextPosition,
+          completed: task.status === 'completed',
+          scheduled_time: `${String(due.getHours()).padStart(2, '0')}:${String(due.getMinutes()).padStart(2, '0')}`,
+          source_task_id: task.id,
         })
+      }
 
       const { error } = await supabase
         .from('notebook_entries')
-        .upsert(payload, { onConflict: 'user_id,source_task_id', ignoreDuplicates: true })
+        .upsert(payload, { onConflict: 'user_id,source_task_id' })
 
       if (error) throw error
 
       await loadData(true)
-      onResult({
-        tone: 'success',
-        message: `Добавени в тефтера: ${payload.length} ${payload.length === 1 ? 'задача' : 'задачи'}.`,
-      })
+
+      if (announce) {
+        onResult({
+          tone: 'success',
+          message: `Синхронизирани с тефтера: ${payload.length} ${payload.length === 1 ? 'задача' : 'задачи'}.`,
+        })
+      }
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Неизвестна грешка'
-      onResult({ tone: 'error', message: `Задачите не можаха да се налеят в тефтера: ${message}` })
+      onResult({ tone: 'error', message: `Задачите не можаха да се синхронизират с тефтера: ${message}` })
     } finally {
+      systemTaskSyncBusyRef.current = false
       setImportingTasks(false)
     }
+  }, [currentUser.id, loadData, onResult, selectedDate])
+
+  const toggleSystemTaskSync = async () => {
+    if (busy || importingTasks) return
+
+    const next = !systemTaskSyncEnabled
+    setImportingTasks(true)
+
+    const { error } = await supabase.rpc('set_notebook_task_sync_enabled', { p_enabled: next })
+
+    if (error) {
+      setImportingTasks(false)
+      onResult({ tone: 'error', message: `Режимът за задачи в тефтера не беше променен: ${error.message}` })
+      return
+    }
+
+    setSystemTaskSyncEnabled(next)
+    setImportingTasks(false)
+
+    if (next) {
+      await syncSystemTasks(true)
+    } else {
+      onResult({
+        tone: 'success',
+        message: 'Автоматичното наливане е изключено. Вече добавените записи остават в тефтера.',
+      })
+    }
   }
+
+  useEffect(() => {
+    if (!systemTaskSyncEnabled) return
+
+    void syncSystemTasks(false)
+
+    let timer: number | null = null
+    const queueSync = () => {
+      if (timer !== null) window.clearTimeout(timer)
+      timer = window.setTimeout(() => {
+        timer = null
+        void syncSystemTasks(false)
+      }, 250)
+    }
+
+    const channel = supabase
+      .channel(`notebook-system-task-sync-${currentUser.id}`)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'tasks' }, queueSync)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'task_assignees' }, queueSync)
+      .subscribe()
+
+    return () => {
+      if (timer !== null) window.clearTimeout(timer)
+      void supabase.removeChannel(channel)
+    }
+  }, [currentUser.id, systemTaskSyncEnabled, syncSystemTasks])
 
   const toggleFreeTime = () => {
     setShowFreeTime((current) => {
@@ -948,14 +1087,17 @@ export default function NotebookDrawer({
 
                 <div className="notebook-toolbar-actions">
                   <button
-                    className="notebook-import-tasks"
+                    className={systemTaskSyncEnabled ? 'notebook-import-tasks active' : 'notebook-import-tasks'}
                     type="button"
-                    onClick={() => void importSystemTasks()}
+                    onClick={() => void toggleSystemTaskSync()}
                     disabled={busy || importingTasks}
-                    title="Добави задачите за този ден, възложени от Даниела Димитрова, и личните задачи към себе си"
+                    aria-pressed={systemTaskSyncEnabled}
+                    title={systemTaskSyncEnabled
+                      ? 'Изключи автоматичното синхронизиране на задачите с тефтера'
+                      : 'Включи задачите от Даниела Димитрова и личните задачи към себе си в тефтера'}
                   >
-                    <span aria-hidden="true">↓</span>
-                    {importingTasks ? 'Наливам…' : 'Налей задачи'}
+                    <span className="notebook-toggle-box" aria-hidden="true">{systemTaskSyncEnabled ? '✓' : ''}</span>
+                    <span>{importingTasks ? 'Синхронизирам…' : systemTaskSyncEnabled ? 'Задачи в тефтера: Вкл.' : 'Задачи в тефтера: Изкл.'}</span>
                   </button>
                   <button
                     type="button"
