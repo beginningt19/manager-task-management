@@ -2758,3 +2758,46 @@
     flex: 1 1 135px;
   }
 }
+
+
+/* ======================================================================
+   NOTEBOOK ENTRY SOURCE BORDERS
+   Match the source colors already used by the calendar legend:
+   notebook = brown (#c79c4c), imported system task = blue (#4f46e5).
+   ====================================================================== */
+.notebook-entry.native-note,
+.notebook-entry.imported-task {
+  margin: 5px 0;
+  padding: 6px 8px;
+  border: 1px solid #c79c4c;
+  border-radius: 10px;
+  background: rgba(255,253,247,.32);
+  box-sizing: border-box;
+}
+
+.notebook-entry.imported-task {
+  border-color: #4f46e5;
+  background: rgba(79,70,229,.025);
+}
+
+.notebook-entry.native-note:hover {
+  border-color: #c79c4c;
+  box-shadow: 0 3px 10px rgba(199,156,76,.08);
+}
+
+.notebook-entry.imported-task:hover {
+  border-color: #4f46e5;
+  box-shadow: 0 3px 10px rgba(79,70,229,.08);
+}
+
+.notebook-entry.carried-over.native-note::before {
+  left: -4px;
+}
+
+@media (max-width: 680px) {
+  .notebook-entry.native-note,
+  .notebook-entry.imported-task {
+    padding: 7px;
+    border-radius: 9px;
+  }
+}
