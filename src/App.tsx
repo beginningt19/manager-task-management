@@ -2472,6 +2472,7 @@ function TaskDetail({
   const [updateFiles, setUpdateFiles] = useState<File[]>([])
   const [approvalNote, setApprovalNote] = useState('')
   const [busy, setBusy] = useState(false)
+  const [statusChoice, setStatusChoice] = useState<TaskStatus>('new')
   const [editing, setEditing] = useState(false)
   const [editDescription, setEditDescription] = useState('')
   const [editScheduleMode, setEditScheduleMode] = useState<TaskScheduleMode>('deadline')
@@ -2496,6 +2497,7 @@ function TaskDetail({
 
   useEffect(() => {
     if (!task) return
+    setStatusChoice(task.status)
     setEditDescription(task.description)
     const dueLocal = `${bulgarianDateKey(task.due_at)}T${formatBulgarianTime(task.due_at)}`
     setEditDueAt(dueLocal)
@@ -2618,24 +2620,43 @@ function TaskDetail({
   const changeStatus = async (status: TaskStatus) => {
     if (status === 'new' || status === 'completed' || busy) return
 
-    if (task.status === 'waiting_approval' && hasPendingApproval && status !== 'waiting_approval') {
+    if (statusChoice === 'waiting_approval' && hasPendingApproval && status !== 'waiting_approval') {
       onResult({ tone: 'error', message: 'Задачата вече е изпратена за одобрение и чака решение от Управителя.' })
       return
     }
 
-    const updatePayload = status === 'waiting_approval'
-      ? { status, approval_required: true }
-      : { status }
+    const previousStatus = statusChoice
+    setStatusChoice(status)
+    setBusy(true)
 
-    const { error } = await supabase.from('tasks').update(updatePayload).eq('id', task.id)
-    if (error) return onResult({ tone: 'error', message: error.message })
-    await Promise.all([onChanged(), loadDetail()])
-    onResult({
-      tone: 'success',
-      message: status === 'waiting_approval'
-        ? 'Статусът е „Изчаква одобрение“. Натиснете „Изпрати за одобрение“, когато сте готови.'
-        : `Статусът е променен на „${statusLabels[status]}“.`,
-    })
+    try {
+      const updatePayload = status === 'waiting_approval'
+        ? { status, approval_required: true }
+        : { status }
+
+      const { data: updated, error } = await supabase
+        .from('tasks')
+        .update(updatePayload)
+        .eq('id', task.id)
+        .select('id,status,approval_required')
+        .maybeSingle()
+
+      if (error) throw error
+      if (!updated) throw new Error('Статусът не беше записан. Опитайте отново.')
+
+      await Promise.all([onChanged(), loadDetail()])
+      onResult({
+        tone: 'success',
+        message: status === 'waiting_approval'
+          ? 'Статусът е „Изчаква одобрение“. Натиснете „Изпрати за одобрение“.'
+          : `Статусът е променен на „${statusLabels[status]}“.`,
+      })
+    } catch (error) {
+      setStatusChoice(previousStatus)
+      onResult({ tone: 'error', message: errorText(error) })
+    } finally {
+      setBusy(false)
+    }
   }
 
   const finishTask = async () => {
@@ -2931,10 +2952,11 @@ function TaskDetail({
   const canStopRecurrence = Boolean(task.recurrence_id && recurrenceActive && (currentUser.role === 'manager' || task.created_by === currentUser.id))
   const latestApproval = approvals[0] || null
   const hasPendingApproval = approvals.some((approval) => approval.status === 'pending')
-  const approvedForCompletion = !task.approval_required || latestApproval?.status === 'approved'
+  const requiresApprovalForCompletion = task.approval_required || statusChoice === 'waiting_approval'
+  const approvedForCompletion = !requiresApprovalForCompletion || latestApproval?.status === 'approved'
   const canSendForApproval = Boolean(
     canWork
-    && task.status === 'waiting_approval'
+    && statusChoice === 'waiting_approval'
     && !hasPendingApproval
   )
 
@@ -3020,15 +3042,15 @@ function TaskDetail({
                     </button>
                   )}
                 </div>
-              ) : task.status === 'waiting_approval' && hasPendingApproval ? (
+              ) : statusChoice === 'waiting_approval' && hasPendingApproval ? (
                 <strong style={{ color: '#b7791f' }}>Изчаква одобрение · изпратена към Управителя</strong>
               ) : canParticipate ? (
-                <select value={task.status} onChange={(event) => void changeStatus(event.target.value as TaskStatus)} disabled={busy}>
+                <select value={statusChoice} onChange={(event) => void changeStatus(event.target.value as TaskStatus)} disabled={busy}>
                   {statuses
                     .filter((status) => status !== 'new' && status !== 'completed')
                     .map((status) => <option key={status} value={status}>{statusLabels[status]}</option>)}
                 </select>
-              ) : <strong>{statusLabels[task.status]}</strong>}
+              ) : <strong>{statusLabels[statusChoice]}</strong>}
             </div>
             {task.starts_at && task.ends_at ? (
               <>
@@ -3049,7 +3071,7 @@ function TaskDetail({
                 <strong>
                   {hasPendingApproval
                     ? 'Задачата е изпратена за одобрение и чака решение от Управителя.'
-                    : task.status === 'waiting_approval'
+                    : statusChoice === 'waiting_approval'
                       ? 'Задачата е в „Изчаква одобрение“. Изпратете я към Управителя.'
                       : approvedForCompletion
                         ? 'Когато работата е готова, отбележете задачата като завършена.'
