@@ -2801,3 +2801,152 @@
     border-radius: 9px;
   }
 }
+
+
+/* Notebook date picker: month navigation is only browsing.
+   The notebook changes date only after an explicit day click. */
+.notebook-date-picker {
+  position: relative;
+}
+
+.notebook-date-picker-trigger {
+  min-height: 34px;
+  padding: 4px 10px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #41536c;
+  background: rgba(255,255,255,.70);
+  border: 1px solid rgba(73,91,117,.18);
+  border-radius: 11px;
+  box-shadow: 0 3px 10px rgba(40,52,70,.04);
+  cursor: pointer;
+  font: inherit;
+}
+
+.notebook-date-picker-trigger > span {
+  color: #8a7a60;
+  font-size: 9px;
+  font-weight: 750;
+  text-transform: uppercase;
+}
+
+.notebook-date-picker-trigger > strong {
+  color: #33465f;
+  font-size: 11px;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.notebook-date-picker-trigger > i {
+  color: #7f8ca0;
+  font-size: 11px;
+  font-style: normal;
+}
+
+.notebook-date-picker-popover {
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 0;
+  z-index: 30;
+  width: 292px;
+  padding: 11px;
+  color: #33465f;
+  background: #fffdf8;
+  border: 1px solid rgba(73,91,117,.20);
+  border-radius: 13px;
+  box-shadow: 0 18px 46px rgba(27,39,58,.18);
+}
+
+.notebook-date-picker-head {
+  margin-bottom: 9px;
+  display: grid;
+  grid-template-columns: 34px minmax(0,1fr) 34px;
+  align-items: center;
+  gap: 7px;
+}
+
+.notebook-date-picker-head > strong {
+  text-align: center;
+  font-size: 12px;
+  text-transform: capitalize;
+}
+
+.notebook-date-picker-head > button {
+  width: 34px;
+  height: 32px;
+  display: grid;
+  place-items: center;
+  color: #41536c;
+  background: #f7f3e9;
+  border: 1px solid rgba(73,91,117,.15);
+  border-radius: 8px;
+  cursor: pointer;
+  font: inherit;
+  font-size: 20px;
+}
+
+.notebook-date-picker-grid {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0,1fr));
+  gap: 4px;
+}
+
+.notebook-date-picker-grid > small,
+.notebook-date-picker-grid > i,
+.notebook-date-picker-grid > button {
+  min-height: 31px;
+  display: grid;
+  place-items: center;
+}
+
+.notebook-date-picker-grid > small {
+  color: #93866f;
+  font-size: 9px;
+  font-weight: 850;
+}
+
+.notebook-date-picker-grid > i {
+  pointer-events: none;
+}
+
+.notebook-date-picker-grid > button {
+  padding: 0;
+  color: #3e5068;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  cursor: pointer;
+  font: inherit;
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.notebook-date-picker-grid > button:hover {
+  background: #f3eee2;
+  border-color: #dfd2b9;
+}
+
+.notebook-date-picker-grid > button.active {
+  color: #fff;
+  background: #334b72;
+  border-color: #334b72;
+  box-shadow: 0 4px 10px rgba(51,75,114,.20);
+}
+
+@media (max-width: 680px) {
+  .notebook-date-picker {
+    flex: 1;
+  }
+
+  .notebook-date-picker-trigger {
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  .notebook-date-picker-popover {
+    left: auto;
+    right: 0;
+    width: min(292px, calc(100vw - 40px));
+  }
+}
