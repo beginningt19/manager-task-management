@@ -68,9 +68,12 @@ const OFFICE_INTRO_PENDING_KEY = 'manager-office-intro-pending'
 
 const readLowSpecPreference = () => {
   try {
-    return window.localStorage.getItem(LOW_SPEC_STORAGE_KEY) === '1'
+    const stored = window.localStorage.getItem(LOW_SPEC_STORAGE_KEY)
+    if (stored === '0') return false
+    if (stored === '1') return true
+    return true
   } catch {
-    return document.documentElement.classList.contains('low-spec')
+    return true
   }
 }
 
