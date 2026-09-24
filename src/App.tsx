@@ -2871,9 +2871,8 @@ function TaskDetail({
     setBusy(true)
 
     try {
-      // The database RPC inserts the approval request and moves the task to
-      // waiting_approval in one transaction, so the two records can never
-      // drift apart.
+      // The task is already staged as waiting_approval. This RPC creates the
+      // real pending request that the governor will receive for a decision.
       const { error } = await supabase.rpc('request_task_approval', {
         p_task_id: task.id,
         p_request_note: note?.trim() || null,
