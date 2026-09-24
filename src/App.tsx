@@ -652,6 +652,7 @@ function App() {
       .from('notebook_entries')
       .select('id,page_id,body,completed,position,scheduled_time,end_time,carried_from_date')
       .eq('user_id', session.user.id)
+      .is('source_task_id', null)
       .in('page_id', pages.map((page) => page.id))
       .order('position', { ascending: true })
       .order('created_at', { ascending: true })
@@ -1595,7 +1596,8 @@ function CalendarView({
   const notebookByDay = new Map<string, NotebookCalendarEntry[]>()
 
   tasks.forEach((task) => {
-    const key = bulgarianDateKey(task.due_at)
+    const calendarMoment = task.starts_at && task.ends_at ? task.starts_at : task.due_at
+    const key = bulgarianDateKey(calendarMoment)
     tasksByDay.set(key, [...(tasksByDay.get(key) || []), task])
   })
 
@@ -1665,7 +1667,19 @@ function CalendarView({
             const key = localDateKey(date)
             const dayTasks = tasksByDay.get(key) || []
             const dayNotebookEntries = notebookByDay.get(key) || []
-            const visibleItemCount = dayTasks.length + dayNotebookEntries.length
+            const dayItems = [
+              ...dayTasks.map((task) => ({
+                kind: 'task' as const,
+                sortTime: formatBulgarianTime(task.starts_at && task.ends_at ? task.starts_at : task.due_at),
+                task,
+              })),
+              ...dayNotebookEntries.map((entry) => ({
+                kind: 'notebook' as const,
+                sortTime: entry.scheduled_time ? entry.scheduled_time.slice(0, 5) : '99:99',
+                entry,
+              })),
+            ].sort((left, right) => left.sortTime.localeCompare(right.sortTime))
+            const visibleItemCount = dayItems.length
             const isOutside = date.getMonth() !== month
             const isToday = key === todayKey
 
@@ -1691,38 +1705,41 @@ function CalendarView({
                   >＋</button>
                 </div>
                 <div className="calendar-day-tasks">
-                  {dayTasks.map((task) => (
+                  {dayItems.map((item) => item.kind === 'task' ? (
                     <button
                       type="button"
-                      key={task.id}
-                      className={`calendar-task calendar-normal-task ${task.priority}${isOverdue(task.due_at, task.status) ? ' overdue' : ''}`}
-                      onClick={() => onOpen(task.id)}
+                      key={item.task.id}
+                      className={`calendar-task calendar-normal-task ${item.task.priority}${isOverdue(item.task.due_at, item.task.status) ? ' overdue' : ''}`}
+                      onClick={() => onOpen(item.task.id)}
                     >
-                      <time>{formatBulgarianTime(task.due_at)}</time>
-                      <span>{task.description}</span>
+                      <time>
+                        {item.task.starts_at && item.task.ends_at
+                          ? `${formatBulgarianTime(item.task.starts_at)}–${formatBulgarianTime(item.task.ends_at)}`
+                          : formatBulgarianTime(item.task.due_at)}
+                      </time>
+                      <span>{item.task.description}</span>
                     </button>
-                  ))}
-                  {dayNotebookEntries.map((entry) => (
+                  ) : (
                     <button
                       type="button"
-                      key={`notebook-${entry.id}`}
-                      className={`calendar-notebook-entry${entry.completed ? ' completed' : ''}`}
-                      onClick={() => onOpenNotebook(entry)}
-                      aria-label={`Тефтер, страница ${entry.page_number}: ${entry.body}`}
+                      key={`notebook-${item.entry.id}`}
+                      className={`calendar-notebook-entry${item.entry.completed ? ' completed' : ''}`}
+                      onClick={() => onOpenNotebook(item.entry)}
+                      aria-label={`Тефтер, страница ${item.entry.page_number}: ${item.entry.body}`}
                     >
                       <span className="calendar-notebook-entry-head">
                         <b>✎ Тефтер</b>
-                        <small>стр. {entry.page_number}</small>
+                        <small>стр. {item.entry.page_number}</small>
                       </span>
                       <span className="calendar-notebook-entry-content">
-                        {entry.scheduled_time && (
+                        {item.entry.scheduled_time && (
                           <time className="calendar-notebook-entry-time">
-                            {entry.scheduled_time.slice(0, 5)}
+                            {item.entry.scheduled_time.slice(0, 5)}
                           </time>
                         )}
-                        <span className="calendar-notebook-entry-text">{entry.body}</span>
+                        <span className="calendar-notebook-entry-text">{item.entry.body}</span>
                       </span>
-                      {entry.completed && <span className="calendar-notebook-entry-done">✓ изпълнена</span>}
+                      {item.entry.completed && <span className="calendar-notebook-entry-done">✓ изпълнена</span>}
                     </button>
                   ))}
                 </div>
