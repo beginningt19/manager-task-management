@@ -26,6 +26,8 @@ export interface TaskRow {
   created_by: string
   description: string
   due_at: string
+  starts_at: string | null
+  ends_at: string | null
   priority: Priority
   required_materials: string | null
   approval_required: boolean
