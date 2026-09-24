@@ -29,6 +29,7 @@ type NotebookEntry = {
   carried_from_entry_id: string | null
   carried_from_date: string | null
   scheduled_time: string | null
+  end_time: string | null
   source_task_id: string | null
 }
 
@@ -282,11 +283,13 @@ export default function NotebookDrawer({
   const [selectedPageId, setSelectedPageId] = useState<string | null>(initialPageId || null)
   const [draft, setDraft] = useState('')
   const [scheduledTime, setScheduledTime] = useState('')
+  const [endTime, setEndTime] = useState('')
   const [showFreeTime, setShowFreeTime] = useState(() => window.localStorage.getItem('notebook-show-free-time') === '1')
   const [gapRange, setGapRange] = useState<{ start: string; end: string } | null>(null)
   const [editingId, setEditingId] = useState<string | null>(null)
   const [editingText, setEditingText] = useState('')
   const [editingScheduledTime, setEditingScheduledTime] = useState('')
+  const [editingEndTime, setEditingEndTime] = useState('')
   const [loading, setLoading] = useState(true)
   const [busy, setBusy] = useState(false)
   const [importingTasks, setImportingTasks] = useState(false)
@@ -474,6 +477,7 @@ export default function NotebookDrawer({
     setEditingId(null)
     setGapRange(null)
     setScheduledTime('')
+    setEndTime('')
   }
 
   const choosePage = (page: NotebookPage) => {
@@ -483,6 +487,7 @@ export default function NotebookDrawer({
     setEditingId(null)
     setGapRange(null)
     setScheduledTime('')
+    setEndTime('')
   }
 
   const createPage = async (announce = true) => {
@@ -527,6 +532,16 @@ export default function NotebookDrawer({
   const saveDraft = async () => {
     const body = draft.trim()
     if (!body || busy) return
+
+    if (endTime && !scheduledTime) {
+      onResult({ tone: 'error', message: 'Изберете начален час преди крайния.' })
+      return
+    }
+    if (scheduledTime && endTime && timeToMinutes(endTime) <= timeToMinutes(scheduledTime)) {
+      onResult({ tone: 'error', message: 'Крайният час трябва да бъде след началния.' })
+      return
+    }
+
     const page = await ensurePage()
     if (!page) return
 
@@ -541,6 +556,7 @@ export default function NotebookDrawer({
       position,
       completed: false,
       scheduled_time: scheduledTime || null,
+      end_time: endTime || null,
     })
     setBusy(false)
 
@@ -551,6 +567,7 @@ export default function NotebookDrawer({
 
     setDraft('')
     setScheduledTime('')
+    setEndTime('')
     setGapRange(null)
     setVoiceInterim('')
     setVoiceMessage('')
@@ -576,23 +593,43 @@ export default function NotebookDrawer({
     setEditingId(entry.id)
     setEditingText(entry.body)
     setEditingScheduledTime(normalizeTime(entry.scheduled_time))
+    setEditingEndTime(normalizeTime(entry.end_time))
   }
 
   const saveEdit = async (entry: NotebookEntry) => {
     const body = editingText.trim()
     if (!body || busy) return
 
-    if (body === entry.body.trim() && editingScheduledTime === normalizeTime(entry.scheduled_time)) {
+    if (editingEndTime && !editingScheduledTime) {
+      onResult({ tone: 'error', message: 'Изберете начален час преди крайния.' })
+      return
+    }
+    if (editingScheduledTime && editingEndTime && timeToMinutes(editingEndTime) <= timeToMinutes(editingScheduledTime)) {
+      onResult({ tone: 'error', message: 'Крайният час трябва да бъде след началния.' })
+      return
+    }
+
+    if (
+      body === entry.body.trim()
+      && editingScheduledTime === normalizeTime(entry.scheduled_time)
+      && editingEndTime === normalizeTime(entry.end_time)
+    ) {
       setEditingId(null)
       setEditingText('')
       setEditingScheduledTime('')
+      setEditingEndTime('')
       return
     }
 
     setBusy(true)
     const { error } = await supabase
       .from('notebook_entries')
-      .update({ body, scheduled_time: editingScheduledTime || null, edited_at: new Date().toISOString() })
+      .update({
+        body,
+        scheduled_time: editingScheduledTime || null,
+        end_time: editingEndTime || null,
+        edited_at: new Date().toISOString(),
+      })
       .eq('id', entry.id)
       .eq('user_id', currentUser.id)
     setBusy(false)
@@ -605,6 +642,7 @@ export default function NotebookDrawer({
     setEditingId(null)
     setEditingText('')
     setEditingScheduledTime('')
+    setEditingEndTime('')
     await loadData(true)
   }
 
@@ -670,7 +708,7 @@ export default function NotebookDrawer({
       const [tasksResult, assigneesResult] = await Promise.all([
         supabase
           .from('tasks')
-          .select('id,created_by,description,due_at,status')
+          .select('id,created_by,description,due_at,starts_at,ends_at,status')
           .in('id', taskIds),
         supabase
           .from('task_assignees')
@@ -696,6 +734,8 @@ export default function NotebookDrawer({
         created_by: string
         description: string
         due_at: string
+        starts_at: string | null
+        ends_at: string | null
         status: string
       }) => {
         const assignees = assigneesByTask.get(task.id) || []
@@ -717,7 +757,10 @@ export default function NotebookDrawer({
         if (!isEligible(task)) return false
         if (linkedByTask.has(task.id)) return true
         if (task.status === 'completed') return false
-        return localDateKey(new Date(task.due_at)) === selectedDate
+        const notebookDate = task.starts_at && task.ends_at
+          ? localDateKey(new Date(task.starts_at))
+          : localDateKey(new Date(task.due_at))
+        return notebookDate === selectedDate
       })
 
       if (!tasksToSync.length) {
@@ -757,11 +800,16 @@ export default function NotebookDrawer({
       }
 
       const payload = []
-      for (const task of tasksToSync.sort(
-        (left, right) => new Date(left.due_at).getTime() - new Date(right.due_at).getTime(),
-      )) {
+      for (const task of tasksToSync.sort((left, right) => {
+        const leftSort = left.starts_at && left.ends_at ? new Date(left.starts_at) : new Date(left.due_at)
+        const rightSort = right.starts_at && right.ends_at ? new Date(right.starts_at) : new Date(right.due_at)
+        return leftSort.getTime() - rightSort.getTime()
+      })) {
         const due = new Date(task.due_at)
-        const dateKey = localDateKey(due)
+        const hasInterval = Boolean(task.starts_at && task.ends_at)
+        const start = hasInterval ? new Date(task.starts_at as string) : null
+        const end = hasInterval ? new Date(task.ends_at as string) : null
+        const dateKey = start ? localDateKey(start) : localDateKey(due)
         const targetPage = await ensurePageForDate(dateKey)
         const linked = linkedByTask.get(task.id)
         const nextPosition = linked?.page_id === targetPage.id
@@ -776,7 +824,12 @@ export default function NotebookDrawer({
           body: task.description.trim(),
           position: nextPosition,
           completed: task.status === 'completed',
-          scheduled_time: `${String(due.getHours()).padStart(2, '0')}:${String(due.getMinutes()).padStart(2, '0')}`,
+          scheduled_time: start
+            ? `${String(start.getHours()).padStart(2, '0')}:${String(start.getMinutes()).padStart(2, '0')}`
+            : null,
+          end_time: end
+            ? `${String(end.getHours()).padStart(2, '0')}:${String(end.getMinutes()).padStart(2, '0')}`
+            : null,
           source_task_id: task.id,
         })
       }
@@ -1187,11 +1240,21 @@ export default function NotebookDrawer({
                       value={scheduledTime}
                       onChange={(value) => {
                         setScheduledTime(value)
-                        if (!value) setGapRange(null)
+                        if (!value) {
+                          setEndTime('')
+                          setGapRange(null)
+                        }
                       }}
                       min={gapRange ? minutesToTime(timeToMinutes(gapRange.start) + 1) : undefined}
                       max={gapRange ? minutesToTime(timeToMinutes(gapRange.end) - 1) : undefined}
-                      label="Добави час"
+                      label="Начален час"
+                    />
+                    <NotebookTimeControl
+                      value={endTime}
+                      onChange={setEndTime}
+                      min={scheduledTime ? minutesToTime(timeToMinutes(scheduledTime) + 1) : undefined}
+                      max={gapRange ? minutesToTime(timeToMinutes(gapRange.end) - 1) : undefined}
+                      label="Краен час"
                     />
                     <button type="button" onClick={() => void saveDraft()} disabled={!draft.trim() || busy}>
                       {busy ? 'Записване…' : 'Запиши задачата'}
@@ -1210,8 +1273,11 @@ export default function NotebookDrawer({
                   </div>
                 ) : pageEntries.map((entry, index) => {
                   const currentTime = normalizeTime(entry.scheduled_time)
+                  const currentEndTime = normalizeTime(entry.end_time) || currentTime
                   const nextTime = normalizeTime(pageEntries[index + 1]?.scheduled_time)
-                  const gapMinutes = currentTime && nextTime ? timeToMinutes(nextTime) - timeToMinutes(currentTime) : 0
+                  const gapMinutes = currentEndTime && nextTime
+                    ? timeToMinutes(nextTime) - timeToMinutes(currentEndTime)
+                    : 0
 
                   return (
                     <Fragment key={entry.id}>
@@ -1231,7 +1297,15 @@ export default function NotebookDrawer({
 
                         <div className="notebook-entry-body">
                           <div className="notebook-entry-badges">
-                            {currentTime && <span className="notebook-entry-time"><span aria-hidden="true">🕒</span>{currentTime}</span>}
+                            {currentTime && (
+                              <span className="notebook-entry-time">
+                                <span aria-hidden="true">🕒</span>
+                                {currentEndTime && currentEndTime !== currentTime ? `${currentTime}–${currentEndTime}` : currentTime}
+                              </span>
+                            )}
+                            {entry.source_task_id && !currentTime && (
+                              <span className="notebook-source-deadline"><span aria-hidden="true">↓</span> Краен срок</span>
+                            )}
                             {entry.carried_from_date && (
                               <div className="notebook-carry-badge" title={`Прехвърлена от ${formatLongDate(entry.carried_from_date)}`}>
                                 <span aria-hidden="true">↪</span>
@@ -1252,8 +1326,17 @@ export default function NotebookDrawer({
                               <div className="notebook-edit-time-row">
                                 <NotebookTimeControl
                                   value={editingScheduledTime}
-                                  onChange={setEditingScheduledTime}
+                                  onChange={(value) => {
+                                    setEditingScheduledTime(value)
+                                    if (!value) setEditingEndTime('')
+                                  }}
                                   label="Начален час"
+                                />
+                                <NotebookTimeControl
+                                  value={editingEndTime}
+                                  onChange={setEditingEndTime}
+                                  min={editingScheduledTime ? minutesToTime(timeToMinutes(editingScheduledTime) + 1) : undefined}
+                                  label="Краен час"
                                 />
                               </div>
                             </div>
@@ -1270,7 +1353,7 @@ export default function NotebookDrawer({
                           {editingId === entry.id ? (
                             <>
                               <button type="button" className="save" onClick={() => void saveEdit(entry)} disabled={!editingText.trim() || busy}>Запази</button>
-                              <button type="button" onClick={() => { setEditingId(null); setEditingScheduledTime('') }}>Отказ</button>
+                              <button type="button" onClick={() => { setEditingId(null); setEditingScheduledTime(''); setEditingEndTime('') }}>Отказ</button>
                             </>
                           ) : (
                             <>
@@ -1296,9 +1379,9 @@ export default function NotebookDrawer({
                           type="button"
                           className="notebook-free-gap"
                           style={{ minHeight: `${Math.max(38, gapMinutes * 0.55)}px` }}
-                          onClick={() => openGapComposer(currentTime, nextTime)}
+                          onClick={() => openGapComposer(currentEndTime, nextTime)}
                           disabled={gapMinutes <= 1}
-                          title={gapMinutes > 1 ? `Добави задача между ${currentTime} и ${nextTime}` : undefined}
+                          title={gapMinutes > 1 ? `Добави задача между ${currentEndTime} и ${nextTime}` : undefined}
                         >
                           <span className="notebook-free-gap-line" />
                           <strong>{formatFreeDuration(gapMinutes)} свободно време</strong>
