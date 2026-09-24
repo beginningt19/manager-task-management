@@ -322,7 +322,6 @@ function App() {
   const [notebookCalendarEntries, setNotebookCalendarEntries] = useState<NotebookCalendarEntry[]>([])
   const [query, setQuery] = useState('')
   const [statusFilter, setStatusFilter] = useState<'all' | TaskStatus>('all')
-  const [priorityFilter, setPriorityFilter] = useState<'all' | Priority>('all')
   const [assigneeFilter, setAssigneeFilter] = useState('all')
   const [overdueOnly, setOverdueOnly] = useState(false)
   const [categoryFocus, setCategoryFocus] = useState<TaskCategory | null>(null)
@@ -709,12 +708,11 @@ function App() {
     return tasks.filter((task) => {
       if (needle && !task.description.toLocaleLowerCase('bg-BG').includes(needle)) return false
       if (statusFilter !== 'all' && task.status !== statusFilter) return false
-      if (priorityFilter !== 'all' && task.priority !== priorityFilter) return false
       if (assigneeFilter !== 'all' && !task.assignees.some((person) => person.id === assigneeFilter)) return false
       if (overdueOnly && !isOverdue(task.due_at, task.status)) return false
       return true
     })
-  }, [tasks, query, statusFilter, priorityFilter, assigneeFilter, overdueOnly])
+  }, [tasks, query, statusFilter, assigneeFilter, overdueOnly])
 
   const counts = useMemo(() => {
     const next: Record<TaskCategory, number> = { open: 0, active: 0, approval: 0, overdue: 0, completed: 0 }
@@ -916,10 +914,6 @@ function App() {
             <select value={statusFilter} onChange={(event) => { setStatusFilter(event.target.value as 'all' | TaskStatus); setCategoryFocus(null) }} aria-label="Статус">
               <option value="all">Всички статуси</option>
               {statuses.filter((status) => status !== 'completed').map((status) => <option key={status} value={status}>{statusLabels[status]}</option>)}
-            </select>
-            <select value={priorityFilter} onChange={(event) => setPriorityFilter(event.target.value as 'all' | Priority)} aria-label="Приоритет">
-              <option value="all">Всички приоритети</option>
-              {priorities.map((priority) => <option key={priority} value={priority}>{priorityLabels[priority]}</option>)}
             </select>
             <select value={assigneeFilter} onChange={(event) => setAssigneeFilter(event.target.value)} aria-label="Изпълнител">
               <option value="all">Всички изпълнители</option>
@@ -1920,7 +1914,6 @@ function CreateTaskModal({
     return dateTimeLocalValue(start)
   })
   const [endAt, setEndAt] = useState(dateTimeLocalValue(initialSchedule))
-  const [priority, setPriority] = useState<Priority>('normal')
   const [materials, setMaterials] = useState('')
   const [approvalRequired, setApprovalRequired] = useState(false)
   const [selected, setSelected] = useState<string[]>([])
@@ -2143,7 +2136,7 @@ function CreateTaskModal({
       const [startDate, localTime = '17:00'] = dueAt.split('T')
       const { data, error } = await supabase.rpc('create_recurring_task', {
         p_description: description.trim(),
-        p_priority: priority,
+        p_priority: 'normal',
         p_required_materials: materials.trim() || null,
         p_approval_required: approvalRequired,
         p_assignee_ids: personal ? [profile.id] : selected,
@@ -2196,7 +2189,7 @@ function CreateTaskModal({
     const { data, error } = await supabase.rpc('create_task_with_assignees', {
       p_description: description.trim(),
       p_due_at: new Date(effectiveDueAt).toISOString(),
-      p_priority: priority,
+      p_priority: 'normal',
       p_required_materials: materials.trim() || null,
       p_approval_required: approvalRequired,
       p_assignee_ids: personal ? [profile.id] : selected,
@@ -2316,8 +2309,6 @@ function CreateTaskModal({
             />
           )}
         </fieldset>
-
-        <label>Приоритет<select value={priority} onChange={(event) => setPriority(event.target.value as Priority)}>{priorities.map((item) => <option key={item} value={item}>{priorityLabels[item]}</option>)}</select></label>
 
         <fieldset style={{ padding: 14, border: '1px solid #dbe7f6', borderRadius: 14, background: '#f8faff' }}>
           <legend style={{ padding: '0 6px', fontWeight: 750 }}>Повторение на задачата</legend>
@@ -2479,7 +2470,6 @@ function TaskDetail({
   const [editDueAt, setEditDueAt] = useState('')
   const [editStartAt, setEditStartAt] = useState('')
   const [editEndAt, setEditEndAt] = useState('')
-  const [editPriority, setEditPriority] = useState<Priority>('normal')
   const [editMaterials, setEditMaterials] = useState('')
   const [editApprovalRequired, setEditApprovalRequired] = useState(false)
   const [editFiles, setEditFiles] = useState<File[]>([])
@@ -2512,7 +2502,6 @@ function TaskDetail({
       setEditStartAt(dateTimeLocalValue(fallbackStart))
       setEditEndAt(dueLocal)
     }
-    setEditPriority(task.priority)
     setEditMaterials(task.required_materials || '')
     setEditApprovalRequired(task.approval_required)
     setEditFiles([])
@@ -2743,7 +2732,6 @@ function TaskDetail({
       due_at: new Date(effectiveEditDueAt).toISOString(),
       starts_at: editScheduleMode === 'interval' ? new Date(editStartAt).toISOString() : null,
       ends_at: editScheduleMode === 'interval' ? new Date(editEndAt).toISOString() : null,
-      priority: editPriority,
       required_materials: editMaterials.trim() || null,
       approval_required: editApprovalRequired,
     }).eq('id', task.id).eq('created_by', currentUser.id)
@@ -2998,7 +2986,6 @@ function TaskDetail({
                   <BulgarianDateTimeField value={editDueAt} onChange={setEditDueAt} />
                 )}
               </fieldset>
-              <label>Приоритет<select value={editPriority} onChange={(event) => setEditPriority(event.target.value as Priority)}>{priorities.map((item) => <option key={item} value={item}>{priorityLabels[item]}</option>)}</select></label>
               <label>Необходими материали<textarea rows={2} value={editMaterials} onChange={(event) => setEditMaterials(event.target.value)} placeholder="Линкове, документи или допълнителна информация" /></label>
               <label className="switch-row"><input type="checkbox" checked={editApprovalRequired} onChange={(event) => setEditApprovalRequired(event.target.checked)} /><span>Необходимо е одобрение преди завършване</span></label>
               {task.recurrence_id && recurrenceActive && (
