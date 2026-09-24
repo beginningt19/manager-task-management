@@ -1886,3 +1886,29 @@ button.stat-card.green.active { border-color: rgba(22,128,111,.45); box-shadow: 
     padding: 13px 16px 15px;
   }
 }
+
+
+/* Notebook events in the calendar show their scheduled time like normal tasks. */
+.calendar-notebook-entry-content {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: start;
+  gap: 6px;
+}
+
+.calendar-notebook-entry-time {
+  color: var(--muted);
+  font-size: 7px;
+  font-weight: 800;
+  line-height: 1.38;
+  white-space: nowrap;
+}
+
+.calendar-notebook-entry-content .calendar-notebook-entry-text {
+  min-width: 0;
+}
+
+.calendar-notebook-entry-content:not(:has(.calendar-notebook-entry-time)) {
+  grid-template-columns: minmax(0, 1fr);
+}
