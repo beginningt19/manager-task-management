@@ -324,6 +324,9 @@ function App() {
   const [categoryFocus, setCategoryFocus] = useState<TaskCategory | null>(null)
   const [managerVisibilityMode, setManagerVisibilityMode] = useState<ManagerVisibilityMode>('all')
   const [visibilityBusy, setVisibilityBusy] = useState(false)
+  const [connectionEpoch, setConnectionEpoch] = useState(0)
+  const resumeSyncRef = useRef<Promise<void> | null>(null)
+  const lastResumeAtRef = useRef(0)
 
   useEffect(() => {
     lowSpecRef.current = lowSpec
@@ -399,11 +402,26 @@ function App() {
   }, [session?.user.id, showToast])
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data }) => {
-      setSession(data.session)
-      setAuthReady(true)
-      if (needsInitialPassword(data.session)) setPasswordOpen(true)
-    })
+    let cancelled = false
+
+    const initializeSession = async () => {
+      try {
+        const { data, error } = await supabase.auth.getSession()
+        if (cancelled) return
+        if (error) throw error
+        setSession(data.session)
+        if (needsInitialPassword(data.session)) setPasswordOpen(true)
+      } catch (error) {
+        if (!cancelled) {
+          showToast({ tone: 'error', message: `Сесията не можа да се възстанови: ${errorText(error)}` })
+        }
+      } finally {
+        if (!cancelled) setAuthReady(true)
+      }
+    }
+
+    void initializeSession()
+
     const { data } = supabase.auth.onAuthStateChange((event, nextSession) => {
       let shouldPlayOfficeIntro = false
 
@@ -446,8 +464,12 @@ function App() {
         })
       }
     })
-    return () => data.subscription.unsubscribe()
-  }, [])
+
+    return () => {
+      cancelled = true
+      data.subscription.unsubscribe()
+    }
+  }, [showToast])
 
   useEffect(() => {
     if (!session) {
@@ -467,7 +489,7 @@ function App() {
   useEffect(() => {
     if (!session) return
     const channel = supabase
-      .channel('core-dashboard')
+      .channel(`core-dashboard-${session.user.id}-${connectionEpoch}`)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'tasks' }, loadCore)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'task_assignees' }, loadCore)
       .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'task_visibility_settings' }, loadCore)
@@ -476,7 +498,70 @@ function App() {
     return () => {
       void supabase.removeChannel(channel)
     }
-  }, [session, loadCore])
+  }, [session, loadCore, connectionEpoch])
+
+  useEffect(() => {
+    if (!session?.user.id) return
+
+    let disposed = false
+
+    const resume = () => {
+      if (document.visibilityState === 'hidden' || !navigator.onLine) return
+
+      const now = Date.now()
+      if (resumeSyncRef.current || now - lastResumeAtRef.current < 750) return
+      lastResumeAtRef.current = now
+
+      const operation = (async () => {
+        try {
+          // Mobile browsers can suspend timers and the Realtime socket while the
+          // tab/PWA is in the background. Re-read the persisted session first so
+          // Supabase can recover/refresh it before any task request is attempted.
+          const { data, error } = await supabase.auth.getSession()
+          if (error) throw error
+          if (disposed) return
+
+          if (!data.session) {
+            setSession(null)
+            return
+          }
+
+          if (data.session.access_token !== session.access_token) {
+            setSession(data.session)
+          }
+
+          await loadCore()
+          if (!disposed) setConnectionEpoch((current) => current + 1)
+        } catch (error) {
+          if (!disposed) {
+            showToast({ tone: 'error', message: `Връзката не можа да се възстанови: ${errorText(error)}` })
+          }
+        }
+      })()
+
+      resumeSyncRef.current = operation
+      void operation.finally(() => {
+        if (resumeSyncRef.current === operation) resumeSyncRef.current = null
+      })
+    }
+
+    const onVisibilityChange = () => {
+      if (document.visibilityState === 'visible') resume()
+    }
+
+    document.addEventListener('visibilitychange', onVisibilityChange)
+    window.addEventListener('pageshow', resume)
+    window.addEventListener('focus', resume)
+    window.addEventListener('online', resume)
+
+    return () => {
+      disposed = true
+      document.removeEventListener('visibilitychange', onVisibilityChange)
+      window.removeEventListener('pageshow', resume)
+      window.removeEventListener('focus', resume)
+      window.removeEventListener('online', resume)
+    }
+  }, [session?.user.id, session?.access_token, loadCore, showToast])
 
   const loadNotebookCalendarEntries = useCallback(async () => {
     if (!session?.user.id || !notebookCalendarEnabled || dashboardView !== 'calendar') {
@@ -2461,12 +2546,40 @@ function TaskDetail({
   const acceptTask = async () => {
     if (!canAccept || busy) return
     setBusy(true)
-    const { error } = await supabase.from('tasks').update({ status: 'in_progress' }).eq('id', task.id).eq('status', 'new')
-    setBusy(false)
-    if (error) return onResult({ tone: 'error', message: error.message })
-    await onChanged()
-    await loadDetail()
-    onResult({ tone: 'success', message: 'Задачата е приета и вече е „В процес“.' })
+
+    try {
+      // Validate/recover the persisted session before the mutation. This is
+      // especially important after Android/iOS has suspended the app/tab.
+      const { data: authData, error: authError } = await supabase.auth.getSession()
+      if (authError) throw authError
+      if (!authData.session) throw new Error('Сесията е прекъсната. Влезте отново в акаунта.')
+
+      const { data: accepted, error } = await supabase
+        .from('tasks')
+        .update({ status: 'in_progress' })
+        .eq('id', task.id)
+        .eq('status', 'new')
+        .select('id,status')
+        .maybeSingle()
+
+      if (error) throw error
+
+      if (!accepted) {
+        await Promise.all([onChanged(), loadDetail()])
+        onResult({
+          tone: 'error',
+          message: 'Задачата не беше променена. Списъкът е синхронизиран — проверете дали вече не е приета от друг потребител.',
+        })
+        return
+      }
+
+      await Promise.all([onChanged(), loadDetail()])
+      onResult({ tone: 'success', message: 'Задачата е приета и вече е „В процес“.' })
+    } catch (error) {
+      onResult({ tone: 'error', message: errorText(error) })
+    } finally {
+      setBusy(false)
+    }
   }
 
   const changeStatus = async (status: TaskStatus) => {
