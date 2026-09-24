@@ -1931,40 +1931,87 @@ button.stat-card.green.active { border-color: rgba(22,128,111,.45); box-shadow: 
 }
 
 
-/* Wider task details/edit drawer.
-   Scoped only to task details so other drawers/modals stay unchanged. */
+/* Task detail/edit drawer: moderately wider, with a collision-proof
+   two-calendar layout only inside the interval editor. */
 .detail-drawer {
-  width: min(960px, 100%);
+  width: min(1000px, 100%);
 }
 
 .detail-drawer .task-schedule-range-grid {
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 14px;
+  gap: 16px;
   align-items: start;
 }
 
 .detail-drawer .task-schedule-range-grid > .bulgarian-datetime {
+  width: 100%;
   min-width: 0;
+  max-width: 100%;
   overflow: hidden;
+  box-sizing: border-box;
 }
 
-.detail-drawer .bulgarian-datetime-controls {
-  grid-template-columns: 56px minmax(96px, 1fr) 78px 56px 56px;
-  gap: 7px;
+/* Date on row 1, time on row 2. This removes the wide seven-column
+   control row that caused the two interval calendars to collide. */
+.detail-drawer .task-schedule-range-grid .bulgarian-datetime-controls {
+  width: 100%;
+  min-width: 0;
+  grid-template-columns: minmax(62px, .8fr) minmax(112px, 1.45fr) minmax(82px, 1fr);
+  gap: 8px;
 }
 
-.detail-drawer .bulgarian-datetime-controls .datetime-at,
-.detail-drawer .bulgarian-datetime-controls .datetime-separator {
+.detail-drawer .task-schedule-range-grid .bulgarian-datetime-controls .datetime-at,
+.detail-drawer .task-schedule-range-grid .bulgarian-datetime-controls .datetime-separator {
   display: none;
 }
 
-.detail-drawer .bulgarian-datetime-controls select {
+.detail-drawer .task-schedule-range-grid .bulgarian-datetime-controls label {
   min-width: 0;
-  padding-inline: 6px;
+}
+
+.detail-drawer .task-schedule-range-grid .bulgarian-datetime-controls label:nth-of-type(1) {
+  grid-column: 1;
+  grid-row: 1;
+}
+
+.detail-drawer .task-schedule-range-grid .bulgarian-datetime-controls label:nth-of-type(2) {
+  grid-column: 2;
+  grid-row: 1;
+}
+
+.detail-drawer .task-schedule-range-grid .bulgarian-datetime-controls label:nth-of-type(3) {
+  grid-column: 3;
+  grid-row: 1;
+}
+
+.detail-drawer .task-schedule-range-grid .bulgarian-datetime-controls label:nth-of-type(4) {
+  grid-column: 1;
+  grid-row: 2;
+}
+
+.detail-drawer .task-schedule-range-grid .bulgarian-datetime-controls label:nth-of-type(5) {
+  grid-column: 2;
+  grid-row: 2;
+}
+
+.detail-drawer .task-schedule-range-grid .bulgarian-datetime-controls select {
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+  padding-inline: 7px;
   font-size: 13px;
 }
 
-@media (max-width: 900px) {
+.detail-drawer .task-schedule-range-grid .bulgarian-mini-calendar,
+.detail-drawer .task-schedule-range-grid .bulgarian-mini-calendar-grid,
+.detail-drawer .task-schedule-range-grid .bulgarian-datetime-preview {
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+@media (max-width: 920px) {
   .detail-drawer .task-schedule-range-grid {
     grid-template-columns: 1fr;
   }
