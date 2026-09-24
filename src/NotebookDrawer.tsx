@@ -281,6 +281,11 @@ export default function NotebookDrawer({
   const [pages, setPages] = useState<NotebookPage[]>([])
   const [entries, setEntries] = useState<NotebookEntry[]>([])
   const [selectedDate, setSelectedDate] = useState(initialDate || localDateKey())
+  const [datePickerOpen, setDatePickerOpen] = useState(false)
+  const [datePickerCursor, setDatePickerCursor] = useState(() => {
+    const initial = dateFromKey(initialDate || localDateKey())
+    return new Date(initial.getFullYear(), initial.getMonth(), 1)
+  })
   const [selectedPageId, setSelectedPageId] = useState<string | null>(initialPageId || null)
   const [draft, setDraft] = useState('')
   const [scheduledTime, setScheduledTime] = useState('')
@@ -410,14 +415,15 @@ export default function NotebookDrawer({
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
-        if (listening) recognitionRef.current?.stop()
+        if (datePickerOpen) setDatePickerOpen(false)
+        else if (listening) recognitionRef.current?.stop()
         else if (editingId) setEditingId(null)
         else onClose()
       }
     }
     document.addEventListener('keydown', onKeyDown)
     return () => document.removeEventListener('keydown', onKeyDown)
-  }, [editingId, listening, onClose])
+  }, [datePickerOpen, editingId, listening, onClose])
 
   const pagesForDate = useMemo(
     () => pages.filter((page) => page.page_date === selectedDate).sort((a, b) => a.page_number - b.page_number),
@@ -464,12 +470,47 @@ export default function NotebookDrawer({
     })
   }, [selectedDate])
 
+  const datePickerMonthLabel = useMemo(
+    () => new Intl.DateTimeFormat('bg-BG', { month: 'long', year: 'numeric' }).format(datePickerCursor),
+    [datePickerCursor],
+  )
+
+  const datePickerDays = useMemo(() => {
+    const year = datePickerCursor.getFullYear()
+    const month = datePickerCursor.getMonth()
+    const firstDayOffset = (new Date(year, month, 1).getDay() + 6) % 7
+    const daysInMonth = new Date(year, month + 1, 0).getDate()
+
+    return [
+      ...Array.from({ length: firstDayOffset }, () => null),
+      ...Array.from({ length: daysInMonth }, (_, index) => index + 1),
+    ]
+  }, [datePickerCursor])
+
   const completedCount = pageEntries.filter((entry) => entry.completed).length
   const activePageNumber = selectedPage?.page_number || 1
 
   const triggerPageTurn = (direction: 'forward' | 'backward') => {
     setPageTurn(direction)
     setPageTurnNonce((value) => value + 1)
+  }
+
+  const toggleDatePicker = () => {
+    if (!datePickerOpen) {
+      const active = dateFromKey(selectedDate)
+      setDatePickerCursor(new Date(active.getFullYear(), active.getMonth(), 1))
+    }
+    setDatePickerOpen((current) => !current)
+  }
+
+  const moveDatePickerMonth = (step: number) => {
+    setDatePickerCursor((current) => new Date(current.getFullYear(), current.getMonth() + step, 1))
+  }
+
+  const chooseDatePickerDay = (day: number) => {
+    const date = new Date(datePickerCursor.getFullYear(), datePickerCursor.getMonth(), day)
+    chooseDate(localDateKey(date))
+    setDatePickerOpen(false)
   }
 
   const chooseDate = (date: string) => {
@@ -1141,15 +1182,48 @@ export default function NotebookDrawer({
             >
               <div className="notebook-toolbar">
                 <div className="notebook-date-control notebook-date-control-paper">
-                  <button type="button" onClick={() => chooseDate(localDateKey())}>Днес</button>
-                  <label>
-                    <span>Дата</span>
-                    <input
-                      type="date"
-                      value={selectedDate}
-                      onChange={(event) => chooseDate(event.target.value || localDateKey())}
-                    />
-                  </label>
+                  <button type="button" onClick={() => { chooseDate(localDateKey()); setDatePickerOpen(false) }}>Днес</button>
+                  <div className="notebook-date-picker">
+                    <button
+                      type="button"
+                      className="notebook-date-picker-trigger"
+                      onClick={toggleDatePicker}
+                      aria-expanded={datePickerOpen}
+                    >
+                      <span>Дата</span>
+                      <strong>{new Intl.DateTimeFormat('bg-BG').format(dateFromKey(selectedDate))}</strong>
+                      <i aria-hidden="true">⌄</i>
+                    </button>
+                    {datePickerOpen && (
+                      <div className="notebook-date-picker-popover">
+                        <div className="notebook-date-picker-head">
+                          <button type="button" onClick={() => moveDatePickerMonth(-1)} aria-label="Предишен месец">‹</button>
+                          <strong>{datePickerMonthLabel}</strong>
+                          <button type="button" onClick={() => moveDatePickerMonth(1)} aria-label="Следващ месец">›</button>
+                        </div>
+                        <div className="notebook-date-picker-grid">
+                          {['П', 'В', 'С', 'Ч', 'П', 'С', 'Н'].map((weekday, index) => (
+                            <small key={`${weekday}-${index}`}>{weekday}</small>
+                          ))}
+                          {datePickerDays.map((day, index) => {
+                            if (!day) return <i key={`blank-${index}`} aria-hidden="true" />
+                            const key = localDateKey(new Date(datePickerCursor.getFullYear(), datePickerCursor.getMonth(), day))
+                            return (
+                              <button
+                                key={key}
+                                type="button"
+                                className={key === selectedDate ? 'active' : ''}
+                                onClick={() => chooseDatePickerDay(day)}
+                                aria-label={formatLongDate(key)}
+                              >
+                                {day}
+                              </button>
+                            )
+                          })}
+                        </div>
+                      </div>
+                    )}
+                  </div>
                 </div>
 
                 <div className="notebook-toolbar-actions">
