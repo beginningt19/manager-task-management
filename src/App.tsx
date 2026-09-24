@@ -1640,7 +1640,11 @@ function TaskCard({ task, onOpen }: { task: TaskView; onOpen: () => void }) {
         </div>
         <h3>{task.description}</h3>
         <div className="task-meta">
-          <span className={overdue ? 'overdue-text' : ''}>◷ {formatDateTime(task.due_at)}</span>
+          <span className={overdue ? 'overdue-text' : ''}>
+            ◷ {task.starts_at && task.ends_at
+              ? `${formatDateTime(task.starts_at)} → ${formatDateTime(task.ends_at)}`
+              : formatDateTime(task.due_at)}
+          </span>
           <span>Възложил: {task.creator?.display_name || '—'}</span>
         </div>
       </div>
