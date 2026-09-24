@@ -1297,7 +1297,7 @@ export default function NotebookDrawer({
                   return (
                     <Fragment key={entry.id}>
                       <div
-                        className={`notebook-entry${entry.completed ? ' completed' : ''}${entry.carried_from_date ? ' carried-over' : ''}${currentTime ? ' has-scheduled-time' : ''}`}
+                        className={`notebook-entry${entry.source_task_id ? ' imported-task' : ' native-note'}${entry.completed ? ' completed' : ''}${entry.carried_from_date ? ' carried-over' : ''}${currentTime ? ' has-scheduled-time' : ''}`}
                       >
                         <div className="notebook-entry-number">{String(index + 1).padStart(2, '0')}</div>
                         <button
