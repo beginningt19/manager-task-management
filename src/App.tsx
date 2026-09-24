@@ -791,7 +791,7 @@ function App() {
     setCalendarFullView(false)
     setStatusFilter('all')
     setOverdueOnly(false)
-    setCategoryFocus((current) => current === category ? null : category)
+    setCategoryFocus(category)
     window.setTimeout(() => {
       document.querySelector('.task-panel')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
     }, 0)
@@ -928,7 +928,6 @@ function App() {
           <div className="panel-heading">
             <h2>{categoryFocus ? taskCategoryLabels[categoryFocus] : 'Задачи'} <span>{visibleListCount}</span></h2>
             <div className="panel-actions">
-              {categoryFocus && <button className="text-button" onClick={() => setCategoryFocus(null)}>Всички задачи</button>}
               <div className="view-switch" aria-label="Изглед на задачите">
                 <button className={dashboardView === 'list' ? 'active' : ''} onClick={() => { setDashboardView('list'); setCalendarFullView(false) }} aria-pressed={dashboardView === 'list'}>Списък</button>
               </div>
