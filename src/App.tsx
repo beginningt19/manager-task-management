@@ -355,6 +355,55 @@ function App() {
     setLowSpec((current) => !current)
   }, [])
 
+  useEffect(() => {
+    const currentModuleSrc = Array.from(document.scripts)
+      .find((script) => script.type === 'module' && script.src)?.src
+    if (!currentModuleSrc) return
+
+    let checking = false
+    let disposed = false
+
+    const checkForNewBuild = async () => {
+      if (checking || disposed || document.visibilityState === 'hidden' || !navigator.onLine) return
+      checking = true
+      try {
+        const response = await fetch(`/?__build_check=${Date.now()}`, {
+          cache: 'no-store',
+          headers: { 'Cache-Control': 'no-cache' },
+        })
+        if (!response.ok || disposed) return
+
+        const html = await response.text()
+        const parsed = new DOMParser().parseFromString(html, 'text/html')
+        const nextSrc = parsed.querySelector<HTMLScriptElement>('script[type="module"][src]')?.src
+        if (nextSrc && nextSrc !== currentModuleSrc) {
+          window.location.reload()
+        }
+      } catch {
+        // A version check must never interrupt normal app use.
+      } finally {
+        checking = false
+      }
+    }
+
+    const onVisibilityChange = () => {
+      if (document.visibilityState === 'visible') void checkForNewBuild()
+    }
+
+    document.addEventListener('visibilitychange', onVisibilityChange)
+    window.addEventListener('focus', checkForNewBuild)
+    window.addEventListener('online', checkForNewBuild)
+    const intervalId = window.setInterval(() => void checkForNewBuild(), 5 * 60 * 1000)
+
+    return () => {
+      disposed = true
+      document.removeEventListener('visibilitychange', onVisibilityChange)
+      window.removeEventListener('focus', checkForNewBuild)
+      window.removeEventListener('online', checkForNewBuild)
+      window.clearInterval(intervalId)
+    }
+  }, [])
+
   const showToast = useCallback((next: Toast) => {
     setToast(next)
     window.setTimeout(() => setToast(null), 4500)
@@ -2603,11 +2652,6 @@ function TaskDetail({
     }
 
     if (status === 'waiting_approval') {
-      if (!task.approval_required) {
-        onResult({ tone: 'error', message: 'За тази задача не е включено изискване за одобрение.' })
-        return
-      }
-
       setBusy(true)
       try {
         const { error } = await supabase.rpc('request_task_approval', {
@@ -3007,12 +3051,12 @@ function TaskDetail({
               ) : canParticipate ? (
                 <select value={task.status} onChange={(event) => void changeStatus(event.target.value as TaskStatus)} disabled={busy}>
                   {statuses
-                    .filter((status) =>
-                      status !== 'new'
-                      && status !== 'completed'
-                      && (status !== 'waiting_approval' || task.approval_required)
-                    )
-                    .map((status) => <option key={status} value={status}>{statusLabels[status]}</option>)}
+                    .filter((status) => status !== 'new' && status !== 'completed')
+                    .map((status) => (
+                      <option key={status} value={status}>
+                        {status === 'waiting_approval' ? 'Изпрати за одобрение' : statusLabels[status]}
+                      </option>
+                    ))}
                 </select>
               ) : <strong>{statusLabels[task.status]}</strong>}
             </div>
@@ -3094,7 +3138,7 @@ function TaskDetail({
             </section>
           ) : tab === 'approvals' ? (
             <section className="detail-section">
-              {canWork && task.approval_required && !approvals.some((approval) => approval.status === 'pending') && (
+              {canWork && !approvals.some((approval) => approval.status === 'pending') && (
                 <form className="approval-request" onSubmit={requestApproval}><input value={approvalNote} onChange={(event) => setApprovalNote(event.target.value)} placeholder="Бележка към заявката (по желание)" /><button className="primary-button" disabled={busy}>Изпрати за одобрение</button></form>
               )}
               <div className="approval-list">
@@ -3106,7 +3150,7 @@ function TaskDetail({
                     {approval.status === 'pending' && currentUser.display_role === 'Управител' && <div className="approval-actions"><button disabled={busy} onClick={() => void decideApproval(approval, 'changes_requested')}>Върни за промени</button><button className="danger-soft" disabled={busy} onClick={() => void decideApproval(approval, 'rejected')}>Отхвърли</button><button className="success-button" disabled={busy} onClick={() => void decideApproval(approval, 'approved')}>Одобри</button></div>}
                   </article>
                 ))}
-                {approvals.length === 0 && <EmptySmall text={task.status === 'new' ? 'Одобрение може да се заяви след приемане на задачата.' : task.approval_required ? 'Все още няма заявка за одобрение.' : 'За тази задача не е изискано одобрение.'} />}
+                {approvals.length === 0 && <EmptySmall text={task.status === 'new' ? 'Одобрение може да се заяви след приемане на задачата.' : 'Все още няма заявка за одобрение. Изпратете задачата за одобрение, когато е готова за преглед.'} />}
               </div>
             </section>
           ) : (
