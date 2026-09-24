@@ -2503,6 +2503,20 @@
   border-color: #b9d0e3;
 }
 
+.notebook-import-tasks.active {
+  color: #24524b;
+  background: #e8f3ee;
+  border-color: #9fc8b9;
+  box-shadow: 0 4px 12px rgba(54,91,85,.10);
+}
+
+.notebook-import-tasks.active .notebook-toggle-box {
+  color: #fff;
+  background: #365b55;
+  border-color: #365b55;
+  box-shadow: none;
+}
+
 .notebook-import-tasks:disabled {
   opacity: .55;
   cursor: default;
