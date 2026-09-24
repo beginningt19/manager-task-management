@@ -30,6 +30,7 @@ type NotebookEntry = {
   carried_from_date: string | null
   scheduled_time: string | null
   end_time: string | null
+  deadline_time: string | null
   source_task_id: string | null
 }
 
@@ -834,6 +835,9 @@ export default function NotebookDrawer({
           end_time: end
             ? `${String(end.getHours()).padStart(2, '0')}:${String(end.getMinutes()).padStart(2, '0')}`
             : null,
+          deadline_time: start
+            ? null
+            : `${String(due.getHours()).padStart(2, '0')}:${String(due.getMinutes()).padStart(2, '0')}`,
           source_task_id: task.id,
         })
       }
@@ -1279,6 +1283,7 @@ export default function NotebookDrawer({
                 ) : pageEntries.map((entry, index) => {
                   const currentTime = normalizeTime(entry.scheduled_time)
                   const currentEndTime = normalizeTime(entry.end_time) || currentTime
+                  const deadlineTime = normalizeTime(entry.deadline_time)
                   const nextTime = normalizeTime(pageEntries[index + 1]?.scheduled_time)
                   const gapMinutes = currentTime && currentEndTime && nextTime
                     ? timeToMinutes(nextTime) - timeToMinutes(currentEndTime)
@@ -1309,7 +1314,10 @@ export default function NotebookDrawer({
                               </span>
                             )}
                             {entry.source_task_id && !currentTime && (
-                              <span className="notebook-source-deadline"><span aria-hidden="true">↓</span> Краен срок</span>
+                              <span className="notebook-source-deadline">
+                                <span aria-hidden="true">↓</span>
+                                Краен срок{deadlineTime ? ` ${deadlineTime}` : ''}
+                              </span>
                             )}
                             {entry.carried_from_date && (
                               <div className="notebook-carry-badge" title={`Прехвърлена от ${formatLongDate(entry.carried_from_date)}`}>
