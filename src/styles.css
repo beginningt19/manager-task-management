@@ -1929,3 +1929,43 @@ button.stat-card.green.active { border-color: rgba(22,128,111,.45); box-shadow: 
     padding-right: 8px;
   }
 }
+
+
+/* Wider task details/edit drawer.
+   Scoped only to task details so other drawers/modals stay unchanged. */
+.detail-drawer {
+  width: min(960px, 100%);
+}
+
+.detail-drawer .task-schedule-range-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+  align-items: start;
+}
+
+.detail-drawer .task-schedule-range-grid > .bulgarian-datetime {
+  min-width: 0;
+  overflow: hidden;
+}
+
+.detail-drawer .bulgarian-datetime-controls {
+  grid-template-columns: 56px minmax(96px, 1fr) 78px 56px 56px;
+  gap: 7px;
+}
+
+.detail-drawer .bulgarian-datetime-controls .datetime-at,
+.detail-drawer .bulgarian-datetime-controls .datetime-separator {
+  display: none;
+}
+
+.detail-drawer .bulgarian-datetime-controls select {
+  min-width: 0;
+  padding-inline: 6px;
+  font-size: 13px;
+}
+
+@media (max-width: 900px) {
+  .detail-drawer .task-schedule-range-grid {
+    grid-template-columns: 1fr;
+  }
+}
