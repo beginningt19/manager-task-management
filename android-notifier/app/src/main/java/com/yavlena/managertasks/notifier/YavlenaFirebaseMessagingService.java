@@ -37,6 +37,7 @@ public final class YavlenaFirebaseMessagingService extends FirebaseMessagingServ
             NotificationHelper.showNewTask(
                     this,
                     notificationId,
+                    data.get("task_id"),
                     data.get("creator_name"),
                     data.get("description"));
             return;
@@ -48,6 +49,7 @@ public final class YavlenaFirebaseMessagingService extends FirebaseMessagingServ
             NotificationHelper.showManagerTaskUpdate(
                     this,
                     notificationId,
+                    data.get("task_id"),
                     data.get("event_type"),
                     data.get("actor_name"),
                     data.get("description"),
