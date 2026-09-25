@@ -95,7 +95,7 @@ const bulgarianMonths = [
 
 const bulgarianWeekdays = ['Понеделник', 'Вторник', 'Сряда', 'Четвъртък', 'Петък', 'Събота', 'Неделя']
 const bulgarianWeekdayShort = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Нд']
-const recurrenceLeadLabel = (days: number) => days === 1 ? '1 ден' : `${days} дни`
+const recurrenceLeadLabel = (days: number) => days === 0 ? 'В деня на срока' : days === 1 ? '1 ден' : `${days} дни`
 
 type SpeechRecognitionLike = {
   lang: string
@@ -1936,7 +1936,7 @@ function CreateTaskModal({
   const [remindAt, setRemindAt] = useState(() => defaultReminderForDue(dateTimeLocalValue(initialSchedule)))
   const [recurring, setRecurring] = useState(false)
   const [recurrenceFrequency, setRecurrenceFrequency] = useState<RecurrenceFrequency>('weekly')
-  const [recurrenceWeekday, setRecurrenceWeekday] = useState(initialWeekday)
+  const [recurrenceWeekdays, setRecurrenceWeekdays] = useState<number[]>([initialWeekday])
   const [recurrenceMonthDay, setRecurrenceMonthDay] = useState(initialSchedule.getDate())
   const [recurrenceLeadDays, setRecurrenceLeadDays] = useState(1)
   const [calendarYearAhead, setCalendarYearAhead] = useState(false)
@@ -2158,9 +2158,10 @@ function CreateTaskModal({
         p_frequency: recurrenceFrequency,
         p_start_date: startDate,
         p_time_local: `${localTime}:00`,
-        p_weekday: recurrenceFrequency === 'weekly' ? recurrenceWeekday : null,
+        p_weekday: recurrenceFrequency === 'weekly' ? recurrenceWeekdays[0] ?? null : null,
         p_month_day: recurrenceFrequency === 'monthly' ? recurrenceMonthDay : null,
         p_lead_days: recurrenceLeadDays,
+        p_weekdays: recurrenceFrequency === 'weekly' ? recurrenceWeekdays : null,
       })
 
       if (error || !data) {
@@ -2249,11 +2250,14 @@ function CreateTaskModal({
     await onCreated(taskId)
   }
 
+  const recurrenceLeadDescription = recurrenceLeadDays === 0
+    ? 'създава се в деня на срока'
+    : `${recurrenceLeadLabel(recurrenceLeadDays)} предварително`
   const recurrenceDescription = recurrenceFrequency === 'daily'
-    ? `Всеки ден · ${recurrenceLeadLabel(recurrenceLeadDays)} предварително`
+    ? `Всеки ден · ${recurrenceLeadDescription}`
     : recurrenceFrequency === 'weekly'
-      ? `Всяка седмица · ${bulgarianWeekdays[recurrenceWeekday - 1]} · ${recurrenceLeadLabel(recurrenceLeadDays)} предварително`
-      : `Всеки месец · ${recurrenceMonthDay}-во/число · ${recurrenceLeadLabel(recurrenceLeadDays)} предварително`
+      ? `Всяка седмица · ${recurrenceWeekdays.map((day) => bulgarianWeekdayShort[day - 1]).join(', ')} · ${recurrenceLeadDescription}`
+      : `Всеки месец · ${recurrenceMonthDay}-во/число · ${recurrenceLeadDescription}`
 
   return (
     <Modal title={personal ? 'Нова лична задача' : 'Нова екипна задача'} onClose={onClose} className="task-create-modal">
@@ -2344,11 +2348,32 @@ function CreateTaskModal({
                 </select>
               </label>
               {recurrenceFrequency === 'weekly' && (
-                <label>Ден от седмицата
-                  <select value={recurrenceWeekday} onChange={(event) => setRecurrenceWeekday(Number(event.target.value))}>
-                    {bulgarianWeekdays.map((weekday, index) => <option key={weekday} value={index + 1}>{weekday}</option>)}
-                  </select>
-                </label>
+                <fieldset className="recurrence-weekday-picker">
+                  <legend>Дни от седмицата</legend>
+                  <div>
+                    {bulgarianWeekdays.map((weekday, index) => {
+                      const value = index + 1
+                      const active = recurrenceWeekdays.includes(value)
+                      return (
+                        <button
+                          key={weekday}
+                          type="button"
+                          className={active ? 'active' : ''}
+                          aria-pressed={active}
+                          onClick={() => setRecurrenceWeekdays((current) => {
+                            if (current.includes(value)) {
+                              return current.length === 1 ? current : current.filter((day) => day !== value)
+                            }
+                            return [...current, value].sort((left, right) => left - right)
+                          })}
+                        >
+                          <span>{bulgarianWeekdayShort[index]}</span>
+                          <small>{weekday}</small>
+                        </button>
+                      )
+                    })}
+                  </div>
+                </fieldset>
               )}
               {recurrenceFrequency === 'monthly' && (
                 <label>Ден от месеца
@@ -2359,11 +2384,15 @@ function CreateTaskModal({
               )}
               <label>Кога да се създава задачата
                 <select value={recurrenceLeadDays} onChange={(event) => setRecurrenceLeadDays(Number(event.target.value))}>
-                  {[1, 2, 3, 4].map((days) => <option key={days} value={days}>{recurrenceLeadLabel(days)} преди крайния срок</option>)}
+                  {[0, 1, 2, 3, 4].map((days) => (
+                    <option key={days} value={days}>
+                      {days === 0 ? 'В деня на срока' : `${recurrenceLeadLabel(days)} преди крайния срок`}
+                    </option>
+                  ))}
                 </select>
               </label>
               <div style={{ alignSelf: 'end', minHeight: 42, display: 'flex', alignItems: 'center', padding: '0 12px', color: '#4e6590', background: '#eef4ff', border: '1px solid #d6e3f6', borderRadius: 10, fontSize: 12 }}>
-                Първата задача се създава веднага. Всеки следващ екземпляр ще се появява {recurrenceLeadLabel(recurrenceLeadDays)} преди собствения си краен срок.
+                Първата задача се създава веднага. Всеки следващ екземпляр {recurrenceLeadDays === 0 ? 'ще се създава в деня на собствения си срок.' : <>ще се появява {recurrenceLeadLabel(recurrenceLeadDays)} преди собствения си краен срок.</>}
               </div>
               <label className="switch-row" style={{ gridColumn: '1 / -1', marginTop: 2 }}>
                 <input
@@ -2556,7 +2585,7 @@ function TaskDetail({
     setActivity((activityResult.data || []) as ActivityEntry[])
     setReminder((reminderResult.data as TaskReminder | null) || null)
     setRecurrenceActive(Boolean(recurrenceResult.data?.is_active))
-    if (recurrenceResult.data?.lead_days) setRecurrenceLeadDays(Number(recurrenceResult.data.lead_days))
+    if (recurrenceResult.data?.lead_days !== null && recurrenceResult.data?.lead_days !== undefined) setRecurrenceLeadDays(Number(recurrenceResult.data.lead_days))
     setLoading(false)
   }, [task, onResult])
 
@@ -3007,7 +3036,11 @@ function TaskDetail({
                   <legend style={{ padding: '0 6px', fontWeight: 750 }}>↻ Повторение на задачата</legend>
                   <label>Кога да се създава всеки следващ екземпляр
                     <select value={recurrenceLeadDays} onChange={(event) => setRecurrenceLeadDays(Number(event.target.value))}>
-                      {[1, 2, 3, 4].map((days) => <option key={days} value={days}>{recurrenceLeadLabel(days)} преди крайния срок</option>)}
+                      {[0, 1, 2, 3, 4].map((days) => (
+                        <option key={days} value={days}>
+                          {days === 0 ? 'В деня на срока' : `${recurrenceLeadLabel(days)} преди крайния срок`}
+                        </option>
+                      ))}
                     </select>
                   </label>
                   <small style={{ display: 'block', marginTop: 7, color: '#71809b' }}>Промяната важи за бъдещите задачи от тази серия. Ако новият момент вече е настъпил, следващият екземпляр ще бъде създаден при най-близката автоматична проверка.</small>
