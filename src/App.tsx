@@ -3243,16 +3243,14 @@ function PushButton({ userId, onResult }: { userId: string; onResult: (toast: To
     const json = subscription.toJSON()
     if (!json.keys?.p256dh || !json.keys.auth) throw new Error('Браузърът не връща валиден push абонамент.')
 
-    const { error } = await supabase.from('push_subscriptions').upsert({
-      user_id: userId,
-      endpoint: subscription.endpoint,
-      p256dh: json.keys.p256dh,
-      auth: json.keys.auth,
-      user_agent: navigator.userAgent,
-      platform,
-      standalone,
-      last_seen_at: new Date().toISOString(),
-    }, { onConflict: 'user_id,endpoint' })
+    const { error } = await supabase.rpc('claim_push_subscription', {
+      p_endpoint: subscription.endpoint,
+      p_p256dh: json.keys.p256dh,
+      p_auth: json.keys.auth,
+      p_user_agent: navigator.userAgent,
+      p_platform: platform,
+      p_standalone: standalone,
+    })
 
     if (error) throw error
   }, [platform, standalone, userId])
