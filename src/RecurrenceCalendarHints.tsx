@@ -9,6 +9,7 @@ type RecurrenceRow = {
   frequency: 'daily' | 'weekly' | 'monthly'
   next_due_at: string
   lead_days: number
+  weekdays: number[] | null
   month_day: number | null
   is_active: boolean
   calendar_year_ahead: boolean
@@ -71,14 +72,32 @@ const nextMonthlyKey = (key: string, monthDay: number) => {
   return `${nextYear}-${String(normalizedMonthIndex + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`
 }
 
+const isoWeekday = (key: string) => {
+  const { year, month, day } = parseKey(key)
+  const weekday = new Date(Date.UTC(year, month - 1, day)).getUTCDay()
+  return weekday === 0 ? 7 : weekday
+}
+
+const nextWeeklyKey = (key: string, weekdays: number[]) => {
+  const selected = [...new Set(weekdays)].filter((day) => day >= 1 && day <= 7).sort((a, b) => a - b)
+  if (!selected.length) return addDays(key, 7)
+
+  for (let offset = 1; offset <= 7; offset += 1) {
+    const candidate = addDays(key, offset)
+    if (selected.includes(isoWeekday(candidate))) return candidate
+  }
+
+  return addDays(key, 7)
+}
+
 const nextOccurrenceKey = (recurrence: RecurrenceRow, currentKey: string) => {
   if (recurrence.frequency === 'daily') return addDays(currentKey, 1)
-  if (recurrence.frequency === 'weekly') return addDays(currentKey, 7)
+  if (recurrence.frequency === 'weekly') return nextWeeklyKey(currentKey, recurrence.weekdays || [])
   if (recurrence.frequency === 'monthly' && recurrence.month_day) return nextMonthlyKey(currentKey, recurrence.month_day)
   return null
 }
 
-const leadLabel = (days: number) => days === 1 ? '1 ден' : `${days} дни`
+const leadLabel = (days: number) => days === 0 ? 'в деня на срока' : days === 1 ? '1 ден по-рано' : `${days} дни по-рано`
 
 const collectCalendarTargets = (): CalendarTarget[] => {
   return Array.from(document.querySelectorAll<HTMLButtonElement>('.calendar-date-button'))
@@ -139,7 +158,7 @@ function RecurrencePreview({ items }: { items: RecurrenceRow[] }) {
         <div
           key={item.id}
           className="calendar-recurrence-hint"
-          title={`Предстоящо повторение: ${item.description}\nЗадачата ще се генерира ${leadLabel(item.lead_days)} по-рано.`}
+          title={`Предстоящо повторение: ${item.description}\nЗадачата ще се генерира ${leadLabel(item.lead_days)}.`}
         >
           ↻ Предстои · {item.description}
         </div>
@@ -163,7 +182,7 @@ export default function RecurrenceCalendarHints() {
   const loadRecurrences = useCallback(async () => {
     const { data, error } = await supabase
       .from('task_recurrences')
-      .select('id,description,frequency,next_due_at,lead_days,month_day,is_active,calendar_year_ahead')
+      .select('id,description,frequency,next_due_at,lead_days,weekdays,month_day,is_active,calendar_year_ahead')
       .eq('is_active', true)
       .eq('calendar_year_ahead', true)
       .order('next_due_at')
