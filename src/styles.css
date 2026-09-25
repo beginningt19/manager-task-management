@@ -2016,3 +2016,559 @@ button.stat-card.green.active { border-color: rgba(22,128,111,.45); box-shadow: 
     grid-template-columns: 1fr;
   }
 }
+
+
+/* ======================================================================
+   RECURRENCE WEEKDAY MULTI-SELECT
+   ====================================================================== */
+.recurrence-weekday-picker {
+  grid-column: 1 / -1;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.recurrence-weekday-picker > legend {
+  margin-bottom: 7px;
+  color: #4e5b60;
+  font-size: 12px;
+  font-weight: 750;
+}
+
+.recurrence-weekday-picker > div {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 7px;
+}
+
+.recurrence-weekday-picker button {
+  min-width: 0;
+  min-height: 52px;
+  padding: 7px 5px;
+  display: grid;
+  place-items: center;
+  gap: 2px;
+  color: #66757c;
+  background: #fff;
+  border: 1px solid #d8e3e1;
+  border-radius: 10px;
+  font: inherit;
+  cursor: pointer;
+}
+
+.recurrence-weekday-picker button > span {
+  color: #36515a;
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.recurrence-weekday-picker button > small {
+  min-width: 0;
+  max-width: 100%;
+  overflow: hidden;
+  color: #819096;
+  font-size: 8px;
+  font-weight: 700;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.recurrence-weekday-picker button.active {
+  color: #fff;
+  background: linear-gradient(135deg, #2d6f68, #315c86);
+  border-color: #315f74;
+  box-shadow: 0 6px 14px rgba(49,95,116,.16);
+}
+
+.recurrence-weekday-picker button.active > span,
+.recurrence-weekday-picker button.active > small {
+  color: #fff;
+}
+
+
+/* ======================================================================
+   MOBILE DASHBOARD PASS
+   Natural page scrolling + touch-sized controls + agenda-style calendar.
+   ====================================================================== */
+@media (max-width: 700px) {
+  html,
+  body {
+    width: 100%;
+    min-width: 0;
+    overflow-x: hidden;
+  }
+
+  body {
+    min-height: 100dvh;
+    overscroll-behavior-y: auto;
+  }
+
+  .app-shell {
+    min-height: 100dvh;
+    overflow-x: clip;
+    overflow-y: visible;
+  }
+
+  .topbar {
+    width: 100%;
+    min-height: 62px;
+    height: auto;
+    padding: 8px max(10px, env(safe-area-inset-right)) 8px max(10px, env(safe-area-inset-left));
+    gap: 7px;
+  }
+
+  .brand {
+    flex: 0 0 auto;
+  }
+
+  .brand > div {
+    display: none;
+  }
+
+  .brand-mark {
+    width: 40px;
+    height: 40px;
+    border-radius: 12px;
+  }
+
+  .account-area {
+    min-width: 0;
+    margin-left: auto;
+    gap: 3px;
+  }
+
+  .account-area .notification-button,
+  .account-area .icon-button {
+    width: 38px;
+    min-width: 38px;
+    height: 38px;
+    padding: 0;
+    display: grid;
+    place-items: center;
+    border-radius: 10px;
+    font-size: 16px;
+  }
+
+  .account-area .notification-button > span {
+    display: none;
+  }
+
+  .account-area .avatar {
+    width: 34px;
+    height: 34px;
+  }
+
+  main:not(.login-page):not(.fatal) {
+    width: 100%;
+    margin: 0;
+    padding: 15px 10px calc(34px + env(safe-area-inset-bottom));
+  }
+
+  .dashboard-hero {
+    min-height: 0;
+    margin-bottom: 12px;
+    padding: 19px 17px 17px;
+    display: grid;
+    gap: 17px;
+    border-radius: 20px;
+  }
+
+  .dashboard-hero h1 {
+    font-size: clamp(25px, 8.5vw, 31px);
+  }
+
+  .dashboard-hero .hero-copy > p:last-of-type {
+    font-size: 12px;
+    line-height: 1.45;
+  }
+
+  .dashboard-hero .page-actions {
+    width: 100%;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+  }
+
+  .dashboard-hero .page-actions .primary-button,
+  .dashboard-hero .page-actions .secondary-button {
+    width: 100%;
+    min-width: 0;
+    min-height: 44px;
+    padding-inline: 10px;
+    font-size: 11px;
+  }
+
+  .stat-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+    margin-bottom: 12px;
+  }
+
+  .stat-card {
+    min-width: 0;
+    min-height: 86px;
+    padding: 12px;
+    border-radius: 15px;
+  }
+
+  .stat-card > div {
+    min-width: 0;
+    gap: 7px;
+  }
+
+  .stat-card p {
+    overflow: hidden;
+    font-size: 10px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .stat-card > strong {
+    font-size: 22px;
+  }
+
+  .task-panel {
+    border-radius: 16px;
+    overflow: visible;
+  }
+
+  .filters {
+    padding: 11px;
+    gap: 8px;
+    grid-template-columns: 1fr;
+    border-radius: 16px 16px 0 0;
+  }
+
+  .filters select,
+  .search-field {
+    width: 100%;
+    min-height: 46px;
+    height: 46px;
+    font-size: 14px;
+  }
+
+  .search-field input {
+    font-size: 14px;
+  }
+
+  .check-filter {
+    min-height: 42px;
+    padding: 0 4px;
+    font-size: 13px;
+    white-space: normal;
+  }
+
+  .check-filter input {
+    width: 18px;
+    height: 18px;
+  }
+
+  .panel-heading {
+    padding: 14px 13px 10px;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .panel-heading h2 {
+    font-size: 15px;
+  }
+
+  .panel-actions {
+    align-items: center;
+    flex-direction: row;
+    gap: 5px;
+  }
+
+  .panel-actions .view-switch button,
+  .panel-actions .text-button {
+    min-height: 36px;
+    font-size: 11px;
+  }
+
+  /* One scrolling surface on phone: the page itself. */
+  .task-panel > .task-list {
+    max-height: none;
+    overflow: visible;
+    scrollbar-gutter: auto;
+    padding: 2px 8px 10px;
+  }
+
+  .task-card {
+    min-height: 78px;
+    grid-template-columns: 4px minmax(0, 1fr) 16px;
+    gap: 9px;
+    padding: 13px 10px 13px 6px;
+    border-radius: 13px;
+  }
+
+  .task-main h3 {
+    margin-top: 6px;
+    font-size: 13px;
+    line-height: 1.42;
+  }
+
+  .task-meta {
+    font-size: 10px;
+    line-height: 1.4;
+  }
+
+  .status-badge,
+  .approval-badge,
+  .overdue-pill,
+  .approval-state {
+    min-height: 23px;
+    padding-inline: 8px;
+    font-size: 9px;
+  }
+
+  /* Calendar becomes a month agenda instead of a horizontally scrolled desktop grid. */
+  .calendar-shell {
+    padding: 3px 8px 12px;
+    overscroll-behavior: auto;
+  }
+
+  .calendar-toolbar {
+    min-height: 0;
+    padding: 8px 0 10px;
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+
+  .calendar-toolbar > h3 {
+    width: 100%;
+    font-size: 18px;
+  }
+
+  .calendar-toolbar-controls {
+    width: 100%;
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 7px !important;
+  }
+
+  .calendar-notebook-toggle {
+    width: 100% !important;
+    min-width: 0 !important;
+    height: 42px !important;
+  }
+
+  .calendar-month-nav {
+    width: 100%;
+    grid-column: 1 / -1;
+    display: grid;
+    grid-template-columns: 44px minmax(76px, 1fr) 44px;
+    gap: 7px;
+    order: -1;
+  }
+
+  .calendar-month-nav button,
+  .calendar-month-nav button:nth-child(2) {
+    width: 100% !important;
+    min-width: 0 !important;
+    height: 42px !important;
+    padding: 0 !important;
+  }
+
+  .calendar-full-toggle {
+    display: none !important;
+  }
+
+  .calendar-source-note {
+    margin: 0 0 9px;
+    padding: 0 2px;
+    gap: 10px;
+    font-size: 10px;
+  }
+
+  .calendar-scroll {
+    width: 100%;
+    overflow: visible;
+    border: 0;
+    border-radius: 0;
+    overscroll-behavior: auto;
+    touch-action: pan-y;
+  }
+
+  .calendar-grid {
+    min-width: 0;
+    width: 100%;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    grid-auto-rows: auto;
+    gap: 9px !important;
+    border: 0;
+    background: transparent !important;
+  }
+
+  .calendar-weekday {
+    display: none;
+  }
+
+  .calendar-day.outside-month {
+    display: none;
+  }
+
+  .calendar-day,
+  .calendar-day:hover,
+  .calendar-day.today,
+  .calendar-day.has-notebook-items {
+    min-width: 0;
+    min-height: 0;
+    padding: 10px;
+    border: 1px solid #dce6e4;
+    border-radius: 13px;
+    background: rgba(255,255,255,.94);
+    box-shadow: 0 4px 14px rgba(21,57,51,.04);
+  }
+
+  .calendar-day.today {
+    border-color: rgba(17,134,121,.55);
+    box-shadow: inset 0 0 0 1px rgba(17,134,121,.18), 0 5px 16px rgba(21,57,51,.06);
+  }
+
+  .calendar-date {
+    min-height: 34px;
+    margin-bottom: 5px;
+  }
+
+  .calendar-date-button {
+    min-height: 34px;
+    font-size: 13px;
+  }
+
+  .calendar-date-button > span {
+    font-size: 15px;
+  }
+
+  .calendar-add-button {
+    width: 34px;
+    min-width: 34px;
+    height: 34px;
+    opacity: 1;
+    transform: none;
+  }
+
+  .calendar-day-tasks {
+    gap: 6px;
+  }
+
+  .calendar-task,
+  .calendar-notebook-entry {
+    min-height: 44px;
+    padding: 8px 9px;
+    border-radius: 9px;
+  }
+
+  .calendar-task time,
+  .calendar-notebook-entry-time {
+    font-size: 10px;
+  }
+
+  .calendar-task span,
+  .calendar-notebook-entry-text {
+    font-size: 12px;
+    line-height: 1.38;
+  }
+
+  .calendar-recurrence-preview {
+    margin-top: 6px;
+  }
+
+  .calendar-recurrence-hint,
+  .calendar-recurrence-more {
+    min-height: 34px;
+    font-size: 10px;
+  }
+
+  /* Dialogs should use the full phone viewport, but keep one internal scroll only
+     because the page behind them is intentionally covered. */
+  .modal-backdrop,
+  .drawer-backdrop {
+    padding: 0;
+    align-items: stretch;
+  }
+
+  .modal,
+  .task-create-modal,
+  .detail-drawer {
+    width: 100%;
+    max-width: none;
+    max-height: 100dvh;
+    height: 100dvh;
+    border-radius: 0;
+  }
+
+  .modal > header,
+  .task-create-modal > header {
+    min-height: 60px;
+    padding: 0 15px;
+  }
+
+  .task-create-modal > header h2 {
+    font-size: 18px;
+  }
+
+  .modal-form,
+  .task-create-modal .modal-form {
+    padding: 16px 13px calc(28px + env(safe-area-inset-bottom));
+    gap: 16px;
+  }
+
+  .recurrence-weekday-picker > div {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 6px;
+  }
+
+  .recurrence-weekday-picker button {
+    min-height: 48px;
+  }
+
+  .recurrence-weekday-picker button > small {
+    display: none;
+  }
+
+  .task-schedule-mode {
+    padding-inline: 11px;
+  }
+
+  .task-schedule-mode-header .view-switch {
+    width: 100%;
+  }
+
+  .task-schedule-mode-header .view-switch button {
+    flex: 1;
+    min-height: 38px;
+    padding-inline: 7px;
+  }
+
+  .people-picker {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 380px) {
+  .account-area .notification-button,
+  .account-area .icon-button {
+    width: 35px;
+    min-width: 35px;
+    height: 35px;
+  }
+
+  .account-area .avatar {
+    width: 31px;
+    height: 31px;
+  }
+
+  .dashboard-hero .page-actions {
+    grid-template-columns: 1fr;
+  }
+
+  .stat-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .stat-card {
+    padding: 10px;
+  }
+}
