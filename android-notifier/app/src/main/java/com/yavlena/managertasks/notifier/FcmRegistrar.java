@@ -17,10 +17,8 @@ final class FcmRegistrar {
         try {
             String appId = context.getString(com.yavlena.managertasks.notifier.R.string.google_app_id);
             String senderId = context.getString(com.yavlena.managertasks.notifier.R.string.gcm_defaultSenderId);
-            String apiKey = context.getString(com.yavlena.managertasks.notifier.R.string.google_api_key);
             return appId != null && !appId.trim().isEmpty()
-                    && senderId != null && !senderId.trim().isEmpty()
-                    && apiKey != null && !apiKey.trim().isEmpty();
+                    && senderId != null && !senderId.trim().isEmpty();
         } catch (Exception ignored) {
             return false;
         }
@@ -40,14 +38,11 @@ final class FcmRegistrar {
 
     static void registerTokenFromStoredSession(Context context, String token) {
         if (!isConfigured(context) || token == null || token.trim().isEmpty()) return;
-        SessionStore.StoredSession stored = SessionStore.load(context);
-        if (stored == null) return;
+        if (SessionStore.load(context) == null) return;
         EXECUTOR.execute(() -> {
             try {
-                SupabaseClient api = new SupabaseClient();
-                SupabaseClient.AuthSession refreshed = api.refresh(stored.email, stored.refreshToken);
-                SessionStore.save(context, refreshed.email, refreshed.refreshToken);
-                api.registerMobilePushDevice(
+                SupabaseClient.AuthSession refreshed = SessionManager.refreshStored(context);
+                new SupabaseClient().registerMobilePushDevice(
                         refreshed.accessToken,
                         token,
                         deviceName(),
@@ -85,9 +80,9 @@ final class FcmRegistrar {
     private static String appVersion(Context context) {
         try {
             PackageInfo info = context.getPackageManager().getPackageInfo(context.getPackageName(), 0);
-            return info.versionName == null ? "1.1.0" : info.versionName;
+            return info.versionName == null ? "1.2.0" : info.versionName;
         } catch (Exception ignored) {
-            return "1.1.0";
+            return "1.2.0";
         }
     }
 
