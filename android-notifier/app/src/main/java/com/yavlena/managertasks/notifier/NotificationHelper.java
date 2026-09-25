@@ -35,7 +35,7 @@ final class NotificationHelper {
         ensureChannel(context);
         if (!canNotify(context)) return;
 
-        PendingIntent contentIntent = openTasksIntent(context, reminder.id.hashCode());
+        PendingIntent contentIntent = openTasksIntent(context, reminder.id.hashCode(), reminder.taskId);
         Notification notification = new Notification.Builder(context, CHANNEL_ID)
                 .setSmallIcon(R.drawable.ic_notification)
                 .setContentTitle("⏰ Напомняне за задача")
@@ -63,7 +63,7 @@ final class NotificationHelper {
         String expanded = safeSubject.isEmpty() ? safeBody : safeSubject + "\n" + safeBody;
 
         int notificationCode = ("internal-message|" + notificationId).hashCode();
-        PendingIntent contentIntent = openTasksIntent(context, notificationCode);
+        PendingIntent contentIntent = openTasksIntent(context, notificationCode, null);
         Notification notification = new Notification.Builder(context, CHANNEL_ID)
                 .setSmallIcon(R.drawable.ic_notification)
                 .setContentTitle("✉ Ново съобщение от " + safeSender)
@@ -81,7 +81,7 @@ final class NotificationHelper {
                 .notify(notificationCode, notification);
     }
 
-    static void showNewTask(Context context, String notificationId, String creatorName, String description) {
+    static void showNewTask(Context context, String notificationId, String taskId, String creatorName, String description) {
         ensureChannel(context);
         if (!canNotify(context)) return;
 
@@ -89,7 +89,7 @@ final class NotificationHelper {
         String safeDescription = safeText(description, "Задача");
 
         int notificationCode = ("new-task|" + notificationId).hashCode();
-        PendingIntent contentIntent = openTasksIntent(context, notificationCode);
+        PendingIntent contentIntent = openTasksIntent(context, notificationCode, taskId);
         Notification notification = new Notification.Builder(context, CHANNEL_ID)
                 .setSmallIcon(R.drawable.ic_notification)
                 .setContentTitle("Нова задача от " + safeCreator)
@@ -110,6 +110,7 @@ final class NotificationHelper {
     static void showManagerTaskUpdate(
             Context context,
             String notificationId,
+            String taskId,
             String eventType,
             String actorName,
             String description,
@@ -132,7 +133,7 @@ final class NotificationHelper {
 
         String notificationBody = safeDescription + "\n" + safeDetail;
         int notificationCode = ("manager-task-update|" + notificationId).hashCode();
-        PendingIntent contentIntent = openTasksIntent(context, notificationCode);
+        PendingIntent contentIntent = openTasksIntent(context, notificationCode, taskId);
         Notification notification = new Notification.Builder(context, CHANNEL_ID)
                 .setSmallIcon(R.drawable.ic_notification)
                 .setContentTitle(title)
@@ -159,8 +160,12 @@ final class NotificationHelper {
                 || context.checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED;
     }
 
-    private static PendingIntent openTasksIntent(Context context, int requestCode) {
-        Intent open = new Intent(Intent.ACTION_VIEW, Uri.parse(WEB_URL));
+    private static PendingIntent openTasksIntent(Context context, int requestCode, String taskId) {
+        String target = WEB_URL;
+        if (taskId != null && !taskId.trim().isEmpty()) {
+            target += "?task=" + Uri.encode(taskId);
+        }
+        Intent open = new Intent(Intent.ACTION_VIEW, Uri.parse(target));
         return PendingIntent.getActivity(
                 context,
                 requestCode,
