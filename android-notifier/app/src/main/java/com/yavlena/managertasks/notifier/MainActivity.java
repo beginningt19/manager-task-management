@@ -37,6 +37,7 @@ public final class MainActivity extends Activity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         NotificationHelper.ensureChannel(this);
+        handleNotificationIntent(getIntent());
         showLoading();
 
         SessionStore.StoredSession stored = SessionStore.load(this);
@@ -45,10 +46,11 @@ public final class MainActivity extends Activity {
             return;
         }
 
+        ReminderSyncWorker.ensurePeriodic(this);
+
         executor.execute(() -> {
             try {
-                SupabaseClient.AuthSession refreshed = new SupabaseClient().refresh(stored.email, stored.refreshToken);
-                SessionStore.save(this, refreshed.email, refreshed.refreshToken);
+                SupabaseClient.AuthSession refreshed = SessionManager.refreshStored(this);
                 session = refreshed;
                 FcmRegistrar.registerCurrentToken(this, refreshed);
                 runOnUiThread(() -> {
@@ -56,14 +58,45 @@ public final class MainActivity extends Activity {
                     requestNotificationPermissionIfNeeded();
                     syncNow();
                 });
+            } catch (SupabaseClient.AuthException error) {
+                if (error.invalidSession) {
+                    SessionManager.clear(this);
+                    runOnUiThread(() -> {
+                        Toast.makeText(this, "Сесията вече не е валидна. Влезте отново.", Toast.LENGTH_LONG).show();
+                        showLogin();
+                    });
+                } else {
+                    session = new SupabaseClient.AuthSession(stored.email, "", stored.refreshToken);
+                    ReminderSyncWorker.ensurePeriodic(this);
+                    runOnUiThread(() -> {
+                        showDashboard();
+                        status.setText("Временен проблем при подновяване на сесията. Ще опитаме отново автоматично.");
+                    });
+                }
             } catch (Exception error) {
-                SessionStore.clear(this);
+                session = new SupabaseClient.AuthSession(stored.email, "", stored.refreshToken);
+                ReminderSyncWorker.ensurePeriodic(this);
                 runOnUiThread(() -> {
-                    Toast.makeText(this, "Влезте отново в Yavlena Manager Notifier.", Toast.LENGTH_LONG).show();
-                    showLogin();
+                    showDashboard();
+                    status.setText("Временен проблем при връзката. Сесията е запазена и ще опитаме отново.");
                 });
             }
         });
+    }
+
+    @Override
+    protected void onNewIntent(Intent intent) {
+        super.onNewIntent(intent);
+        setIntent(intent);
+        handleNotificationIntent(intent);
+    }
+
+    private void handleNotificationIntent(Intent intent) {
+        if (intent == null) return;
+        String taskId = intent.getStringExtra("task_id");
+        if (taskId == null || taskId.trim().isEmpty()) return;
+        startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse(WEB_URL + "?task=" + Uri.encode(taskId))));
+        intent.removeExtra("task_id");
     }
 
     @Override
@@ -118,7 +151,7 @@ public final class MainActivity extends Activity {
             executor.execute(() -> {
                 try {
                     SupabaseClient.AuthSession loggedIn = new SupabaseClient().login(emailValue, passwordValue);
-                    SessionStore.save(this, loggedIn.email, loggedIn.refreshToken);
+                    SessionManager.save(this, loggedIn);
                     session = loggedIn;
                     FcmRegistrar.registerCurrentToken(this, loggedIn);
                     ReminderSyncWorker.ensurePeriodic(this);
@@ -181,7 +214,7 @@ public final class MainActivity extends Activity {
             FcmRegistrar.unregisterCurrentToken(this, session);
             ReminderSyncWorker.cancelAll(this);
             ReminderScheduler.clear(this);
-            SessionStore.clear(this);
+            SessionManager.clear(this);
             session = null;
             showLogin();
         });
@@ -197,10 +230,8 @@ public final class MainActivity extends Activity {
         status.setText("Синхронизиране…");
         executor.execute(() -> {
             try {
-                SessionStore.StoredSession stored = SessionStore.load(this);
-                if (stored == null) throw new IllegalStateException("Липсва запазена сесия.");
-                SupabaseClient.AuthSession refreshed = new SupabaseClient().refresh(stored.email, stored.refreshToken);
-                SessionStore.save(this, refreshed.email, refreshed.refreshToken);
+                if (SessionStore.load(this) == null) throw new IllegalStateException("Липсва запазена сесия.");
+                SupabaseClient.AuthSession refreshed = SessionManager.refreshStored(this);
                 session = refreshed;
                 FcmRegistrar.registerCurrentToken(this, refreshed);
                 ReminderScheduler.SyncResult result = ReminderScheduler.sync(this, refreshed);
