@@ -95,7 +95,7 @@ const bulgarianMonths = [
 
 const bulgarianWeekdays = ['Понеделник', 'Вторник', 'Сряда', 'Четвъртък', 'Петък', 'Събота', 'Неделя']
 const bulgarianWeekdayShort = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Нд']
-const recurrenceLeadLabel = (days: number) => days === 0 ? 'В деня на срока' : days === 1 ? '1 ден' : `${days} дни`
+const recurrenceLeadLabel = (days: number) => days === 0 ? 'Веднага (0 дни предварително)' : days === 1 ? '1 ден' : `${days} дни`
 
 type SpeechRecognitionLike = {
   lang: string
@@ -2251,7 +2251,7 @@ function CreateTaskModal({
   }
 
   const recurrenceLeadDescription = recurrenceLeadDays === 0
-    ? 'създава се в деня на срока'
+    ? 'създава се веднага при настъпване на срока'
     : `${recurrenceLeadLabel(recurrenceLeadDays)} предварително`
   const recurrenceDescription = recurrenceFrequency === 'daily'
     ? `Всеки ден · ${recurrenceLeadDescription}`
@@ -2386,13 +2386,13 @@ function CreateTaskModal({
                 <select value={recurrenceLeadDays} onChange={(event) => setRecurrenceLeadDays(Number(event.target.value))}>
                   {[0, 1, 2, 3, 4].map((days) => (
                     <option key={days} value={days}>
-                      {days === 0 ? 'В деня на срока' : `${recurrenceLeadLabel(days)} преди крайния срок`}
+                      {days === 0 ? 'Веднага (0 дни предварително)' : `${recurrenceLeadLabel(days)} преди крайния срок`}
                     </option>
                   ))}
                 </select>
               </label>
               <div style={{ alignSelf: 'end', minHeight: 42, display: 'flex', alignItems: 'center', padding: '0 12px', color: '#4e6590', background: '#eef4ff', border: '1px solid #d6e3f6', borderRadius: 10, fontSize: 12 }}>
-                Първата задача се създава веднага. Всеки следващ екземпляр {recurrenceLeadDays === 0 ? 'ще се създава в деня на собствения си срок.' : <>ще се появява {recurrenceLeadLabel(recurrenceLeadDays)} преди собствения си краен срок.</>}
+                Първата задача се създава веднага. Всеки следващ екземпляр {recurrenceLeadDays === 0 ? 'ще се създава веднага при настъпване на собствения си срок.' : <>ще се появява {recurrenceLeadLabel(recurrenceLeadDays)} преди собствения си краен срок.</>}
               </div>
               <label className="switch-row" style={{ gridColumn: '1 / -1', marginTop: 2 }}>
                 <input
@@ -3038,7 +3038,7 @@ function TaskDetail({
                     <select value={recurrenceLeadDays} onChange={(event) => setRecurrenceLeadDays(Number(event.target.value))}>
                       {[0, 1, 2, 3, 4].map((days) => (
                         <option key={days} value={days}>
-                          {days === 0 ? 'В деня на срока' : `${recurrenceLeadLabel(days)} преди крайния срок`}
+                          {days === 0 ? 'Веднага (0 дни предварително)' : `${recurrenceLeadLabel(days)} преди крайния срок`}
                         </option>
                       ))}
                     </select>
