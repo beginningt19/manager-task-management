@@ -1,0 +1,33 @@
+name: Build Manager Windows notifier
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'windows-notifier/**'
+      - '.github/workflows/build-manager-windows-notifier.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+      - name: Publish self-contained Manager notifier
+        run: dotnet publish windows-notifier/YavlenaManagerTaskNotifier.csproj -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -p:DebugType=None -o dist/YavlenaManagerTaskNotifier
+      - name: Prepare downloadable executable
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path dist/package | Out-Null
+          Copy-Item dist/YavlenaManagerTaskNotifier/YavlenaManagerTaskNotifier.exe dist/package/YavlenaManagerTaskNotifier.exe
+      - uses: actions/upload-artifact@v4
+        with:
+          name: YavlenaManagerTaskNotifier-win-x64
+          path: dist/package/YavlenaManagerTaskNotifier.exe
+          if-no-files-found: error
