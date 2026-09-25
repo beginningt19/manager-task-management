@@ -26,15 +26,19 @@ public final class ReminderSyncWorker extends Worker {
     @NonNull
     @Override
     public Result doWork() {
-        SessionStore.StoredSession stored = SessionStore.load(getApplicationContext());
-        if (stored == null) return Result.success();
+        if (SessionStore.load(getApplicationContext()) == null) return Result.success();
 
         try {
-            SupabaseClient api = new SupabaseClient();
-            SupabaseClient.AuthSession session = api.refresh(stored.email, stored.refreshToken);
-            SessionStore.save(getApplicationContext(), session.email, session.refreshToken);
+            SupabaseClient.AuthSession session = SessionManager.refreshStored(getApplicationContext());
+            FcmRegistrar.registerCurrentToken(getApplicationContext(), session);
             ReminderScheduler.sync(getApplicationContext(), session);
             return Result.success();
+        } catch (SupabaseClient.AuthException error) {
+            if (error.invalidSession) {
+                SessionManager.clear(getApplicationContext());
+                return Result.success();
+            }
+            return Result.retry();
         } catch (Exception error) {
             return Result.retry();
         }
