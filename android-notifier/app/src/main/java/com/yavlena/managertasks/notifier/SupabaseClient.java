@@ -17,6 +17,15 @@ import java.util.ArrayList;
 import java.util.List;
 
 final class SupabaseClient {
+    static final class AuthException extends IOException {
+        final boolean invalidSession;
+
+        AuthException(String message, boolean invalidSession) {
+            super(message);
+            this.invalidSession = invalidSession;
+        }
+    }
+
     private static final String BASE_URL = "https://xrcvfzqwhqtoljfxgxgr.supabase.co";
     private static final String API_KEY = "sb_publishable_K9eOz-sxjizM7fkHrWXOeA_zu-9ijLu";
 
@@ -151,12 +160,21 @@ final class SupabaseClient {
         connection.disconnect();
         if (code < 200 || code >= 300) {
             String message = "Грешка при връзка със Supabase (" + code + ").";
+            String errorCode = "";
             try {
                 JSONObject error = new JSONObject(text);
                 if (error.has("error_description")) message = error.getString("error_description");
                 else if (error.has("msg")) message = error.getString("msg");
                 else if (error.has("message")) message = error.getString("message");
+                errorCode = error.optString("error_code", "");
             } catch (Exception ignored) {}
+
+            boolean refreshRequest = path.contains("grant_type=refresh_token");
+            boolean invalidRefresh = refreshRequest && code == 400
+                    && ("refresh_token_not_found".equals(errorCode)
+                    || message.toLowerCase().contains("invalid refresh token")
+                    || message.toLowerCase().contains("refresh token not found"));
+            if (invalidRefresh) throw new AuthException(message, true);
             throw new IOException(message);
         }
         return text;
