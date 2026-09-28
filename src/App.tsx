@@ -2569,12 +2569,19 @@ function TaskDetail({
   const [editRemindAt, setEditRemindAt] = useState('')
 
   const byId = useMemo(() => new Map(profiles.map((person) => [person.id, person])), [profiles])
+  const assignmentByUser = useMemo(
+    () => new Map((task?.assignment_states || []).map((assignment) => [assignment.user_id, assignment])),
+    [task],
+  )
   const isCreator = Boolean(task && currentUser && task.created_by === currentUser.id)
-  const isAssignee = Boolean(task && currentUser && task.assignees.some((person) => person.id === currentUser.id))
+  const currentAssignment = currentUser ? assignmentByUser.get(currentUser.id) : undefined
+  const isAssignee = Boolean(currentAssignment)
   const canParticipate = Boolean(task && currentUser && (currentUser.role === 'manager' || isAssignee))
-  const canAccept = Boolean(task && task.status === 'new' && isAssignee)
-  const canWork = Boolean(canParticipate && task && task.status !== 'new' && task.status !== 'completed')
+  const canAccept = Boolean(task && task.status !== 'completed' && currentAssignment?.work_status === 'new')
+  const canWork = Boolean(task && task.status !== 'completed' && currentAssignment?.work_status === 'in_progress')
   const canManageFiles = Boolean(task && (canWork || isCreator))
+  const assigneeCount = task?.assignment_states.length || 0
+  const completedAssigneeCount = task?.assignment_states.filter((assignment) => assignment.work_status === 'completed').length || 0
 
   useEffect(() => {
     if (!task) return
@@ -2647,6 +2654,7 @@ function TaskDetail({
     const channel = supabase
       .channel(`detail-${task.id}`)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'progress_updates', filter: `task_id=eq.${task.id}` }, reload)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'task_assignees', filter: `task_id=eq.${task.id}` }, () => { void onChanged(); reload() })
       .on('postgres_changes', { event: '*', schema: 'public', table: 'approvals', filter: `task_id=eq.${task.id}` }, reload)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'activity_log', filter: `task_id=eq.${task.id}` }, reload)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'task_recurrences', filter: task.recurrence_id ? `id=eq.${task.recurrence_id}` : undefined }, reload)
@@ -2663,33 +2671,16 @@ function TaskDetail({
     setBusy(true)
 
     try {
-      // Validate/recover the persisted session before the mutation. This is
-      // especially important after Android/iOS has suspended the app/tab.
-      const { data: authData, error: authError } = await supabase.auth.getSession()
-      if (authError) throw authError
-      if (!authData.session) throw new Error('Сесията е прекъсната. Влезте отново в акаунта.')
-
-      const { data: accepted, error } = await supabase
-        .from('tasks')
-        .update({ status: 'in_progress' })
-        .eq('id', task.id)
-        .eq('status', 'new')
-        .select('id,status')
-        .maybeSingle()
-
+      const { error } = await supabase.rpc('accept_task_assignment', { p_task_id: task.id })
       if (error) throw error
 
-      if (!accepted) {
-        await Promise.all([onChanged(), loadDetail()])
-        onResult({
-          tone: 'error',
-          message: 'Задачата не беше променена. Списъкът е синхронизиран — проверете дали вече не е приета от друг потребител.',
-        })
-        return
-      }
-
       await Promise.all([onChanged(), loadDetail()])
-      onResult({ tone: 'success', message: 'Задачата е приета и вече е „В процес“.' })
+      onResult({
+        tone: 'success',
+        message: assigneeCount > 1
+          ? 'Вие приехте задачата. Вашият статус вече е „В процес“, без да се променя статусът на останалите изпълнители.'
+          : 'Задачата е приета и вече е „В процес“.',
+      })
     } catch (error) {
       onResult({ tone: 'error', message: errorText(error) })
     } finally {
@@ -2742,16 +2733,37 @@ function TaskDetail({
   const finishTask = async () => {
     if (!canWork || busy) return
     if (!approvedForCompletion) {
-      onResult({ tone: 'error', message: 'Задачата изисква одобрение преди да бъде отбелязана като завършена.' })
+      onResult({ tone: 'error', message: 'Задачата изисква одобрение преди да отбележите своята част като завършена.' })
       return
     }
-    if (!window.confirm('Сигурни ли сте, че искате да отбележите задачата като завършена? След потвърждението тя ще бъде преместена в „Завършени“.')) return
+
+    const confirmText = assigneeCount > 1
+      ? 'Сигурни ли сте, че искате да отбележите СВОЯТА част от задачата като завършена? Останалите изпълнители ще запазят собствените си статуси.'
+      : 'Сигурни ли сте, че искате да отбележите задачата като завършена?'
+    if (!window.confirm(confirmText)) return
+
     setBusy(true)
-    const { error } = await supabase.from('tasks').update({ status: 'completed' }).eq('id', task.id).neq('status', 'completed')
-    setBusy(false)
-    if (error) return onResult({ tone: 'error', message: error.message })
-    await Promise.all([onChanged(), loadDetail()])
-    onResult({ tone: 'success', message: 'Задачата е отбелязана като завършена.' })
+    try {
+      const { data, error } = await supabase.rpc('complete_task_assignment', { p_task_id: task.id })
+      if (error) throw error
+
+      const result = (data || {}) as {
+        task_completed?: boolean
+        remaining_assignees?: number
+      }
+
+      await Promise.all([onChanged(), loadDetail()])
+      onResult({
+        tone: 'success',
+        message: result.task_completed
+          ? 'Всички изпълнители приключиха. Задачата е преместена в „Завършени“.'
+          : `Вашата част е отбелязана като завършена. Остават ${result.remaining_assignees ?? Math.max(0, assigneeCount - completedAssigneeCount - 1)} изпълнител(и).`,
+      })
+    } catch (error) {
+      onResult({ tone: 'error', message: errorText(error) })
+    } finally {
+      setBusy(false)
+    }
   }
 
   const stopRecurrence = async () => {
