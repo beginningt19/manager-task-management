@@ -66,6 +66,8 @@ type NotebookCalendarEntry = {
 
 const LOW_SPEC_STORAGE_KEY = 'manager-low-spec-mode'
 const OFFICE_INTRO_PENDING_KEY = 'manager-office-intro-pending'
+const MANAGER_PRODUCTION_ORIGIN = 'https://manager-task-management.pages.dev'
+const PASSWORD_RECOVERY_PARAM = 'password-recovery'
 
 const GOVERNOR_TEAM_ASSIGNEE_COLUMNS = [
   ['Биляна Маркова', 'Галина Димитрова', 'Даниел Кръстев', 'Катя Симова', 'Михаил Теофаров', 'Магдалена Калескова'],
@@ -485,7 +487,8 @@ function App() {
         if (cancelled) return
         if (error) throw error
         setSession(data.session)
-        if (needsInitialPassword(data.session)) setPasswordOpen(true)
+        const recoveryRequested = new URLSearchParams(window.location.search).get(PASSWORD_RECOVERY_PARAM) === '1'
+        if (needsInitialPassword(data.session) || (recoveryRequested && data.session)) setPasswordOpen(true)
       } catch (error) {
         if (!cancelled) {
           showToast({ tone: 'error', message: `Сесията не можа да се възстанови: ${errorText(error)}` })
@@ -523,7 +526,8 @@ function App() {
       setSession(nextSession)
       setAuthReady(true)
 
-      if (event === 'PASSWORD_RECOVERY' || needsInitialPassword(nextSession)) {
+      const recoveryRequested = new URLSearchParams(window.location.search).get(PASSWORD_RECOVERY_PARAM) === '1'
+      if (event === 'PASSWORD_RECOVERY' || needsInitialPassword(nextSession) || (recoveryRequested && nextSession)) {
         setPasswordOpen(true)
       }
 
@@ -1372,7 +1376,7 @@ function Login({
     setBusy(true)
     setMessage('')
     const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), {
-      redirectTo: window.location.origin,
+      redirectTo: `${MANAGER_PRODUCTION_ORIGIN}/?${PASSWORD_RECOVERY_PARAM}=1`,
     })
     if (error) {
       const emailLimitReached = error.code === 'over_email_send_rate_limit'
@@ -1495,6 +1499,14 @@ function PasswordModal({ onClose, onResult }: { onClose: () => void; onResult: (
     if (updateError) {
       setError(updateError.message)
       return
+    }
+    try {
+      const url = new URL(window.location.href)
+      url.searchParams.delete(PASSWORD_RECOVERY_PARAM)
+      url.hash = ''
+      window.history.replaceState({}, '', `${url.pathname}${url.search}`)
+    } catch {
+      // Password change succeeded even if URL cleanup is unavailable.
     }
     onClose()
     onResult({ tone: 'success', message: 'Паролата е променена успешно.' })
