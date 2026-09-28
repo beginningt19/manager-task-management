@@ -7,7 +7,7 @@ import android.content.Intent;
 public final class BootReceiver extends BroadcastReceiver {
     @Override
     public void onReceive(Context context, Intent intent) {
-        if (SessionStore.load(context) == null) return;
+        if (DeviceSessionStore.load(context) == null) return;
         ReminderSyncWorker.ensurePeriodic(context);
         ReminderSyncWorker.enqueueImmediate(context);
     }
