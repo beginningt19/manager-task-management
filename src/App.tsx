@@ -3124,51 +3124,84 @@ function TaskDetail({
           )}
           <div className="detail-grid">
             <div>
-              <small>Статус</small>
+              <small>Общ статус</small>
               {task.status === 'completed' ? (
                 <strong style={{ color: '#1d4ed8' }}>✓ Завършена</strong>
-              ) : task.status === 'new' ? (
-                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'stretch', gap: 7 }}>
-                  <strong style={{ color: '#2563eb' }}>Отворена · чака приемане</strong>
-                  {canAccept && (
-                    <button type="button" className="primary-button" disabled={busy} onClick={() => void acceptTask()}>
-                      {busy ? 'Приемане…' : '✓ Приеми задачата'}
-                    </button>
-                  )}
-                </div>
               ) : statusChoice === 'waiting_approval' && hasPendingApproval ? (
                 <strong style={{ color: '#b7791f' }}>Изчаква одобрение · изпратена към Управителя</strong>
-              ) : canParticipate ? (
+              ) : canParticipate && (!isAssignee || currentAssignment?.work_status === 'in_progress') ? (
                 <select value={statusChoice} onChange={(event) => void changeStatus(event.target.value as TaskStatus)} disabled={busy}>
                   {statuses
                     .filter((status) => status !== 'new' && status !== 'completed')
                     .map((status) => <option key={status} value={status}>{statusLabels[status]}</option>)}
                 </select>
-              ) : <strong>{statusLabels[statusChoice]}</strong>}
+              ) : (
+                <strong>{statusLabels[task.status]}</strong>
+              )}
             </div>
+
+            {isAssignee && task.status !== 'completed' && (
+              <div>
+                <small>Ваш статус</small>
+                {currentAssignment?.work_status === 'new' ? (
+                  <div className="personal-assignment-state">
+                    <strong className="assignee-state-text new">Неприета</strong>
+                    <button type="button" className="primary-button" disabled={busy} onClick={() => void acceptTask()}>
+                      {busy ? 'Приемане…' : '✓ Приеми задачата'}
+                    </button>
+                  </div>
+                ) : currentAssignment?.work_status === 'completed' ? (
+                  <strong className="assignee-state-text completed">✓ Вашата част е завършена</strong>
+                ) : (
+                  <strong className="assignee-state-text in_progress">● Работите по задачата</strong>
+                )}
+              </div>
+            )}
+
             {task.starts_at && task.ends_at ? (
               <>
                 <div><small>Начало</small><strong>{formatDateTime(task.starts_at)}</strong></div>
-                <div><small>Край</small><strong className={isOverdue(task.due_at, task.status) ? 'overdue-text' : ''}>{formatDateTime(task.ends_at)}</strong></div>
+                <div><small>Край</small><strong className={isOverdue(task.due_at, getViewerTaskStatus(task, currentUser.id)) ? 'overdue-text' : ''}>{formatDateTime(task.ends_at)}</strong></div>
               </>
             ) : (
-              <div><small>Краен срок</small><strong className={isOverdue(task.due_at, task.status) ? 'overdue-text' : ''}>{formatDateTime(task.due_at)}</strong></div>
+              <div><small>Краен срок</small><strong className={isOverdue(task.due_at, getViewerTaskStatus(task, currentUser.id)) ? 'overdue-text' : ''}>{formatDateTime(task.due_at)}</strong></div>
             )}
             <div><small>Напомняне</small><strong>{reminder ? (reminder.sent_at ? `Изпратено · ${formatDateTime(reminder.sent_at)}` : formatDateTime(reminder.remind_at)) : 'Няма'}</strong></div>
             <div><small>Възложил</small><strong>{task.creator?.display_name || '—'}</strong></div>
-            <div><small>Изпълнители</small><strong>{task.assignees.map((person) => person.display_name).join(', ')}</strong></div>
+
+            <div className="assignee-status-section">
+              <small>Изпълнители · индивидуален статус</small>
+              <div className="assignee-status-list">
+                {task.assignees.map((person) => {
+                  const assignment = assignmentByUser.get(person.id)
+                  const workStatus = assignment?.work_status || 'new'
+                  return (
+                    <span key={person.id} className={`assignee-status-person ${workStatus}`}>
+                      <span className="avatar small">{initials(person.display_name)}</span>
+                      <span>
+                        <strong>{person.display_name}</strong>
+                        <small>{assigneeWorkStatusLabels[workStatus]}</small>
+                      </span>
+                    </span>
+                  )
+                })}
+              </div>
+            </div>
           </div>
+
           {task.status !== 'completed' && canWork && (
             <div className={`task-completion-panel${approvedForCompletion ? '' : ' waiting-approval'}`}>
               <div>
-                <small>Приключване на задачата</small>
+                <small>{assigneeCount > 1 ? 'Приключване на вашата част' : 'Приключване на задачата'}</small>
                 <strong>
                   {hasPendingApproval
                     ? 'Задачата е изпратена за одобрение и чака решение от Управителя.'
                     : statusChoice === 'waiting_approval'
                       ? 'Задачата е в „Изчаква одобрение“. Изпратете я към Управителя.'
                       : approvedForCompletion
-                        ? 'Когато работата е готова, отбележете задачата като завършена.'
+                        ? assigneeCount > 1
+                          ? 'Когато вашата работа е готова, отбележете само своята част като завършена.'
+                          : 'Когато работата е готова, отбележете задачата като завършена.'
                         : 'Преди завършване задачата трябва да бъде одобрена.'}
                 </strong>
               </div>
@@ -3183,17 +3216,34 @@ function TaskDetail({
                     ✓ Изпрати за одобрение
                   </button>
                 )}
-                <button type="button" className="success-button complete-task-button" disabled={busy || !approvedForCompletion} onClick={() => void finishTask()}>✓ Завърши задачата</button>
+                <button type="button" className="success-button complete-task-button" disabled={busy || !approvedForCompletion} onClick={() => void finishTask()}>
+                  {assigneeCount > 1 ? '✓ Завърши моята част' : '✓ Завърши задачата'}
+                </button>
               </div>
             </div>
           )}
-          {task.status === 'completed' && (
-            <div className="task-completed-panel"><span>✓</span><div><small>Задачата е приключена</small><strong>Отбелязана е като завършена и се намира в категория „Завършени“.</strong></div></div>
+
+          {task.status !== 'completed' && currentAssignment?.work_status === 'completed' && (
+            <div className="assignment-completed-panel">
+              <span>✓</span>
+              <div>
+                <small>Вашата работа е приключена</small>
+                <strong>
+                  Вашата част е завършена. Общата задача ще приключи, когато всички изпълнители завършат своите части.
+                  {assigneeCount > completedAssigneeCount ? ` Остават ${assigneeCount - completedAssigneeCount}.` : ''}
+                </strong>
+              </div>
+            </div>
           )}
-          {task.status === 'new' && (
-            <div style={{ marginTop: 12, padding: '12px 14px', background: '#eef4ff', border: '1px solid #d6e4f7', borderRadius: 12 }}>
-              <small style={{ display: 'block', color: '#7789a8', marginBottom: 3 }}>Работен поток</small>
-              <strong style={{ color: '#4b6595' }}>{canAccept ? 'Първо приемете задачата. След приемането ще можете да я изпратите за одобрение.' : 'Задачата чака да бъде приета от назначен изпълнител.'}</strong>
+
+          {task.status === 'completed' && (
+            <div className="task-completed-panel"><span>✓</span><div><small>Задачата е приключена</small><strong>Всички изпълнители са приключили и задачата се намира в категория „Завършени“.</strong></div></div>
+          )}
+
+          {task.status !== 'completed' && currentAssignment?.work_status === 'new' && (
+            <div className="assignment-awaiting-panel">
+              <small>Ваш работен поток</small>
+              <strong>Задачата може вече да е започната от друг изпълнител, но при вас остава „Неприета“, докато лично не натиснете „Приеми задачата“.</strong>
             </div>
           )}
           {task.recurrence_id && (
@@ -3234,13 +3284,13 @@ function TaskDetail({
                     </div>
                   </article>
                 ))}
-                {updates.length === 0 && <EmptySmall text={task.status === 'new' ? 'Задачата още не е приета. Напредък може да се добавя след приемането.' : 'Все още няма актуализации.'} />}
+                {updates.length === 0 && <EmptySmall text={currentAssignment?.work_status === 'new' ? 'Вие още не сте приели задачата. Напредък може да добавяте след лично приемане.' : 'Все още няма актуализации.'} />}
               </div>
             </section>
           ) : tab === 'files' ? (
             <section className="detail-section">
               {canManageFiles && <label className="upload-drop">＋ Добави файлове към задачата<input type="file" multiple disabled={busy} onChange={(event) => void uploadTaskFiles(event.target.files)} /></label>}
-              <div className="file-list">{taskFiles.map((file) => <FileRow key={file.id} file={file} canUpload={canManageFiles} busy={busy} onDownload={downloadVersion} onVersion={uploadVersion} />)}{taskFiles.length === 0 && <EmptySmall text={task.status === 'new' && !isCreator ? 'Файлове могат да се добавят след приемане на задачата.' : 'Няма файлове към задачата.'} />}</div>
+              <div className="file-list">{taskFiles.map((file) => <FileRow key={file.id} file={file} canUpload={canManageFiles} busy={busy} onDownload={downloadVersion} onVersion={uploadVersion} />)}{taskFiles.length === 0 && <EmptySmall text={currentAssignment?.work_status === 'new' && !isCreator ? 'Файлове можете да добавяте след като лично приемете задачата.' : 'Няма файлове към задачата.'} />}</div>
             </section>
           ) : tab === 'approvals' ? (
             <section className="detail-section">
