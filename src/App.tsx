@@ -67,6 +67,12 @@ type NotebookCalendarEntry = {
 const LOW_SPEC_STORAGE_KEY = 'manager-low-spec-mode'
 const OFFICE_INTRO_PENDING_KEY = 'manager-office-intro-pending'
 
+const GOVERNOR_TEAM_ASSIGNEE_COLUMNS = [
+  ['Биляна Маркова', 'Галина Димитрова', 'Даниел Кръстев', 'Катя Симова', 'Михаил Теофаров', 'Магдалена Калескова'],
+  ['Никол Петрова', 'Любомир Рангелов', 'Даниела Димитрова'],
+  ['Светослав Симеонов', 'Полина Хаджиева'],
+] as const
+
 const readLowSpecPreference = () => {
   try {
     const stored = window.localStorage.getItem(LOW_SPEC_STORAGE_KEY)
@@ -2001,6 +2007,21 @@ function CreateTaskModal({
   const voiceRestartTimerRef = useRef<number | null>(null)
   const personal = mode === 'personal'
   const voiceEnabled = true
+  const governorTeamColumns = useMemo(() => {
+    const byName = new Map(people.map((person) => [person.display_name, person]))
+    const groupedNames = new Set(GOVERNOR_TEAM_ASSIGNEE_COLUMNS.flat())
+
+    const columns = GOVERNOR_TEAM_ASSIGNEE_COLUMNS.map((names) =>
+      names
+        .map((name) => byName.get(name))
+        .filter((person): person is Profile => Boolean(person)),
+    )
+
+    const ungrouped = people.filter((person) => !groupedNames.has(person.display_name as typeof GOVERNOR_TEAM_ASSIGNEE_COLUMNS[number][number]))
+    if (ungrouped.length > 0) columns[2] = [...columns[2], ...ungrouped]
+
+    return columns
+  }, [people])
 
   useEffect(() => () => {
     voiceShouldListenRef.current = false
@@ -2501,21 +2522,26 @@ function CreateTaskModal({
         )}
         <fieldset>
           <legend>{personal ? 'Изпълнител' : <>Изпълнители <small>(изберете поне 1)</small></>}</legend>
-          <div className="people-picker">
+          <div className={personal ? 'people-picker' : 'team-people-columns'}>
             {personal ? (
               <div className="personal-assignee">
                 <span className="avatar small">{initials(profile.display_name)}</span>
                 <div><strong>{profile.display_name}</strong><small>Задачата ще бъде възложена на вас</small></div>
               </div>
-            ) : people.map((person) => (
-              <label key={person.id} className={selected.includes(person.id) ? 'selected' : ''}>
-                <input
-                  type="checkbox"
-                  checked={selected.includes(person.id)}
-                  onChange={(event) => setSelected((current) => event.target.checked ? [...current, person.id] : current.filter((id) => id !== person.id))}
-                />
-                <span className="avatar small">{initials(person.display_name)}</span>{person.display_name}
-              </label>
+            ) : governorTeamColumns.map((column, columnIndex) => (
+              <div className="team-people-column" key={columnIndex}>
+                {column.map((person) => (
+                  <label key={person.id} className={selected.includes(person.id) ? 'selected' : ''}>
+                    <input
+                      type="checkbox"
+                      checked={selected.includes(person.id)}
+                      onChange={(event) => setSelected((current) => event.target.checked ? [...current, person.id] : current.filter((id) => id !== person.id))}
+                    />
+                    <span className="avatar small">{initials(person.display_name)}</span>
+                    <span>{person.display_name}</span>
+                  </label>
+                ))}
+              </div>
             ))}
             {!personal && people.length === 0 && <p className="muted">Няма други активни служебни профили.</p>}
           </div>
