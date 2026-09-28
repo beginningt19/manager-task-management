@@ -1743,6 +1743,8 @@ function CalendarView({
   onCreate: (date: Date) => void
 }) {
   const scrollRef = useRef<HTMLDivElement | null>(null)
+  const todayDayRef = useRef<HTMLDivElement | null>(null)
+  const mobileTodayFocusPendingRef = useRef(true)
   const year = cursor.getFullYear()
   const month = cursor.getMonth()
   const firstDayOffset = (new Date(year, month, 1).getDay() + 6) % 7
@@ -1773,6 +1775,33 @@ function CalendarView({
     const today = new Date()
     onCursorChange(new Date(today.getFullYear(), today.getMonth(), 1))
   }
+
+  useEffect(() => {
+    if (!mobileTodayFocusPendingRef.current) return
+
+    const mobile = window.matchMedia('(max-width: 700px)').matches
+    if (!mobile) {
+      mobileTodayFocusPendingRef.current = false
+      return
+    }
+
+    const today = new Date()
+    if (year !== today.getFullYear() || month !== today.getMonth()) {
+      onCursorChange(new Date(today.getFullYear(), today.getMonth(), 1))
+      return
+    }
+
+    const frame = window.requestAnimationFrame(() => {
+      const todayElement = todayDayRef.current
+      if (!todayElement) return
+
+      todayElement.scrollIntoView({ behavior: 'auto', block: 'start' })
+      window.scrollBy({ top: -76, left: 0, behavior: 'auto' })
+      mobileTodayFocusPendingRef.current = false
+    })
+
+    return () => window.cancelAnimationFrame(frame)
+  }, [month, onCursorChange, year])
 
   return (
     <div className="calendar-shell">
@@ -1845,7 +1874,11 @@ function CalendarView({
             const isToday = key === todayKey
 
             return (
-              <div key={key} className={`calendar-day${isOutside ? ' outside-month' : ''}${isToday ? ' today' : ''}${dayNotebookEntries.length ? ' has-notebook-items' : ''}`}>
+              <div
+                key={key}
+                ref={isToday ? todayDayRef : undefined}
+                className={`calendar-day${isOutside ? ' outside-month' : ''}${isToday ? ' today' : ''}${dayNotebookEntries.length ? ' has-notebook-items' : ''}`}
+              >
                 <div className="calendar-date">
                   <button
                     type="button"
