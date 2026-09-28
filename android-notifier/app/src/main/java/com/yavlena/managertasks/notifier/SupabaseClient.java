@@ -40,6 +40,15 @@ final class SupabaseClient {
         }
     }
 
+    static final class DeviceSession {
+        final String email;
+        final String deviceToken;
+        DeviceSession(String email, String deviceToken) {
+            this.email = email;
+            this.deviceToken = deviceToken;
+        }
+    }
+
     static final class Reminder {
         final String id;
         final String taskId;
@@ -69,43 +78,77 @@ final class SupabaseClient {
         return authRequest("/auth/v1/token?grant_type=refresh_token", body, email);
     }
 
-    void registerMobilePushDevice(String accessToken, String fcmToken, String deviceName, String appVersion) throws Exception {
-        JSONObject user = new JSONObject(request("GET", "/auth/v1/user", null, accessToken));
-        String userId = user.getString("id");
-
+    DeviceSession createNotifierDeviceSession(
+            String accessToken,
+            String email,
+            String deviceId,
+            String deviceName) throws Exception {
         JSONObject body = new JSONObject();
-        body.put("user_id", userId);
-        body.put("fcm_token", fcmToken);
-        body.put("platform", "android");
-        body.put("device_name", deviceName);
-        body.put("app_version", appVersion);
-        body.put("last_seen_at", Instant.now().toString());
-        body.put("updated_at", Instant.now().toString());
+        body.put("p_device_id", deviceId);
+        body.put("p_platform", "android");
+        body.put("p_device_name", deviceName);
 
+        String text = request(
+                "POST",
+                "/rest/v1/rpc/create_notifier_device_session",
+                body.toString(),
+                accessToken);
+        JSONObject json = new JSONObject(text);
+        String deviceToken = json.optString("device_token", "");
+        String responseEmail = json.optString("email", email);
+        if (deviceToken.trim().isEmpty()) {
+            throw new IOException("Supabase не върна постоянна notifier сесия.");
+        }
+        return new DeviceSession(
+                responseEmail == null || responseEmail.trim().isEmpty() ? email : responseEmail,
+                deviceToken);
+    }
+
+    void registerMobilePushDevice(DeviceSession session, String fcmToken, String deviceName, String appVersion) throws Exception {
+        JSONObject body = new JSONObject();
+        body.put("p_device_token", session.deviceToken);
+        body.put("p_fcm_token", fcmToken);
+        body.put("p_device_name", deviceName);
+        body.put("p_app_version", appVersion);
         request(
                 "POST",
-                "/rest/v1/mobile_push_devices?on_conflict=fcm_token",
+                "/rest/v1/rpc/notifier_register_mobile_push",
                 body.toString(),
-                accessToken,
-                "resolution=merge-duplicates,return=minimal");
+                null);
     }
 
-    void deleteMobilePushDevice(String accessToken, String fcmToken) throws Exception {
+    void deleteMobilePushDevice(DeviceSession session, String fcmToken) throws Exception {
+        JSONObject body = new JSONObject();
+        body.put("p_device_token", session.deviceToken);
+        body.put("p_fcm_token", fcmToken);
         request(
-                "DELETE",
-                "/rest/v1/mobile_push_devices?fcm_token=eq." + encode(fcmToken),
-                null,
-                accessToken,
-                "return=minimal");
+                "POST",
+                "/rest/v1/rpc/notifier_unregister_mobile_push",
+                body.toString(),
+                null);
     }
 
-    List<Reminder> fetchReminders(String accessToken, Instant from, Instant to) throws Exception {
-        String select = encode("id,task_id,remind_at,tasks(description,status,completed_at)");
-        String path = "/rest/v1/task_reminders?select=" + select
-                + "&remind_at=gte." + encode(from.toString())
-                + "&remind_at=lte." + encode(to.toString())
-                + "&order=remind_at.asc";
-        String text = request("GET", path, null, accessToken);
+    void logoutNotifierDevice(DeviceSession session) throws Exception {
+        JSONObject body = new JSONObject();
+        body.put("p_device_token", session.deviceToken);
+        request(
+                "POST",
+                "/rest/v1/rpc/notifier_logout",
+                body.toString(),
+                null);
+    }
+
+    List<Reminder> fetchReminders(String deviceToken, Instant from, Instant to) throws Exception {
+        JSONObject body = new JSONObject();
+        body.put("p_device_token", deviceToken);
+        body.put("p_from", from.toString());
+        body.put("p_to", to.toString());
+
+        String text = request(
+                "POST",
+                "/rest/v1/rpc/notifier_fetch_due_reminders",
+                body.toString(),
+                null);
         JSONArray rows = new JSONArray(text);
         List<Reminder> result = new ArrayList<>();
         for (int i = 0; i < rows.length(); i++) {
