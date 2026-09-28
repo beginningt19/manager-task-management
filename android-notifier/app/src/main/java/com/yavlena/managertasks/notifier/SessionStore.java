@@ -47,7 +47,6 @@ final class SessionStore {
             byte[] plain = decrypt(Base64.decode(token, Base64.NO_WRAP));
             return new StoredSession(email, new String(plain, StandardCharsets.UTF_8));
         } catch (Exception error) {
-            clear(context);
             return null;
         }
     }
