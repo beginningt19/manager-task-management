@@ -121,7 +121,7 @@ final class DeviceSessionStore {
                 KEY_ALIAS,
                 KeyProperties.PURPOSE_ENCRYPT | KeyProperties.PURPOSE_DECRYPT)
                 .setBlockModes(KeyProperties.BLOCK_MODE_GCM)
-                .setEncryptionPaddings(KeyProperties.ENCRYPTION_NONE)
+                .setEncryptionPaddings(KeyProperties.ENCRYPTION_PADDING_NONE)
                 .build());
         return generator.generateKey();
     }
