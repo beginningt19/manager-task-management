@@ -193,14 +193,32 @@ const taskCategoryLabels: Record<TaskCategory, string> = {
   completed: 'Завършени',
 }
 
-const getTaskCategory = (task: TaskView): TaskCategory => {
+const assigneeWorkStatusLabels = {
+  new: 'Неприета',
+  in_progress: 'В процес',
+  completed: 'Завършена',
+} as const
+
+const getViewerTaskStatus = (task: TaskView, viewerId?: string | null): TaskStatus => {
   if (task.status === 'completed') return 'completed'
+  if (!viewerId) return task.status
+
+  const assignment = task.assignment_states.find((item) => item.user_id === viewerId)
+  if (!assignment) return task.status
+  if (assignment.work_status === 'new') return 'new'
+  if (assignment.work_status === 'completed') return 'completed'
+  return task.status
+}
+
+const getTaskCategory = (task: TaskView, viewerId?: string | null): TaskCategory => {
+  const effectiveStatus = getViewerTaskStatus(task, viewerId)
+  if (effectiveStatus === 'completed') return 'completed'
   // Approval is an actionable workflow state and must win over "overdue".
   // Otherwise an overdue task awaiting a decision disappears from the
   // governor's "За одобрение" queue.
-  if (task.status === 'waiting_approval') return 'approval'
-  if (isOverdue(task.due_at, task.status)) return 'overdue'
-  if (task.status === 'new') return 'open'
+  if (effectiveStatus === 'waiting_approval') return 'approval'
+  if (isOverdue(task.due_at, effectiveStatus)) return 'overdue'
+  if (effectiveStatus === 'new') return 'open'
   return 'active'
 }
 
@@ -446,6 +464,7 @@ function App() {
           .filter((assignment) => assignment.task_id === task.id)
           .map((assignment) => byId.get(assignment.user_id))
           .filter((person): person is Profile => Boolean(person)),
+        assignment_states: nextAssignees.filter((assignment) => assignment.task_id === task.id),
       })),
     )
     setLoading(false)
@@ -706,26 +725,26 @@ function App() {
     const needle = query.trim().toLocaleLowerCase('bg-BG')
     return tasks.filter((task) => {
       if (needle && !task.description.toLocaleLowerCase('bg-BG').includes(needle)) return false
-      if (statusFilter !== 'all' && task.status !== statusFilter) return false
+      if (statusFilter !== 'all' && getViewerTaskStatus(task, session?.user.id) !== statusFilter) return false
       if (assigneeFilter !== 'all' && !task.assignees.some((person) => person.id === assigneeFilter)) return false
-      if (overdueOnly && !isOverdue(task.due_at, task.status)) return false
+      if (overdueOnly && !isOverdue(task.due_at, getViewerTaskStatus(task, session?.user.id))) return false
       return true
     })
-  }, [tasks, query, statusFilter, assigneeFilter, overdueOnly])
+  }, [tasks, query, statusFilter, assigneeFilter, overdueOnly, session?.user.id])
 
   const counts = useMemo(() => {
     const next: Record<TaskCategory, number> = { open: 0, active: 0, approval: 0, overdue: 0, completed: 0 }
     tasks.forEach((task) => {
-      next[getTaskCategory(task)] += 1
+      next[getTaskCategory(task, session?.user.id)] += 1
     })
     return next
-  }, [tasks])
+  }, [tasks, session?.user.id])
 
   const visibleTasks = useMemo(
     () => categoryFocus
-      ? filteredTasks.filter((task) => getTaskCategory(task) === categoryFocus)
+      ? filteredTasks.filter((task) => getTaskCategory(task, session?.user.id) === categoryFocus)
       : filteredTasks,
-    [categoryFocus, filteredTasks],
+    [categoryFocus, filteredTasks, session?.user.id],
   )
   const visibleListCount = visibleTasks.length
   const canControlManagerVisibility = Boolean(profile && (profile.role === 'admin' || profile.display_role === 'Управител'))
@@ -965,7 +984,7 @@ function App() {
           ) : (
             <div className="task-list">
               {visibleTasks.map((task) => (
-                <TaskCard key={task.id} task={task} onOpen={() => setSelectedTaskId(task.id)} />
+                <TaskCard key={task.id} task={task} viewerId={session?.user.id || null} onOpen={() => setSelectedTaskId(task.id)} />
               ))}
             </div>
           )}
@@ -1752,14 +1771,32 @@ function CalendarView({
   )
 }
 
-function TaskCard({ task, onOpen }: { task: TaskView; onOpen: () => void }) {
-  const overdue = isOverdue(task.due_at, task.status)
+function TaskCard({
+  task,
+  viewerId,
+  onOpen,
+}: {
+  task: TaskView
+  viewerId: string | null
+  onOpen: () => void
+}) {
+  const effectiveStatus = getViewerTaskStatus(task, viewerId)
+  const overdue = isOverdue(task.due_at, effectiveStatus)
+  const assignmentByUser = new Map(task.assignment_states.map((assignment) => [assignment.user_id, assignment]))
+  const viewerAssignment = viewerId ? assignmentByUser.get(viewerId) : undefined
+
   return (
     <button className="task-card" onClick={onOpen}>
       <span className={`priority-bar ${task.priority}`} />
       <div className="task-main">
         <div className="task-badges">
-          <span className={`status-badge ${task.status}`}>{statusLabels[task.status]}</span>
+          <span className={`status-badge ${effectiveStatus}`}>{statusLabels[effectiveStatus]}</span>
+          {viewerAssignment?.work_status === 'new' && task.status !== 'completed' && (
+            <span className="assignee-state-badge new">Чака вашето приемане</span>
+          )}
+          {viewerAssignment?.work_status === 'completed' && task.status !== 'completed' && (
+            <span className="assignee-state-badge completed">Вашата част е готова</span>
+          )}
           <span className={`priority-badge ${task.priority}`}>{priorityLabels[task.priority]}</span>
           {task.approval_required && <span className="approval-badge">Нужно одобрение</span>}
           {task.recurrence_id && <span className="approval-badge">↻ Повтаряща се</span>}
@@ -1775,7 +1812,18 @@ function TaskCard({ task, onOpen }: { task: TaskView; onOpen: () => void }) {
         </div>
       </div>
       <div className="assignee-stack" aria-label={`Изпълнители: ${task.assignees.map((person) => person.display_name).join(', ')}`}>
-        {task.assignees.map((person) => <span key={person.id} title={person.display_name}>{initials(person.display_name)}</span>)}
+        {task.assignees.map((person) => {
+          const state = assignmentByUser.get(person.id)?.work_status || 'new'
+          return (
+            <span
+              key={person.id}
+              className={`assignee-avatar-state ${state}`}
+              title={`${person.display_name} · ${assigneeWorkStatusLabels[state]}`}
+            >
+              {initials(person.display_name)}
+            </span>
+          )
+        })}
       </div>
       <span className="chevron">›</span>
     </button>
