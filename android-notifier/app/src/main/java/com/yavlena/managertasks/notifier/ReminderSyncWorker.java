@@ -26,20 +26,16 @@ public final class ReminderSyncWorker extends Worker {
     @NonNull
     @Override
     public Result doWork() {
-        if (SessionStore.load(getApplicationContext()) == null) return Result.success();
+        DeviceSessionStore.StoredDeviceSession stored = DeviceSessionStore.load(getApplicationContext());
+        if (stored == null) return Result.success();
 
         try {
-            SupabaseClient.AuthSession session = SessionManager.refreshStored(getApplicationContext());
+            SupabaseClient.DeviceSession session = stored.toSession();
             FcmRegistrar.registerCurrentToken(getApplicationContext(), session);
             ReminderScheduler.sync(getApplicationContext(), session);
             return Result.success();
-        } catch (SupabaseClient.AuthException error) {
-            if (error.invalidSession) {
-                SessionManager.clear(getApplicationContext());
-                return Result.success();
-            }
-            return Result.retry();
         } catch (Exception error) {
+            // Never clear the persistent notifier session automatically.
             return Result.retry();
         }
     }
