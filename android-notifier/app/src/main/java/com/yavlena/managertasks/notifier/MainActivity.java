@@ -28,7 +28,7 @@ public final class MainActivity extends Activity {
     private static final String WEB_URL = "https://manager-task-management.pages.dev/";
 
     private final ExecutorService executor = Executors.newSingleThreadExecutor();
-    private SupabaseClient.AuthSession session;
+    private SupabaseClient.DeviceSession session;
     private LinearLayout root;
     private TextView status;
     private Button exactAlarmButton;
@@ -40,46 +40,47 @@ public final class MainActivity extends Activity {
         handleNotificationIntent(getIntent());
         showLoading();
 
-        SessionStore.StoredSession stored = SessionStore.load(this);
-        if (stored == null) {
+        DeviceSessionStore.StoredDeviceSession persistent = DeviceSessionStore.load(this);
+        if (persistent != null) {
+            session = persistent.toSession();
+            ReminderSyncWorker.ensurePeriodic(this);
+            FcmRegistrar.registerCurrentToken(this, session);
+            showDashboard();
+            requestNotificationPermissionIfNeeded();
+            syncNow();
+            return;
+        }
+
+        // One-time migration from v1.x. A valid legacy refresh token is converted
+        // into a non-expiring notifier device session. It is never used afterwards.
+        SessionStore.StoredSession legacy = SessionStore.load(this);
+        if (legacy == null) {
             showLogin();
             return;
         }
 
         ReminderSyncWorker.ensurePeriodic(this);
-
         executor.execute(() -> {
             try {
-                SupabaseClient.AuthSession refreshed = SessionManager.refreshStored(this);
-                session = refreshed;
-                FcmRegistrar.registerCurrentToken(this, refreshed);
+                SupabaseClient api = new SupabaseClient();
+                SupabaseClient.AuthSession refreshed = api.refresh(legacy.email, legacy.refreshToken);
+                SupabaseClient.DeviceSession migrated = api.createNotifierDeviceSession(
+                        refreshed.accessToken,
+                        refreshed.email,
+                        DeviceSessionStore.getOrCreateDeviceId(this),
+                        android.os.Build.MANUFACTURER + " " + android.os.Build.MODEL);
+                DeviceSessionStore.save(this, migrated);
+                session = migrated;
+                FcmRegistrar.registerCurrentToken(this, migrated);
                 runOnUiThread(() -> {
                     showDashboard();
                     requestNotificationPermissionIfNeeded();
                     syncNow();
                 });
-            } catch (SupabaseClient.AuthException error) {
-                if (error.invalidSession) {
-                    SessionManager.clear(this);
-                    runOnUiThread(() -> {
-                        Toast.makeText(this, "Сесията вече не е валидна. Влезте отново.", Toast.LENGTH_LONG).show();
-                        showLogin();
-                    });
-                } else {
-                    session = new SupabaseClient.AuthSession(stored.email, "", stored.refreshToken);
-                    ReminderSyncWorker.ensurePeriodic(this);
-                    runOnUiThread(() -> {
-                        showDashboard();
-                        status.setText("Временен проблем при подновяване на сесията. Ще опитаме отново автоматично.");
-                    });
-                }
             } catch (Exception error) {
-                session = new SupabaseClient.AuthSession(stored.email, "", stored.refreshToken);
-                ReminderSyncWorker.ensurePeriodic(this);
-                runOnUiThread(() -> {
-                    showDashboard();
-                    status.setText("Временен проблем при връзката. Сесията е запазена и ще опитаме отново.");
-                });
+                // Do not erase the old stored session. Users whose old Supabase
+                // refresh token has already been invalidated sign in once here.
+                runOnUiThread(this::showLogin);
             }
         });
     }
@@ -150,10 +151,17 @@ public final class MainActivity extends Activity {
             loginStatus.setText("Вход…");
             executor.execute(() -> {
                 try {
-                    SupabaseClient.AuthSession loggedIn = new SupabaseClient().login(emailValue, passwordValue);
-                    SessionManager.save(this, loggedIn);
-                    session = loggedIn;
-                    FcmRegistrar.registerCurrentToken(this, loggedIn);
+                    SupabaseClient api = new SupabaseClient();
+                    SupabaseClient.AuthSession loggedIn = api.login(emailValue, passwordValue);
+                    SupabaseClient.DeviceSession persistent = api.createNotifierDeviceSession(
+                            loggedIn.accessToken,
+                            loggedIn.email,
+                            DeviceSessionStore.getOrCreateDeviceId(this),
+                            android.os.Build.MANUFACTURER + " " + android.os.Build.MODEL);
+                    DeviceSessionStore.save(this, persistent);
+                    SessionStore.clear(this);
+                    session = persistent;
+                    FcmRegistrar.registerCurrentToken(this, persistent);
                     ReminderSyncWorker.ensurePeriodic(this);
                     runOnUiThread(() -> {
                         showDashboard();
@@ -211,10 +219,17 @@ public final class MainActivity extends Activity {
 
         Button logout = secondaryButton("Изход от акаунта на този телефон");
         logout.setOnClickListener(view -> {
-            FcmRegistrar.unregisterCurrentToken(this, session);
+            SupabaseClient.DeviceSession current = session;
+            FcmRegistrar.unregisterCurrentToken(this, current);
+            executor.execute(() -> {
+                try {
+                    if (current != null) new SupabaseClient().logoutNotifierDevice(current);
+                } catch (Exception ignored) {}
+            });
             ReminderSyncWorker.cancelAll(this);
             ReminderScheduler.clear(this);
-            SessionManager.clear(this);
+            DeviceSessionStore.clearSession(this);
+            SessionStore.clear(this);
             session = null;
             showLogin();
         });
@@ -230,11 +245,12 @@ public final class MainActivity extends Activity {
         status.setText("Синхронизиране…");
         executor.execute(() -> {
             try {
-                if (SessionStore.load(this) == null) throw new IllegalStateException("Липсва запазена сесия.");
-                SupabaseClient.AuthSession refreshed = SessionManager.refreshStored(this);
-                session = refreshed;
-                FcmRegistrar.registerCurrentToken(this, refreshed);
-                ReminderScheduler.SyncResult result = ReminderScheduler.sync(this, refreshed);
+                DeviceSessionStore.StoredDeviceSession stored = DeviceSessionStore.load(this);
+                if (stored == null) throw new IllegalStateException("Липсва запазена постоянна notifier сесия.");
+                SupabaseClient.DeviceSession current = stored.toSession();
+                session = current;
+                FcmRegistrar.registerCurrentToken(this, current);
+                ReminderScheduler.SyncResult result = ReminderScheduler.sync(this, current);
                 ReminderSyncWorker.ensurePeriodic(this);
                 runOnUiThread(() -> {
                     String exactText = result.exactAlarms
