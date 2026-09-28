@@ -6,6 +6,7 @@ export type TaskStatus =
   | 'waiting_approval'
   | 'completed'
 export type Priority = 'low' | 'normal' | 'high' | 'urgent'
+export type AssigneeWorkStatus = 'new' | 'in_progress' | 'completed'
 export type ApprovalStatus = 'pending' | 'approved' | 'rejected' | 'changes_requested'
 export type ChecklistKind = 'inventory' | 'deadlines' | 'custom'
 export type ChecklistFieldType = 'text' | 'number' | 'date' | 'boolean' | 'select'
@@ -43,10 +44,14 @@ export interface TaskAssignee {
   user_id: string
   assigned_by: string
   assigned_at: string
+  work_status: AssigneeWorkStatus
+  accepted_at: string | null
+  completed_at: string | null
 }
 
 export interface TaskView extends TaskRow {
   assignees: Profile[]
+  assignment_states: TaskAssignee[]
   creator?: Profile
 }
 
