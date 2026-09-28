@@ -256,7 +256,7 @@ const isJwtFutureError = (value: unknown) => {
 }
 
 const needsInitialPassword = (session: Session | null) => Boolean(
-  session?.user.invited_at && session.user.user_metadata?.password_initialized !== true,
+  session?.user.user_metadata?.password_initialized === false,
 )
 
 const fileSize = (bytes: number) => {
@@ -338,6 +338,7 @@ function App() {
     return new Date(today.getFullYear(), today.getMonth(), 1)
   })
   const [passwordOpen, setPasswordOpen] = useState(false)
+  const [adminPasswordOpen, setAdminPasswordOpen] = useState(false)
   const [checklistsOpen, setChecklistsOpen] = useState(false)
   const [notebookOpen, setNotebookOpen] = useState(false)
   const [notebookTarget, setNotebookTarget] = useState<{ date: string; pageId: string } | null>(null)
@@ -759,6 +760,7 @@ function App() {
   const visibleListCount = visibleTasks.length
   const canControlManagerVisibility = Boolean(profile && (profile.role === 'admin' || profile.display_role === 'Управител'))
   const canCreateTeamTasks = profile?.display_role === 'Управител'
+  const canAdminSetTemporaryPassword = profile?.display_role === 'Управител' || profile?.display_role === 'Модератор'
 
   useEffect(() => {
     if (!session?.user.id || loading) return
@@ -887,6 +889,9 @@ function App() {
           <button className={`notification-button checklist-launch${dashboardView === 'calendar' ? ' active' : ''}`} onClick={() => setDashboardView('calendar')} title="Отвори календара">◷<span>Календар</span></button>
           <button className="notification-button checklist-launch notebook-launch" onClick={() => { setNotebookTarget(null); setNotebookOpen(true) }} title="Отвори личния тефтер">✎<span>Тефтер</span></button>
           <PushButton userId={session.user.id} onResult={showToast} />
+          {canAdminSetTemporaryPassword && (
+            <button className="notification-button" onClick={() => setAdminPasswordOpen(true)} title="Задай временна парола на потребител">⚿<span>Временна парола</span></button>
+          )}
           <button className="notification-button" onClick={() => setPasswordOpen(true)} title="Смени паролата">⌘<span>Парола</span></button>
           <span className="avatar" aria-hidden="true">{initials(profile?.display_name || session.user.email || 'А')}</span>
           <div className="account-copy">
@@ -1061,6 +1066,15 @@ function App() {
       {passwordOpen && (
         <PasswordModal
           onClose={() => setPasswordOpen(false)}
+          onResult={showToast}
+        />
+      )}
+
+      {adminPasswordOpen && profile && canAdminSetTemporaryPassword && (
+        <AdminTemporaryPasswordModal
+          currentUserId={profile.id}
+          profiles={profiles}
+          onClose={() => setAdminPasswordOpen(false)}
           onResult={showToast}
         />
       )}
@@ -1520,6 +1534,116 @@ function PasswordModal({ onClose, onResult }: { onClose: () => void; onResult: (
         <label>Повторете паролата<input type="password" autoComplete="new-password" required minLength={8} value={confirmPassword} onChange={(event) => setConfirmPassword(event.target.value)} /></label>
         {error && <p className="form-error">{error}</p>}
         <div className="modal-actions"><button type="button" className="secondary-button" onClick={onClose}>Отказ</button><button className="primary-button" disabled={busy}>{busy ? 'Запазване…' : 'Запази новата парола'}</button></div>
+      </form>
+    </Modal>
+  )
+}
+
+function AdminTemporaryPasswordModal({
+  currentUserId,
+  profiles,
+  onClose,
+  onResult,
+}: {
+  currentUserId: string
+  profiles: Profile[]
+  onClose: () => void
+  onResult: (toast: Toast) => void
+}) {
+  const eligibleProfiles = useMemo(
+    () => profiles.filter((person) => person.is_active && person.id !== currentUserId),
+    [currentUserId, profiles],
+  )
+  const [targetUserId, setTargetUserId] = useState(eligibleProfiles[0]?.id || '')
+  const [password, setPassword] = useState('')
+  const [confirmPassword, setConfirmPassword] = useState('')
+  const [busy, setBusy] = useState(false)
+  const [error, setError] = useState('')
+
+  const submit = async (event: FormEvent) => {
+    event.preventDefault()
+    setError('')
+
+    if (!targetUserId) {
+      setError('Изберете потребител.')
+      return
+    }
+    if (password.length < 10) {
+      setError('Временната парола трябва да е поне 10 знака.')
+      return
+    }
+    if (password !== confirmPassword) {
+      setError('Двете пароли не съвпадат.')
+      return
+    }
+
+    setBusy(true)
+    const { error: invokeError } = await supabase.functions.invoke('admin-set-temporary-password', {
+      body: { targetUserId, password },
+    })
+    setBusy(false)
+
+    if (invokeError) {
+      setError(invokeError.message || 'Временната парола не можа да бъде зададена.')
+      return
+    }
+
+    const target = eligibleProfiles.find((person) => person.id === targetUserId)
+    onClose()
+    onResult({
+      tone: 'success',
+      message: `Временната парола за ${target?.display_name || 'потребителя'} е зададена. При следващ вход системата ще изиска нова лична парола.`,
+    })
+  }
+
+  return (
+    <Modal title="Временна парола за потребител" onClose={onClose}>
+      <form className="stack-form modal-form" onSubmit={submit}>
+        <p className="modal-note">
+          Само Управител и Модератор могат да използват тази функция. Паролата се задава директно, без recovery email.
+          При следващ вход потребителят трябва да я смени.
+        </p>
+        <label>
+          Потребител
+          <select required value={targetUserId} onChange={(event) => setTargetUserId(event.target.value)}>
+            {eligibleProfiles.map((person) => (
+              <option key={person.id} value={person.id}>
+                {person.display_name} · {person.display_role || (person.role === 'manager' ? 'Мениджър' : 'Модератор')}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label>
+          Временна парола
+          <input
+            type="password"
+            autoComplete="new-password"
+            required
+            minLength={10}
+            maxLength={128}
+            value={password}
+            onChange={(event) => setPassword(event.target.value)}
+          />
+        </label>
+        <label>
+          Повторете временната парола
+          <input
+            type="password"
+            autoComplete="new-password"
+            required
+            minLength={10}
+            maxLength={128}
+            value={confirmPassword}
+            onChange={(event) => setConfirmPassword(event.target.value)}
+          />
+        </label>
+        {error && <p className="form-error">{error}</p>}
+        <div className="modal-actions">
+          <button type="button" className="secondary-button" onClick={onClose} disabled={busy}>Отказ</button>
+          <button className="primary-button" disabled={busy || !targetUserId}>
+            {busy ? 'Задаване…' : 'Задай временна парола'}
+          </button>
+        </div>
       </form>
     </Modal>
   )
