@@ -24,7 +24,7 @@ final class FcmRegistrar {
         }
     }
 
-    static void registerCurrentToken(Context context, SupabaseClient.AuthSession session) {
+    static void registerCurrentToken(Context context, SupabaseClient.DeviceSession session) {
         if (!isConfigured(context) || session == null) return;
         try {
             FirebaseApp.initializeApp(context);
@@ -38,12 +38,12 @@ final class FcmRegistrar {
 
     static void registerTokenFromStoredSession(Context context, String token) {
         if (!isConfigured(context) || token == null || token.trim().isEmpty()) return;
-        if (SessionStore.load(context) == null) return;
+        DeviceSessionStore.StoredDeviceSession stored = DeviceSessionStore.load(context);
+        if (stored == null) return;
         EXECUTOR.execute(() -> {
             try {
-                SupabaseClient.AuthSession refreshed = SessionManager.refreshStored(context);
                 new SupabaseClient().registerMobilePushDevice(
-                        refreshed.accessToken,
+                        stored.toSession(),
                         token,
                         deviceName(),
                         appVersion(context));
@@ -51,25 +51,25 @@ final class FcmRegistrar {
         });
     }
 
-    static void unregisterCurrentToken(Context context, SupabaseClient.AuthSession session) {
+    static void unregisterCurrentToken(Context context, SupabaseClient.DeviceSession session) {
         if (!isConfigured(context) || session == null) return;
         FirebaseMessaging.getInstance().getToken().addOnCompleteListener(task -> {
             if (!task.isSuccessful() || task.getResult() == null) return;
             String token = task.getResult();
             EXECUTOR.execute(() -> {
                 try {
-                    new SupabaseClient().deleteMobilePushDevice(session.accessToken, token);
+                    new SupabaseClient().deleteMobilePushDevice(session, token);
                 } catch (Exception ignored) {}
                 FirebaseMessaging.getInstance().deleteToken();
             });
         });
     }
 
-    private static void registerToken(Context context, SupabaseClient.AuthSession session, String token) {
+    private static void registerToken(Context context, SupabaseClient.DeviceSession session, String token) {
         EXECUTOR.execute(() -> {
             try {
                 new SupabaseClient().registerMobilePushDevice(
-                        session.accessToken,
+                        session,
                         token,
                         deviceName(),
                         appVersion(context));
@@ -80,9 +80,9 @@ final class FcmRegistrar {
     private static String appVersion(Context context) {
         try {
             PackageInfo info = context.getPackageManager().getPackageInfo(context.getPackageName(), 0);
-            return info.versionName == null ? "1.2.0" : info.versionName;
+            return info.versionName == null ? "1.3.0" : info.versionName;
         } catch (Exception ignored) {
-            return "1.2.0";
+            return "1.3.0";
         }
     }
 
