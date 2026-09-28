@@ -3127,6 +3127,8 @@ function TaskDetail({
               <small>Общ статус</small>
               {task.status === 'completed' ? (
                 <strong style={{ color: '#1d4ed8' }}>✓ Завършена</strong>
+              ) : task.status === 'new' ? (
+                <strong style={{ color: '#2563eb' }}>Отворена · чака изпълнителите да я приемат</strong>
               ) : statusChoice === 'waiting_approval' && hasPendingApproval ? (
                 <strong style={{ color: '#b7791f' }}>Изчаква одобрение · изпратена към Управителя</strong>
               ) : canParticipate && (!isAssignee || currentAssignment?.work_status === 'in_progress') ? (
