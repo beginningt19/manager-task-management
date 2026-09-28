@@ -32,7 +32,7 @@ final class ReminderScheduler {
         }
     }
 
-    static SyncResult sync(Context context, SupabaseClient.AuthSession session) throws Exception {
+    static SyncResult sync(Context context, SupabaseClient.DeviceSession session) throws Exception {
         SharedPreferences prefs = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE);
         Instant now = Instant.now();
         long lastSyncMillis = prefs.getLong(LAST_SYNC, 0L);
@@ -44,7 +44,7 @@ final class ReminderScheduler {
         Instant to = now.plus(90, ChronoUnit.DAYS);
 
         SupabaseClient api = new SupabaseClient();
-        List<SupabaseClient.Reminder> reminders = api.fetchReminders(session.accessToken, from, to);
+        List<SupabaseClient.Reminder> reminders = api.fetchReminders(session.deviceToken, from, to);
         AlarmManager alarms = context.getSystemService(AlarmManager.class);
         boolean exact = canScheduleExact(alarms);
 
