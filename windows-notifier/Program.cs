@@ -20,35 +20,11 @@ internal static class Program
         Application.SetCompatibleTextRenderingDefault(false);
 
         var api = new SupabaseApi();
-        AuthState? auth = null;
-        var stored = SessionStore.Load();
-        if (stored is not null)
-        {
-            try
-            {
-                auth = api.RefreshAsync(stored.Email, stored.RefreshToken).GetAwaiter().GetResult();
-                SessionStore.Save(auth.Email, auth.RefreshToken);
-            }
-            catch (AuthException)
-            {
-                SessionStore.Clear();
-            }
-            catch
-            {
-                auth = new AuthState(stored.Email, "", stored.RefreshToken, DateTimeOffset.MinValue);
-            }
-        }
-
-        if (auth is null)
-        {
-            using var login = new LoginForm(api);
-            if (login.ShowDialog() != DialogResult.OK || login.Auth is null) return;
-            auth = login.Auth;
-            SessionStore.Save(auth.Email, auth.RefreshToken);
-        }
+        var deviceSession = DeviceSessionBootstrap.LoadOrLogin(api);
+        if (deviceSession is null) return;
 
         StartupRegistration.Ensure();
-        var session = new AuthSessionManager(api, auth);
+        var session = new DeviceSessionManager(deviceSession);
         Application.Run(new NotifierContext(api, session));
     }
 }
@@ -56,7 +32,7 @@ internal static class Program
 internal sealed class NotifierContext : ApplicationContext
 {
     private readonly SupabaseApi _api;
-    private readonly AuthSessionManager _session;
+    private readonly DeviceSessionManager _session;
     private readonly NotifyIcon _tray;
     private readonly System.Windows.Forms.Timer _timer;
     private readonly Queue<Func<Form>> _alerts = new();
@@ -64,7 +40,7 @@ internal sealed class NotifierContext : ApplicationContext
     private bool _polling;
     private Form? _currentAlert;
 
-    public NotifierContext(SupabaseApi api, AuthSessionManager session)
+    public NotifierContext(SupabaseApi api, DeviceSessionManager session)
     {
         _api = api;
         _session = session;
@@ -73,8 +49,9 @@ internal sealed class NotifierContext : ApplicationContext
         var menu = new ContextMenuStrip();
         menu.Items.Add("Провери сега", null, async (_, _) => await PollAsync());
         menu.Items.Add("Смени акаунта", null, async (_, _) => await ChangeAccountAsync());
+        menu.Items.Add("Изход от акаунта", null, async (_, _) => await LogoutAccountAsync());
         menu.Items.Add(new ToolStripSeparator());
-        menu.Items.Add("Изход", null, (_, _) => ExitThread());
+        menu.Items.Add("Затвори приложението", null, (_, _) => ExitThread());
 
         _tray = new NotifyIcon
         {
@@ -100,7 +77,25 @@ internal sealed class NotifierContext : ApplicationContext
         using var login = new LoginForm(_api);
         if (login.ShowDialog() != DialogResult.OK || login.Auth is null) return;
 
-        await _session.ReplaceAsync(login.Auth);
+        DeviceSession next;
+        try
+        {
+            next = await _api.CreateDeviceSessionAsync(login.Auth);
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show(
+                $"Акаунтът беше разпознат, но постоянната notifier сесия не можа да бъде създадена.\n\n{ex.Message}",
+                "Yavlena Manager Notifier",
+                MessageBoxButtons.OK,
+                MessageBoxIcon.Error);
+            return;
+        }
+
+        var previous = _session.Current;
+        _session.Replace(next);
+        try { await _api.LogoutDeviceSessionAsync(previous.DeviceToken); } catch { }
+
         var resetPoint = DateTimeOffset.UtcNow.AddMinutes(-2);
         _state.LastCheckUtc = resetPoint;
         _state.NewTaskLastCheckUtc = resetPoint;
@@ -110,20 +105,29 @@ internal sealed class NotifierContext : ApplicationContext
         await PollAsync();
     }
 
+    private async Task LogoutAccountAsync()
+    {
+        _timer.Stop();
+        try { await _api.LogoutDeviceSessionAsync(_session.Current.DeviceToken); } catch { }
+        PersistentSessionStore.Clear();
+        SessionStore.Clear();
+        StartupRegistration.Remove();
+        ExitThread();
+    }
+
     private async Task PollAsync()
     {
         if (_polling) return;
         _polling = true;
-        AuthState? authUsed = null;
         try
         {
-            authUsed = await _session.GetFreshAsync();
+            var deviceToken = _session.Current.DeviceToken;
 
             var now = DateTimeOffset.UtcNow;
             var sevenDaysAgo = now.AddDays(-7);
 
             var reminderLower = ClampLower(_state.LastCheckUtc.AddMinutes(-2), sevenDaysAgo);
-            var reminders = await _api.GetDueRemindersAsync(authUsed.AccessToken, reminderLower, now);
+            var reminders = await _api.GetDueRemindersAsync(deviceToken, reminderLower, now);
             foreach (var reminder in reminders.OrderBy(x => x.RemindAt))
             {
                 var key = $"reminder|{reminder.Id}|{reminder.RemindAt:O}";
@@ -137,7 +141,7 @@ internal sealed class NotifierContext : ApplicationContext
             }
 
             var newTaskLower = ClampLower(_state.NewTaskLastCheckUtc.AddMinutes(-2), sevenDaysAgo);
-            var newTasks = await _api.GetNewTaskNotificationsAsync(authUsed.AccessToken, newTaskLower, now);
+            var newTasks = await _api.GetNewTaskNotificationsAsync(deviceToken, newTaskLower, now);
             foreach (var notification in newTasks.OrderBy(x => x.CreatedAt))
             {
                 var key = $"new-task|{notification.Id}";
@@ -147,7 +151,7 @@ internal sealed class NotifierContext : ApplicationContext
             }
 
             var managerUpdateLower = ClampLower(_state.ManagerUpdateLastCheckUtc.AddMinutes(-2), sevenDaysAgo);
-            var managerUpdates = await _api.GetManagerTaskNotificationsAsync(authUsed.AccessToken, managerUpdateLower, now);
+            var managerUpdates = await _api.GetManagerTaskNotificationsAsync(deviceToken, managerUpdateLower, now);
             foreach (var notification in managerUpdates.OrderBy(x => x.CreatedAt))
             {
                 var key = $"manager-task-update|{notification.Id}";
@@ -165,34 +169,11 @@ internal sealed class NotifierContext : ApplicationContext
             StateStore.Save(_state);
             ShowNextAlert();
         }
-        catch (AuthException)
-        {
-            try
-            {
-                await _session.RecoverAfterUnauthorizedAsync(authUsed?.AccessToken);
-                return;
-            }
-            catch (AuthException)
-            {
-                _timer.Stop();
-                SessionStore.Clear();
-                MessageBox.Show(
-                    "Сесията за известия вече не може да бъде подновена. Влезте отново в Yavlena Manager Notifier.",
-                    "Yavlena Manager Notifier",
-                    MessageBoxButtons.OK,
-                    MessageBoxIcon.Warning);
-                await ChangeAccountAsync();
-                _timer.Start();
-            }
-            catch
-            {
-                // Temporary network/server issue while refreshing. Keep the stored session.
-            }
-        }
         catch
         {
-            // Network problems are intentionally silent. Saved timestamps make the next poll retry
-            // the missed interval instead of losing notifications while the PC is offline.
+            // The persistent notifier device session is NEVER cleared here.
+            // Network/server/auth-service problems simply retry on the next poll.
+            // Only the explicit "Изход от акаунта" command revokes and removes it.
         }
         finally
         {
@@ -497,112 +478,219 @@ internal sealed class SupabaseApi
         return new AuthState(email, accessToken, refreshToken, DateTimeOffset.UtcNow.AddSeconds(Math.Max(60, expiresIn - 30)));
     }
 
-    public async Task<List<DueReminder>> GetDueRemindersAsync(string accessToken, DateTimeOffset from, DateTimeOffset to)
+    public async Task<DeviceSession> CreateDeviceSessionAsync(AuthState auth)
     {
-        var select = Uri.EscapeDataString("id,task_id,remind_at,tasks(description,status,completed_at)");
-        var result = await GetListAsync<DueReminder>(
-            $"/rest/v1/task_reminders?select={select}&remind_at=gte.{Encode(from)}&remind_at=lte.{Encode(to)}&order=remind_at.asc",
-            accessToken);
-        return result;
-    }
-
-    public Task<List<NewTaskNotification>> GetNewTaskNotificationsAsync(string accessToken, DateTimeOffset from, DateTimeOffset to)
-    {
-        var select = Uri.EscapeDataString("id,task_id,creator_name,task_description,created_at");
-        return GetListAsync<NewTaskNotification>(
-            $"/rest/v1/task_assignment_notifications?select={select}&created_at=gte.{Encode(from)}&created_at=lte.{Encode(to)}&order=created_at.asc",
-            accessToken);
-    }
-
-    public Task<List<ManagerTaskNotification>> GetManagerTaskNotificationsAsync(string accessToken, DateTimeOffset from, DateTimeOffset to)
-    {
-        var select = Uri.EscapeDataString("id,task_id,actor_name,event_type,task_description,message,created_at");
-        return GetListAsync<ManagerTaskNotification>(
-            $"/rest/v1/task_manager_notifications?select={select}&created_at=gte.{Encode(from)}&created_at=lte.{Encode(to)}&order=created_at.asc",
-            accessToken);
-    }
-
-    private async Task<List<T>> GetListAsync<T>(string path, string accessToken)
-    {
-        using var request = new HttpRequestMessage(HttpMethod.Get, path);
-        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
+        using var request = new HttpRequestMessage(HttpMethod.Post, "/rest/v1/rpc/create_notifier_device_session");
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", auth.AccessToken);
         request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
+        request.Content = JsonContent.Create(new
+        {
+            p_device_id = DeviceIdStore.GetOrCreate(),
+            p_platform = "windows",
+            p_device_name = Environment.MachineName,
+        });
+
         using var response = await _http.SendAsync(request);
-        if (response.StatusCode == System.Net.HttpStatusCode.Unauthorized)
-            throw new AuthException("Access token-ът е невалиден или е изтекъл.");
-        response.EnsureSuccessStatusCode();
-        return await response.Content.ReadFromJsonAsync<List<T>>(JsonOptions.Default) ?? [];
+        var text = await response.Content.ReadAsStringAsync();
+        if (!response.IsSuccessStatusCode)
+            throw new DeviceSessionException(ReadApiError(text, "Постоянната notifier сесия не можа да бъде създадена."));
+
+        var payload = JsonSerializer.Deserialize<DeviceSessionResponse>(text, JsonOptions.Default)
+            ?? throw new DeviceSessionException("Supabase не върна notifier device session.");
+        if (string.IsNullOrWhiteSpace(payload.DeviceToken))
+            throw new DeviceSessionException("Supabase не върна notifier device token.");
+
+        return new DeviceSession(
+            string.IsNullOrWhiteSpace(payload.Email) ? auth.Email : payload.Email,
+            payload.DeviceToken);
+    }
+
+    public async Task LogoutDeviceSessionAsync(string deviceToken)
+    {
+        await PostRpcAsync("/rest/v1/rpc/notifier_logout", new { p_device_token = deviceToken });
+    }
+
+    public Task<List<DueReminder>> GetDueRemindersAsync(string deviceToken, DateTimeOffset from, DateTimeOffset to) =>
+        PostRpcListAsync<DueReminder>("notifier_fetch_due_reminders", deviceToken, from, to);
+
+    public Task<List<NewTaskNotification>> GetNewTaskNotificationsAsync(string deviceToken, DateTimeOffset from, DateTimeOffset to) =>
+        PostRpcListAsync<NewTaskNotification>("notifier_fetch_assignment_notifications", deviceToken, from, to);
+
+    public Task<List<ManagerTaskNotification>> GetManagerTaskNotificationsAsync(string deviceToken, DateTimeOffset from, DateTimeOffset to) =>
+        PostRpcListAsync<ManagerTaskNotification>("notifier_fetch_manager_notifications", deviceToken, from, to);
+
+    public Task<List<WindowsInternalMessage>> GetInternalMessagesAsync(string deviceToken, DateTimeOffset from, DateTimeOffset to) =>
+        PostRpcListAsync<WindowsInternalMessage>("notifier_fetch_internal_messages", deviceToken, from, to);
+
+    private async Task<List<T>> PostRpcListAsync<T>(string rpc, string deviceToken, DateTimeOffset from, DateTimeOffset to)
+    {
+        using var response = await _http.PostAsJsonAsync($"/rest/v1/rpc/{rpc}", new
+        {
+            p_device_token = deviceToken,
+            p_from = from,
+            p_to = to,
+        });
+        var text = await response.Content.ReadAsStringAsync();
+        if (!response.IsSuccessStatusCode)
+            throw new DeviceSessionException(ReadApiError(text, "Notifier услугата временно не е достъпна."));
+        return JsonSerializer.Deserialize<List<T>>(text, JsonOptions.Default) ?? [];
+    }
+
+    private async Task PostRpcAsync(string path, object payload)
+    {
+        using var response = await _http.PostAsJsonAsync(path, payload);
+        var text = await response.Content.ReadAsStringAsync();
+        if (!response.IsSuccessStatusCode)
+            throw new DeviceSessionException(ReadApiError(text, "Notifier услугата временно не е достъпна."));
+    }
+
+    private static string ReadApiError(string text, string fallback)
+    {
+        try
+        {
+            using var json = JsonDocument.Parse(text);
+            if (json.RootElement.TryGetProperty("message", out var message))
+                return message.GetString() ?? fallback;
+        }
+        catch { }
+        return fallback;
     }
 
     private static string Encode(DateTimeOffset value) => Uri.EscapeDataString(value.ToString("O"));
 }
 
-internal sealed class AuthSessionManager
+internal sealed class DeviceSessionManager
 {
-    private readonly SupabaseApi _api;
-    private readonly SemaphoreSlim _refreshGate = new(1, 1);
-    private AuthState _current;
+    private DeviceSession _current;
 
-    public AuthSessionManager(SupabaseApi api, AuthState initial)
+    public DeviceSessionManager(DeviceSession initial)
     {
-        _api = api;
         _current = initial;
-        SessionStore.Save(initial.Email, initial.RefreshToken);
+        PersistentSessionStore.Save(initial);
     }
 
-    public AuthState Current => _current;
+    public DeviceSession Current => _current;
 
-    public async Task<AuthState> GetFreshAsync()
+    public void Replace(DeviceSession next)
     {
-        await _refreshGate.WaitAsync();
-        try
-        {
-            if (_current.ExpiresAt > DateTimeOffset.UtcNow.AddMinutes(2))
-                return _current;
-
-            _current = await _api.RefreshAsync(_current.Email, _current.RefreshToken);
-            SessionStore.Save(_current.Email, _current.RefreshToken);
-            return _current;
-        }
-        finally
-        {
-            _refreshGate.Release();
-        }
+        _current = next;
+        PersistentSessionStore.Save(next);
     }
+}
 
-    public async Task<AuthState> RecoverAfterUnauthorizedAsync(string? failedAccessToken)
+internal static class DeviceSessionBootstrap
+{
+    public static DeviceSession? LoadOrLogin(SupabaseApi api)
     {
-        await _refreshGate.WaitAsync();
+        var persistent = PersistentSessionStore.Load();
+        if (persistent is not null && !string.IsNullOrWhiteSpace(persistent.DeviceToken))
+            return persistent;
+
+        // One-time migration from notifier v1.x. A valid old refresh token is
+        // converted into a non-expiring device session, then never used again.
+        var legacy = SessionStore.Load();
+        if (legacy is not null && !string.IsNullOrWhiteSpace(legacy.RefreshToken))
+        {
+            try
+            {
+                var auth = api.RefreshAsync(legacy.Email, legacy.RefreshToken).GetAwaiter().GetResult();
+                var migrated = api.CreateDeviceSessionAsync(auth).GetAwaiter().GetResult();
+                PersistentSessionStore.Save(migrated);
+                return migrated;
+            }
+            catch
+            {
+                // Never delete the old saved session automatically. If migration
+                // cannot be completed, the user can sign in once in the new build.
+            }
+        }
+
+        using var login = new LoginForm(api);
+        if (login.ShowDialog() != DialogResult.OK || login.Auth is null) return null;
+
         try
         {
-            if (!string.IsNullOrWhiteSpace(failedAccessToken)
-                && !string.Equals(_current.AccessToken, failedAccessToken, StringComparison.Ordinal))
-                return _current;
-
-            _current = await _api.RefreshAsync(_current.Email, _current.RefreshToken);
-            SessionStore.Save(_current.Email, _current.RefreshToken);
-            return _current;
+            var created = api.CreateDeviceSessionAsync(login.Auth).GetAwaiter().GetResult();
+            PersistentSessionStore.Save(created);
+            return created;
         }
-        finally
+        catch (Exception ex)
         {
-            _refreshGate.Release();
-        }
-    }
-
-    public async Task ReplaceAsync(AuthState next)
-    {
-        await _refreshGate.WaitAsync();
-        try
-        {
-            _current = next;
-            SessionStore.Save(next.Email, next.RefreshToken);
-        }
-        finally
-        {
-            _refreshGate.Release();
+            MessageBox.Show(
+                $"Входът беше успешен, но постоянната notifier сесия не можа да бъде създадена.\n\n{ex.Message}",
+                "Yavlena Manager Notifier",
+                MessageBoxButtons.OK,
+                MessageBoxIcon.Error);
+            return null;
         }
     }
 }
+
+internal static class PersistentSessionStore
+{
+    private static readonly string Folder = Path.Combine(
+        Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+        "YavlenaManagerTaskNotifier");
+    private static readonly string FilePath = Path.Combine(Folder, "device-session.bin");
+
+    public static void Save(DeviceSession session)
+    {
+        Directory.CreateDirectory(Folder);
+        var plain = JsonSerializer.SerializeToUtf8Bytes(session);
+        File.WriteAllBytes(FilePath, DataProtection.Protect(plain));
+    }
+
+    public static DeviceSession? Load()
+    {
+        try
+        {
+            if (!File.Exists(FilePath)) return null;
+            var plain = DataProtection.Unprotect(File.ReadAllBytes(FilePath));
+            return JsonSerializer.Deserialize<DeviceSession>(plain);
+        }
+        catch
+        {
+            // Do not erase a persistent session because of a transient/local read issue.
+            return null;
+        }
+    }
+
+    public static void Clear()
+    {
+        try { if (File.Exists(FilePath)) File.Delete(FilePath); } catch { }
+    }
+}
+
+internal static class DeviceIdStore
+{
+    private static readonly string Folder = Path.Combine(
+        Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+        "YavlenaManagerTaskNotifier");
+    private static readonly string FilePath = Path.Combine(Folder, "device-id.txt");
+
+    public static string GetOrCreate()
+    {
+        try
+        {
+            if (File.Exists(FilePath))
+            {
+                var existing = File.ReadAllText(FilePath).Trim();
+                if (!string.IsNullOrWhiteSpace(existing)) return existing;
+            }
+        }
+        catch { }
+
+        var created = Guid.NewGuid().ToString("N");
+        try
+        {
+            Directory.CreateDirectory(Folder);
+            File.WriteAllText(FilePath, created);
+        }
+        catch { }
+        return created;
+    }
+}
+
 
 internal static class StartupRegistration
 {
@@ -612,6 +700,16 @@ internal static class StartupRegistration
         {
             using var key = Registry.CurrentUser.OpenSubKey("Software\\Microsoft\\Windows\\CurrentVersion\\Run", writable: true);
             key?.SetValue("YavlenaManagerTaskNotifier", $"\"{Application.ExecutablePath}\" --background");
+        }
+        catch { }
+    }
+
+    public static void Remove()
+    {
+        try
+        {
+            using var key = Registry.CurrentUser.OpenSubKey("Software\\Microsoft\\Windows\\CurrentVersion\\Run", writable: true);
+            key?.DeleteValue("YavlenaManagerTaskNotifier", false);
         }
         catch { }
     }
@@ -639,7 +737,6 @@ internal static class SessionStore
         }
         catch
         {
-            Clear();
             return null;
         }
     }
@@ -753,6 +850,16 @@ internal static class NativeAttention
     }
 }
 
+internal sealed record DeviceSession(string Email, string DeviceToken);
+internal sealed class DeviceSessionResponse
+{
+    [JsonPropertyName("device_token")] public string DeviceToken { get; set; } = "";
+    [JsonPropertyName("email")] public string Email { get; set; } = "";
+}
+internal sealed class DeviceSessionException : Exception
+{
+    public DeviceSessionException(string message) : base(message) { }
+}
 internal sealed record AuthState(string Email, string AccessToken, string RefreshToken, DateTimeOffset ExpiresAt);
 internal sealed record StoredSession(string Email, string RefreshToken);
 
