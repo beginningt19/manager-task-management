@@ -2572,3 +2572,157 @@ button.stat-card.green.active { border-color: rgba(22,128,111,.45); box-shadow: 
     padding: 10px;
   }
 }
+
+
+/* Individual assignee workflow */
+.assignee-state-badge {
+  min-height: 25px;
+  padding: 0 9px;
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  font-size: 10px;
+  font-weight: 800;
+}
+.assignee-state-badge.new { color: #8a5a13; background: #fff4d8; border: 1px solid #efd79b; }
+.assignee-state-badge.completed { color: #16705f; background: #e9f7f2; border: 1px solid #c9e9df; }
+
+.assignee-stack .assignee-avatar-state.new {
+  color: #8a5a13;
+  background: #fff1c9;
+  box-shadow: inset 0 0 0 1px #eed18a;
+}
+.assignee-stack .assignee-avatar-state.in_progress {
+  color: #235e9f;
+  background: #e2efff;
+  box-shadow: inset 0 0 0 1px #bfd7f5;
+}
+.assignee-stack .assignee-avatar-state.completed {
+  color: #176d5d;
+  background: #dff3ec;
+  box-shadow: inset 0 0 0 1px #b9dfd3;
+}
+
+.personal-assignment-state {
+  display: grid;
+  gap: 7px;
+}
+.personal-assignment-state .primary-button {
+  min-height: 34px;
+  width: 100%;
+}
+.assignee-state-text.new { color: #9a6517; }
+.assignee-state-text.in_progress { color: #235e9f; }
+.assignee-state-text.completed { color: #15715e; }
+
+.detail-grid > .assignee-status-section {
+  grid-column: 1 / -1;
+  align-content: start;
+}
+.assignee-status-list {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 7px;
+}
+.assignee-status-person {
+  min-width: 0;
+  min-height: 51px;
+  padding: 7px 9px;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  border: 1px solid #e1e8e7;
+  border-radius: 9px;
+  background: white;
+}
+.assignee-status-person > span:last-child {
+  min-width: 0;
+  display: grid;
+  gap: 2px;
+}
+.assignee-status-person strong {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.detail-grid .assignee-status-person small {
+  font-size: 9px;
+  letter-spacing: 0;
+  text-transform: none;
+}
+.assignee-status-person.new { border-color: #ecdba9; background: #fffaf0; }
+.assignee-status-person.new > span:last-child small { color: #96671c; }
+.assignee-status-person.in_progress { border-color: #cbdcf1; background: #f5f9ff; }
+.assignee-status-person.in_progress > span:last-child small { color: #2b659e; }
+.assignee-status-person.completed { border-color: #c9e3da; background: #f2fbf7; }
+.assignee-status-person.completed > span:last-child small { color: #18715e; }
+
+.assignment-awaiting-panel,
+.assignment-completed-panel {
+  margin-top: 13px;
+  padding: 13px 14px;
+  border-radius: 12px;
+}
+.assignment-awaiting-panel {
+  display: grid;
+  gap: 4px;
+  border: 1px solid #ead9aa;
+  background: #fff9eb;
+}
+.assignment-awaiting-panel small {
+  color: #9a762c;
+  font-size: 10px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: .06em;
+}
+.assignment-awaiting-panel strong {
+  color: #745719;
+  font-size: 12px;
+  line-height: 1.45;
+}
+.assignment-completed-panel {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  border: 1px solid #c8e3da;
+  background: #effaf6;
+}
+.assignment-completed-panel > span {
+  width: 34px;
+  height: 34px;
+  display: grid;
+  place-items: center;
+  flex: 0 0 auto;
+  border-radius: 50%;
+  color: white;
+  background: #1b8a73;
+  font-weight: 900;
+}
+.assignment-completed-panel > div {
+  display: grid;
+  gap: 3px;
+}
+.assignment-completed-panel small {
+  color: #62867e;
+  font-size: 10px;
+}
+.assignment-completed-panel strong {
+  color: #31665c;
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+@media (max-width: 700px) {
+  .assignee-status-list {
+    grid-template-columns: 1fr;
+  }
+
+  .assignee-status-person {
+    min-height: 56px;
+  }
+
+  .assignment-completed-panel {
+    align-items: flex-start;
+  }
+}
