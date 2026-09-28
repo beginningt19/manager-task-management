@@ -18,59 +18,31 @@ internal static class MessageEnabledProgram
         Application.SetCompatibleTextRenderingDefault(false);
 
         var api = new SupabaseApi();
-        AuthState? auth = null;
-        var stored = SessionStore.Load();
-        if (stored is not null)
-        {
-            try
-            {
-                auth = api.RefreshAsync(stored.Email, stored.RefreshToken).GetAwaiter().GetResult();
-                SessionStore.Save(auth.Email, auth.RefreshToken);
-            }
-            catch (AuthException)
-            {
-                SessionStore.Clear();
-            }
-            catch
-            {
-                auth = new AuthState(stored.Email, "", stored.RefreshToken, DateTimeOffset.MinValue);
-            }
-        }
-
-        if (auth is null)
-        {
-            using var login = new LoginForm(api);
-            if (login.ShowDialog() != DialogResult.OK || login.Auth is null) return;
-            auth = login.Auth;
-            SessionStore.Save(auth.Email, auth.RefreshToken);
-        }
+        var deviceSession = DeviceSessionBootstrap.LoadOrLogin(api);
+        if (deviceSession is null) return;
 
         StartupRegistration.Ensure();
-        var session = new AuthSessionManager(api, auth);
-        using var messageNotifier = new InternalMessagePoller(session);
+        var session = new DeviceSessionManager(deviceSession);
+        using var messageNotifier = new InternalMessagePoller(api, session);
         Application.Run(new NotifierContext(api, session));
     }
 }
 
 internal sealed class InternalMessagePoller : IDisposable
 {
-    private const string BaseUrl = "https://xrcvfzqwhqtoljfxgxgr.supabase.co";
-    private const string PublishableKey = "sb_publishable_K9eOz-sxjizM7fkHrWXOeA_zu-9ijLu";
-
-    private readonly AuthSessionManager _session;
-    private readonly HttpClient _http = new() { BaseAddress = new Uri(BaseUrl), Timeout = TimeSpan.FromSeconds(20) };
+    private readonly SupabaseApi _api;
+    private readonly DeviceSessionManager _session;
     private readonly System.Windows.Forms.Timer _timer;
     private readonly Queue<WindowsInternalMessage> _queue = new();
     private InternalMessageState _state;
     private bool _polling;
     private InternalMessageForm? _current;
 
-    public InternalMessagePoller(AuthSessionManager session)
+    public InternalMessagePoller(SupabaseApi api, DeviceSessionManager session)
     {
+        _api = api;
         _session = session;
         _state = InternalMessageStateStore.Load();
-        _http.DefaultRequestHeaders.Add("apikey", PublishableKey);
-
         _timer = new System.Windows.Forms.Timer { Interval = 20_000 };
         _timer.Tick += async (_, _) => await PollAsync();
         _timer.Start();
@@ -81,17 +53,16 @@ internal sealed class InternalMessagePoller : IDisposable
     {
         if (_polling) return;
         _polling = true;
-        AuthState? authUsed = null;
         try
         {
-            authUsed = await _session.GetFreshAsync();
+            var deviceToken = _session.Current.DeviceToken;
 
             var now = DateTimeOffset.UtcNow;
             var lower = _state.LastCheckUtc.AddMinutes(-2);
             var sevenDaysAgo = now.AddDays(-7);
             if (lower < sevenDaysAgo) lower = sevenDaysAgo;
 
-            var rows = await GetMessagesAsync(authUsed.AccessToken, lower, now);
+            var rows = await _api.GetInternalMessagesAsync(deviceToken, lower, now);
             foreach (var row in rows.OrderBy(x => x.CreatedAt))
             {
                 if (string.IsNullOrWhiteSpace(row.MessageId) || row.Message is null) continue;
@@ -108,20 +79,10 @@ internal sealed class InternalMessagePoller : IDisposable
             InternalMessageStateStore.Save(_state);
             ShowNext();
         }
-        catch (AuthException)
-        {
-            try
-            {
-                await _session.RecoverAfterUnauthorizedAsync(authUsed?.AccessToken);
-            }
-            catch
-            {
-                // The main notifier owns the visible re-login flow. Keep message polling quiet.
-            }
-        }
         catch
         {
-            // Retry on the next poll. The saved timestamp prevents gaps after network problems.
+            // Never clear or replace the persistent device session automatically.
+            // Retry on the next poll after network/server problems.
         }
         finally
         {
@@ -129,22 +90,6 @@ internal sealed class InternalMessagePoller : IDisposable
         }
     }
 
-    private async Task<List<WindowsInternalMessage>> GetMessagesAsync(string accessToken, DateTimeOffset from, DateTimeOffset to)
-    {
-        var select = Uri.EscapeDataString("message_id,created_at,internal_messages!inner(sender_name,subject,body)");
-        var lower = Uri.EscapeDataString(from.ToString("O"));
-        var upper = Uri.EscapeDataString(to.ToString("O"));
-        var path = $"/rest/v1/internal_message_recipients?select={select}&created_at=gte.{lower}&created_at=lte.{upper}&order=created_at.asc";
-
-        using var request = new HttpRequestMessage(HttpMethod.Get, path);
-        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
-        request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
-        using var response = await _http.SendAsync(request);
-        if (response.StatusCode == System.Net.HttpStatusCode.Unauthorized)
-            throw new AuthException("Access token-ът е невалиден или е изтекъл.");
-        response.EnsureSuccessStatusCode();
-        return await response.Content.ReadFromJsonAsync<List<WindowsInternalMessage>>(JsonOptions.Default) ?? [];
-    }
 
     private void ShowNext()
     {
@@ -166,7 +111,6 @@ internal sealed class InternalMessagePoller : IDisposable
         _timer.Stop();
         _timer.Dispose();
         _current?.Close();
-        _http.Dispose();
     }
 }
 
