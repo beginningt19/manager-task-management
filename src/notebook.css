@@ -2950,3 +2950,164 @@
     width: min(292px, calc(100vw - 40px));
   }
 }
+
+
+/* Notebook reminder picker */
+.notebook-reminder-control {
+  position: relative;
+  display: inline-flex;
+  z-index: 9;
+}
+
+.notebook-reminder-trigger {
+  min-height: 34px;
+  padding: 0 10px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  color: #6b5b36 !important;
+  background: #fff8e9 !important;
+  border: 1px solid #e2cf9c !important;
+  border-radius: 9px !important;
+  cursor: pointer;
+  font: inherit;
+  font-size: 10px !important;
+  font-weight: 850 !important;
+  box-shadow: none !important;
+  white-space: nowrap;
+}
+
+.notebook-reminder-control.active .notebook-reminder-trigger {
+  color: #765516 !important;
+  background: #fff2c9 !important;
+  border-color: #d5b65f !important;
+}
+
+.notebook-reminder-trigger > i {
+  margin-left: 2px;
+  color: #947c49;
+  font-style: normal;
+  font-size: 10px;
+  transition: transform .15s ease;
+}
+
+.notebook-reminder-control.open .notebook-reminder-trigger > i {
+  transform: rotate(180deg);
+}
+
+.notebook-reminder-popover {
+  position: absolute;
+  right: 0;
+  bottom: calc(100% + 7px);
+  z-index: 45;
+  min-width: 270px;
+  padding: 12px;
+  display: grid;
+  gap: 10px;
+  color: #4d4738;
+  background: #fffdf7;
+  border: 1px solid #decda3;
+  border-radius: 12px;
+  box-shadow: 0 16px 34px rgba(63,54,42,.18);
+}
+
+.notebook-reminder-popover > strong {
+  font-size: 11px;
+  font-weight: 900;
+}
+
+.notebook-reminder-fields {
+  display: grid;
+  grid-template-columns: minmax(0, 1.35fr) minmax(0, .9fr);
+  gap: 8px;
+}
+
+.notebook-reminder-fields label {
+  display: grid;
+  gap: 4px;
+}
+
+.notebook-reminder-fields label > span {
+  color: #8a7752;
+  font-size: 8px;
+  font-weight: 900;
+  letter-spacing: .05em;
+  text-transform: uppercase;
+}
+
+.notebook-reminder-fields input {
+  width: 100%;
+  min-height: 38px;
+  padding: 0 8px;
+  color: #3f4652;
+  background: #fff;
+  border: 1px solid #d8c89f;
+  border-radius: 8px;
+  outline: 0;
+  font: inherit;
+  font-size: 11px;
+  font-weight: 800;
+  box-sizing: border-box;
+}
+
+.notebook-reminder-fields input:focus {
+  border-color: #c9a94d;
+  box-shadow: 0 0 0 3px rgba(201,169,77,.12);
+}
+
+.notebook-reminder-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 6px;
+}
+
+.notebook-reminder-actions button {
+  min-height: 30px;
+  padding: 0 9px;
+  color: #725d37;
+  background: #fffaf0;
+  border: 1px solid #ddcfaa;
+  border-radius: 7px;
+  cursor: pointer;
+  font: inherit;
+  font-size: 9px;
+  font-weight: 850;
+}
+
+.notebook-reminder-actions button.done {
+  color: #fff;
+  background: #806324;
+  border-color: #806324;
+}
+
+.notebook-reminder-badge {
+  width: fit-content;
+  margin-top: 5px;
+  padding: 4px 8px;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  color: #765516;
+  background: #fff4d2;
+  border: 1px solid #e2c979;
+  border-radius: 999px;
+  font-size: 9px;
+  font-weight: 900;
+  line-height: 1;
+}
+
+@media (max-width: 700px) {
+  .notebook-reminder-popover {
+    position: fixed;
+    left: 12px;
+    right: 12px;
+    bottom: calc(14px + env(safe-area-inset-bottom));
+    min-width: 0;
+  }
+
+  .notebook-reminder-fields {
+    grid-template-columns: 1fr;
+  }
+}
