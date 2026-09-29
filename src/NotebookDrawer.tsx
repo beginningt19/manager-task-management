@@ -639,6 +639,8 @@ export default function NotebookDrawer({
     setGapRange(null)
     setScheduledTime('')
     setEndTime('')
+    setReminderEnabled(false)
+    setRemindAt(defaultNotebookReminder(date))
   }
 
   const choosePage = (page: NotebookPage) => {
@@ -649,6 +651,8 @@ export default function NotebookDrawer({
     setGapRange(null)
     setScheduledTime('')
     setEndTime('')
+    setReminderEnabled(false)
+    setRemindAt(defaultNotebookReminder(selectedDate))
   }
 
   const createPage = async (announce = true) => {
@@ -703,6 +707,14 @@ export default function NotebookDrawer({
       return
     }
 
+    if (reminderEnabled) {
+      const reminderError = validateNotebookReminder(remindAt)
+      if (reminderError) {
+        onResult({ tone: 'error', message: reminderError })
+        return
+      }
+    }
+
     const page = await ensurePage()
     if (!page) return
 
@@ -710,7 +722,7 @@ export default function NotebookDrawer({
     const position = pageItems.reduce((max, entry) => Math.max(max, entry.position), -1) + 1
 
     setBusy(true)
-    const { error } = await supabase.from('notebook_entries').insert({
+    const { data: createdEntry, error } = await supabase.from('notebook_entries').insert({
       page_id: page.id,
       user_id: currentUser.id,
       body,
@@ -718,7 +730,21 @@ export default function NotebookDrawer({
       completed: false,
       scheduled_time: scheduledTime || null,
       end_time: endTime || null,
-    })
+    }).select('id').single()
+
+    if (!error && reminderEnabled && createdEntry?.id) {
+      const { error: reminderError } = await supabase.from('task_reminders').insert({
+        notebook_entry_id: createdEntry.id,
+        created_by: currentUser.id,
+        remind_at: new Date(remindAt).toISOString(),
+      })
+      if (reminderError) {
+        setBusy(false)
+        onResult({ tone: 'error', message: `Записът е добавен, но напомнянето не беше записано: ${reminderError.message}` })
+        await loadData(true)
+        return
+      }
+    }
     setBusy(false)
 
     if (error) {
@@ -729,6 +755,8 @@ export default function NotebookDrawer({
     setDraft('')
     setScheduledTime('')
     setEndTime('')
+    setReminderEnabled(false)
+    setRemindAt(defaultNotebookReminder(selectedDate))
     setGapRange(null)
     setVoiceInterim('')
     setVoiceMessage('')
@@ -751,10 +779,17 @@ export default function NotebookDrawer({
   }
 
   const beginEdit = (entry: NotebookEntry) => {
+    const reminder = notebookReminders.find((item) => item.notebook_entry_id === entry.id)
     setEditingId(entry.id)
     setEditingText(entry.body)
     setEditingScheduledTime(normalizeTime(entry.scheduled_time))
     setEditingEndTime(normalizeTime(entry.end_time))
+    setEditingReminderEnabled(Boolean(reminder))
+    setEditingRemindAt(
+      reminder
+        ? dateTimeLocalValue(new Date(reminder.remind_at))
+        : defaultNotebookReminder(selectedDate, normalizeTime(entry.scheduled_time)),
+    )
   }
 
   const saveEdit = async (entry: NotebookEntry) => {
@@ -770,10 +805,23 @@ export default function NotebookDrawer({
       return
     }
 
+    const existingReminder = notebookReminders.find((item) => item.notebook_entry_id === entry.id)
+    const existingReminderValue = existingReminder ? dateTimeLocalValue(new Date(existingReminder.remind_at)) : ''
+
+    if (editingReminderEnabled) {
+      const reminderError = validateNotebookReminder(editingRemindAt)
+      if (reminderError) {
+        onResult({ tone: 'error', message: reminderError })
+        return
+      }
+    }
+
     if (
       body === entry.body.trim()
       && editingScheduledTime === normalizeTime(entry.scheduled_time)
       && editingEndTime === normalizeTime(entry.end_time)
+      && editingReminderEnabled === Boolean(existingReminder)
+      && (!editingReminderEnabled || editingRemindAt === existingReminderValue)
     ) {
       setEditingId(null)
       setEditingText('')
@@ -793,6 +841,37 @@ export default function NotebookDrawer({
       })
       .eq('id', entry.id)
       .eq('user_id', currentUser.id)
+    if (!error) {
+      if (editingReminderEnabled) {
+        const { error: reminderError } = await supabase.from('task_reminders').upsert({
+          notebook_entry_id: entry.id,
+          created_by: currentUser.id,
+          remind_at: new Date(editingRemindAt).toISOString(),
+          sent_at: null,
+          processing_at: null,
+          delivery_count: 0,
+          last_error: null,
+        }, { onConflict: 'notebook_entry_id' })
+        if (reminderError) {
+          setBusy(false)
+          onResult({ tone: 'error', message: `Записът е редактиран, но напомнянето не беше записано: ${reminderError.message}` })
+          await loadData(true)
+          return
+        }
+      } else if (existingReminder) {
+        const { error: reminderDeleteError } = await supabase
+          .from('task_reminders')
+          .delete()
+          .eq('notebook_entry_id', entry.id)
+          .eq('created_by', currentUser.id)
+        if (reminderDeleteError) {
+          setBusy(false)
+          onResult({ tone: 'error', message: `Записът е редактиран, но напомнянето не беше премахнато: ${reminderDeleteError.message}` })
+          await loadData(true)
+          return
+        }
+      }
+    }
     setBusy(false)
 
     if (error) {
@@ -804,6 +883,8 @@ export default function NotebookDrawer({
     setEditingText('')
     setEditingScheduledTime('')
     setEditingEndTime('')
+    setEditingReminderEnabled(false)
+    setEditingRemindAt('')
     await loadData(true)
   }
 
@@ -1459,6 +1540,15 @@ export default function NotebookDrawer({
                       max={gapRange ? minutesToTime(timeToMinutes(gapRange.end) - 1) : undefined}
                       label="Краен час"
                     />
+                    <NotebookReminderControl
+                      enabled={reminderEnabled}
+                      value={remindAt}
+                      onEnabledChange={(enabled) => {
+                        setReminderEnabled(enabled)
+                        if (enabled && !remindAt) setRemindAt(defaultNotebookReminder(selectedDate, scheduledTime))
+                      }}
+                      onChange={setRemindAt}
+                    />
                     <button type="button" onClick={() => void saveDraft()} disabled={!draft.trim() || busy}>
                       {busy ? 'Записване…' : 'Запиши задачата'}
                     </button>
@@ -1545,6 +1635,17 @@ export default function NotebookDrawer({
                                   min={editingScheduledTime ? minutesToTime(timeToMinutes(editingScheduledTime) + 1) : undefined}
                                   label="Краен час"
                                 />
+                                <NotebookReminderControl
+                                  enabled={editingReminderEnabled}
+                                  value={editingRemindAt}
+                                  onEnabledChange={(enabled) => {
+                                    setEditingReminderEnabled(enabled)
+                                    if (enabled && !editingRemindAt) {
+                                      setEditingRemindAt(defaultNotebookReminder(selectedDate, editingScheduledTime))
+                                    }
+                                  }}
+                                  onChange={setEditingRemindAt}
+                                />
                               </div>
                             </div>
                           ) : (
@@ -1554,13 +1655,18 @@ export default function NotebookDrawer({
                             добавено {new Intl.DateTimeFormat('bg-BG', { hour: '2-digit', minute: '2-digit' }).format(new Date(entry.created_at))}
                             {entry.edited_at ? ' · редактирано' : ''}
                           </small>
+                          {notebookReminders.some((item) => item.notebook_entry_id === entry.id) && (
+                            <span className="notebook-reminder-badge" title="Активно напомняне">
+                              🔔 {formatReminderMoment(notebookReminders.find((item) => item.notebook_entry_id === entry.id)!.remind_at)}
+                            </span>
+                          )}
                         </div>
 
                         <div className="notebook-entry-actions">
                           {editingId === entry.id ? (
                             <>
                               <button type="button" className="save" onClick={() => void saveEdit(entry)} disabled={!editingText.trim() || busy}>Запази</button>
-                              <button type="button" onClick={() => { setEditingId(null); setEditingScheduledTime(''); setEditingEndTime('') }}>Отказ</button>
+                              <button type="button" onClick={() => { setEditingId(null); setEditingScheduledTime(''); setEditingEndTime(''); setEditingReminderEnabled(false); setEditingRemindAt('') }}>Отказ</button>
                             </>
                           ) : (
                             <>
