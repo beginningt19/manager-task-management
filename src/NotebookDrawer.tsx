@@ -16,6 +16,14 @@ type NotebookPage = {
   updated_at: string
 }
 
+type NotebookReminder = {
+  id: string
+  notebook_entry_id: string
+  created_by: string
+  remind_at: string
+  sent_at: string | null
+}
+
 type NotebookEntry = {
   id: string
   page_id: string
@@ -154,6 +162,40 @@ const formatTabDate = (key: string) => {
 
 const normalizeTime = (value: string | null | undefined) => value ? value.slice(0, 5) : ''
 
+const dateTimeLocalValue = (date: Date) => {
+  const year = date.getFullYear()
+  const month = String(date.getMonth() + 1).padStart(2, '0')
+  const day = String(date.getDate()).padStart(2, '0')
+  const hours = String(date.getHours()).padStart(2, '0')
+  const minutes = String(date.getMinutes()).padStart(2, '0')
+  return `${year}-${month}-${day}T${hours}:${minutes}`
+}
+
+const defaultNotebookReminder = (pageDate: string, scheduledTime?: string) => {
+  const [year, month, day] = pageDate.split('-').map(Number)
+  const minimum = new Date()
+  minimum.setMinutes(minimum.getMinutes() + 15, 0, 0)
+  const candidate = new Date(year, month - 1, day)
+  const [hours = 9, minutes = 0] = (scheduledTime || '09:00').split(':').map(Number)
+  candidate.setHours(hours, minutes, 0, 0)
+  return dateTimeLocalValue(candidate > minimum ? candidate : minimum)
+}
+
+const validateNotebookReminder = (value: string) => {
+  const reminder = new Date(value)
+  if (Number.isNaN(reminder.getTime())) return 'Изберете валидна дата и час за напомнянето.'
+  if (reminder.getTime() <= Date.now()) return 'Напомнянето трябва да бъде зададено за бъдещ момент.'
+  return null
+}
+
+const formatReminderMoment = (value: string) =>
+  new Intl.DateTimeFormat('bg-BG', {
+    day: '2-digit',
+    month: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+  }).format(new Date(value))
+
 const timeToMinutes = (value: string) => {
   const [hours, minutes] = value.split(':').map(Number)
   return (hours * 60) + minutes
@@ -193,6 +235,67 @@ const clampTimeToBounds = (value: string, min?: string, max?: string) => {
   if (min) minutes = Math.max(minutes, timeToMinutes(min))
   if (max) minutes = Math.min(minutes, timeToMinutes(max))
   return minutesToTime(minutes)
+}
+
+function NotebookReminderControl({
+  enabled,
+  value,
+  onEnabledChange,
+  onChange,
+}: {
+  enabled: boolean
+  value: string
+  onEnabledChange: (enabled: boolean) => void
+  onChange: (value: string) => void
+}) {
+  const [open, setOpen] = useState(false)
+  const [datePart = '', timePart = '09:00'] = value.split('T')
+
+  const update = (nextDate: string, nextTime: string) => {
+    if (!nextDate) return
+    onChange(`${nextDate}T${nextTime || '09:00'}`)
+  }
+
+  return (
+    <div className={`notebook-reminder-control${enabled ? ' active' : ''}${open ? ' open' : ''}`}>
+      <button
+        type="button"
+        className="notebook-reminder-trigger"
+        onClick={() => {
+          if (!enabled) onEnabledChange(true)
+          setOpen((current) => !current)
+        }}
+        aria-expanded={open}
+      >
+        <span aria-hidden="true">🔔</span>
+        <span>{enabled && value ? formatReminderMoment(value) : 'Напомняне'}</span>
+        <i aria-hidden="true">⌄</i>
+      </button>
+      {open && (
+        <div className="notebook-reminder-popover">
+          <strong>Напомни ми на</strong>
+          <div className="notebook-reminder-fields">
+            <label>
+              <span>Дата</span>
+              <input type="date" value={datePart} onChange={(event) => update(event.target.value, timePart)} />
+            </label>
+            <label>
+              <span>Час</span>
+              <input type="time" value={timePart} onChange={(event) => update(datePart, event.target.value)} />
+            </label>
+          </div>
+          <div className="notebook-reminder-actions">
+            {enabled && (
+              <button type="button" onClick={() => { onEnabledChange(false); setOpen(false) }}>
+                Без напомняне
+              </button>
+            )}
+            <button type="button" className="done" onClick={() => setOpen(false)}>Готово</button>
+          </div>
+        </div>
+      )}
+    </div>
+  )
 }
 
 function NotebookTimeControl({
@@ -280,6 +383,7 @@ export default function NotebookDrawer({
 }) {
   const [pages, setPages] = useState<NotebookPage[]>([])
   const [entries, setEntries] = useState<NotebookEntry[]>([])
+  const [notebookReminders, setNotebookReminders] = useState<NotebookReminder[]>([])
   const [selectedDate, setSelectedDate] = useState(initialDate || localDateKey())
   const [datePickerOpen, setDatePickerOpen] = useState(false)
   const [datePickerCursor, setDatePickerCursor] = useState(() => {
@@ -290,12 +394,16 @@ export default function NotebookDrawer({
   const [draft, setDraft] = useState('')
   const [scheduledTime, setScheduledTime] = useState('')
   const [endTime, setEndTime] = useState('')
+  const [reminderEnabled, setReminderEnabled] = useState(false)
+  const [remindAt, setRemindAt] = useState(() => defaultNotebookReminder(initialDate || localDateKey()))
   const [showFreeTime, setShowFreeTime] = useState(() => window.localStorage.getItem('notebook-show-free-time') === '1')
   const [gapRange, setGapRange] = useState<{ start: string; end: string } | null>(null)
   const [editingId, setEditingId] = useState<string | null>(null)
   const [editingText, setEditingText] = useState('')
   const [editingScheduledTime, setEditingScheduledTime] = useState('')
   const [editingEndTime, setEditingEndTime] = useState('')
+  const [editingReminderEnabled, setEditingReminderEnabled] = useState(false)
+  const [editingRemindAt, setEditingRemindAt] = useState('')
   const [loading, setLoading] = useState(true)
   const [busy, setBusy] = useState(false)
   const [importingTasks, setImportingTasks] = useState(false)
@@ -319,7 +427,7 @@ export default function NotebookDrawer({
 
   const loadData = useCallback(async (quiet = false) => {
     if (!quiet) setLoading(true)
-    const [pagesResult, entriesResult, taskSyncSettingResult] = await Promise.all([
+    const [pagesResult, entriesResult, taskSyncSettingResult, remindersResult] = await Promise.all([
       supabase
         .from('notebook_pages')
         .select('*')
@@ -337,9 +445,14 @@ export default function NotebookDrawer({
         .select('task_sync_enabled')
         .eq('user_id', currentUser.id)
         .maybeSingle(),
+      supabase
+        .from('task_reminders')
+        .select('id,notebook_entry_id,created_by,remind_at,sent_at')
+        .eq('created_by', currentUser.id)
+        .not('notebook_entry_id', 'is', null),
     ])
 
-    const error = pagesResult.error || entriesResult.error || taskSyncSettingResult.error
+    const error = pagesResult.error || entriesResult.error || taskSyncSettingResult.error || remindersResult.error
     if (error) {
       onResult({ tone: 'error', message: `Тефтерът не можа да се зареди: ${error.message}` })
       setLoading(false)
@@ -350,6 +463,7 @@ export default function NotebookDrawer({
     const nextEntries = (entriesResult.data || []) as NotebookEntry[]
     setPages(nextPages)
     setEntries(nextEntries)
+    setNotebookReminders((remindersResult.data || []) as NotebookReminder[])
     setSystemTaskSyncEnabled(Boolean(taskSyncSettingResult.data?.task_sync_enabled))
 
     setSelectedPageId((current) => {
@@ -367,6 +481,7 @@ export default function NotebookDrawer({
       .channel(`personal-notebook-${currentUser.id}`)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'notebook_pages', filter: `user_id=eq.${currentUser.id}` }, refresh)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'notebook_entries', filter: `user_id=eq.${currentUser.id}` }, refresh)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'task_reminders' }, refresh)
       .subscribe()
 
     return () => {
