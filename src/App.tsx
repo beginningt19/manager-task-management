@@ -332,7 +332,6 @@ function App() {
   const [createDueDate, setCreateDueDate] = useState<Date | null>(null)
   const [calendarChoiceDate, setCalendarChoiceDate] = useState<Date | null>(null)
   const [dashboardView, setDashboardView] = useState<DashboardView>('list')
-  const [calendarFullView, setCalendarFullView] = useState(false)
   const [calendarCursor, setCalendarCursor] = useState(() => {
     const today = new Date()
     return new Date(today.getFullYear(), today.getMonth(), 1)
@@ -902,7 +901,7 @@ function App() {
         </div>
       </header>
 
-      <main className={dashboardView === 'calendar' && calendarFullView ? 'calendar-full-mode' : undefined}>
+      <main>
         <section className="page-heading dashboard-hero">
           <div className="hero-copy">
             <p className="eyebrow">Общ преглед</p>
@@ -938,7 +937,7 @@ function App() {
           <StatCard label="Завършени" value={counts.completed} tone="green" icon="✓" active={categoryFocus === 'completed'} onClick={() => focusTaskCategory('completed')} />
         </section>
 
-        <section className={`panel task-panel${dashboardView === 'calendar' && calendarFullView ? ' calendar-full-panel' : ''}`}>
+        <section className="panel task-panel">
           <div className="filters">
             <label className="search-field">
               <span aria-hidden="true">⌕</span>
@@ -964,7 +963,7 @@ function App() {
             <h2>{categoryFocus ? taskCategoryLabels[categoryFocus] : 'Задачи'} <span>{visibleListCount}</span></h2>
             <div className="panel-actions">
               <div className="view-switch" aria-label="Изглед на задачите">
-                <button className={dashboardView === 'list' ? 'active' : ''} onClick={() => { setDashboardView('list'); setCalendarFullView(false) }} aria-pressed={dashboardView === 'list'}>Списък</button>
+                <button className={dashboardView === 'list' ? 'active' : ''} onClick={() => setDashboardView('list')} aria-pressed={dashboardView === 'list'}>Списък</button>
               </div>
               <button className="text-button" onClick={() => void loadCore()}>Обнови</button>
             </div>
@@ -986,8 +985,6 @@ function App() {
                 setNotebookOpen(true)
               }}
               onToggleNotebook={() => void toggleNotebookCalendar()}
-              fullView={calendarFullView}
-              onToggleFullView={() => setCalendarFullView((current) => !current)}
               onCreate={openCalendarCreate}
             />
           ) : visibleListCount === 0 ? (
@@ -1725,8 +1722,6 @@ function CalendarView({
   onOpen,
   onOpenNotebook,
   onToggleNotebook,
-  fullView,
-  onToggleFullView,
   onCreate,
 }: {
   tasks: TaskView[]
@@ -1738,11 +1733,8 @@ function CalendarView({
   onOpen: (taskId: string) => void
   onOpenNotebook: (entry: NotebookCalendarEntry) => void
   onToggleNotebook: () => void
-  fullView: boolean
-  onToggleFullView: () => void
   onCreate: (date: Date) => void
 }) {
-  const scrollRef = useRef<HTMLDivElement | null>(null)
   const todayDayRef = useRef<HTMLDivElement | null>(null)
   const mobileTodayFocusPendingRef = useRef(true)
   const year = cursor.getFullYear()
@@ -1825,32 +1817,13 @@ function CalendarView({
             <button type="button" onClick={showToday}>Днес</button>
             <button type="button" onClick={() => moveMonth(1)} aria-label="Следващ месец">Следващ ›</button>
           </div>
-          <button
-            type="button"
-            className={`calendar-full-toggle${fullView ? ' active' : ''}`}
-            onClick={onToggleFullView}
-            aria-pressed={fullView}
-            title={fullView ? 'Изключи пълния изглед' : 'Покажи календара в пълен изглед'}
-          >
-            <span aria-hidden="true">{fullView ? '↙' : '⛶'}</span>
-            <span>{fullView ? 'Нормален изглед' : 'Пълен изглед'}</span>
-          </button>
         </div>
       </div>
       <div className="calendar-source-note">
         <span><i className="calendar-source-dot task" /> Задачи</span>
         <span className={notebookEnabled ? 'active' : ''}><i className="calendar-source-dot notebook" /> Тефтер {notebookEnabled ? '· показан' : '· скрит'}</span>
       </div>
-      <div
-        ref={scrollRef}
-        className="calendar-scroll"
-        onWheel={(event) => {
-          const shell = event.currentTarget.closest('.calendar-shell')
-          if (!shell || Math.abs(event.deltaY) <= Math.abs(event.deltaX)) return
-          shell.scrollTop += event.deltaY
-          event.preventDefault()
-        }}
-      >
+      <div className="calendar-scroll">
         <div className="calendar-grid">
           {bulgarianWeekdays.map((weekday) => <div key={weekday} className="calendar-weekday">{weekday}</div>)}
           {days.map((date) => {
