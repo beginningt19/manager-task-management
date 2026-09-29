@@ -2328,10 +2328,6 @@ button.stat-card.green.active { border-color: rgba(22,128,111,.45); box-shadow: 
     padding: 0 !important;
   }
 
-  .calendar-full-toggle {
-    display: none !important;
-  }
-
   .calendar-source-note {
     margin: 0 0 9px;
     padding: 0 2px;
