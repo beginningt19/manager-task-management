@@ -159,7 +159,7 @@ final class SupabaseClient {
             boolean completed = task == null || "completed".equals(status) || !task.isNull("completed_at");
             result.add(new Reminder(
                     row.getString("id"),
-                    row.getString("task_id"),
+                    row.isNull("task_id") ? "" : row.optString("task_id", ""),
                     Instant.parse(row.getString("remind_at")),
                     description,
                     completed));
