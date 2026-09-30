@@ -207,8 +207,12 @@ const assigneeWorkStatusLabels = {
   completed: 'Завършена',
 } as const
 
-const getViewerTaskStatus = (task: TaskView, viewerId?: string | null): TaskStatus => {
-  if (task.status === 'completed') return 'completed'
+const getViewerTaskStatus = (
+  task: TaskView,
+  viewerId?: string | null,
+  sharedGovernorView = false,
+): TaskStatus => {
+  if (sharedGovernorView || task.status === 'completed') return task.status
   if (!viewerId) return task.status
 
   const assignment = task.assignment_states.find((item) => item.user_id === viewerId)
@@ -218,8 +222,12 @@ const getViewerTaskStatus = (task: TaskView, viewerId?: string | null): TaskStat
   return task.status
 }
 
-const getTaskCategory = (task: TaskView, viewerId?: string | null): TaskCategory => {
-  const effectiveStatus = getViewerTaskStatus(task, viewerId)
+const getTaskCategory = (
+  task: TaskView,
+  viewerId?: string | null,
+  sharedGovernorView = false,
+): TaskCategory => {
+  const effectiveStatus = getViewerTaskStatus(task, viewerId, sharedGovernorView)
   if (effectiveStatus === 'completed') return 'completed'
   // Approval is an actionable workflow state and must win over "overdue".
   // Otherwise an overdue task awaiting a decision disappears from the
@@ -731,30 +739,37 @@ function App() {
     }
   }, [dashboardView, loadNotebookCalendarEntries, notebookCalendarEnabled, session?.user.id])
 
+  const isGovernor = profile?.display_role === 'Управител'
+
   const filteredTasks = useMemo(() => {
     const needle = query.trim().toLocaleLowerCase('bg-BG')
     return tasks.filter((task) => {
       if (needle && !task.description.toLocaleLowerCase('bg-BG').includes(needle)) return false
-      if (statusFilter !== 'all' && getViewerTaskStatus(task, session?.user.id) !== statusFilter) return false
+      if (statusFilter !== 'all' && getViewerTaskStatus(task, session?.user.id, isGovernor) !== statusFilter) return false
       if (assigneeFilter !== 'all' && !task.assignees.some((person) => person.id === assigneeFilter)) return false
-      if (overdueOnly && !isOverdue(task.due_at, getViewerTaskStatus(task, session?.user.id))) return false
+      if (overdueOnly && !isOverdue(task.due_at, getViewerTaskStatus(task, session?.user.id, isGovernor))) return false
       return true
     })
-  }, [tasks, query, statusFilter, assigneeFilter, overdueOnly, session?.user.id])
+  }, [tasks, query, statusFilter, assigneeFilter, overdueOnly, session?.user.id, isGovernor])
 
   const counts = useMemo(() => {
     const next: Record<TaskCategory, number> = { open: 0, active: 0, approval: 0, overdue: 0, completed: 0 }
     tasks.forEach((task) => {
-      next[getTaskCategory(task, session?.user.id)] += 1
+      next[getTaskCategory(task, session?.user.id, isGovernor)] += 1
     })
     return next
-  }, [tasks, session?.user.id])
+  }, [tasks, session?.user.id, isGovernor])
 
   const visibleTasks = useMemo(
     () => categoryFocus
-      ? filteredTasks.filter((task) => getTaskCategory(task, session?.user.id) === categoryFocus)
-      : filteredTasks,
-    [categoryFocus, filteredTasks, session?.user.id],
+      ? filteredTasks.filter((task) => getTaskCategory(task, session?.user.id, isGovernor) === categoryFocus)
+      : isGovernor
+        ? filteredTasks
+        : filteredTasks.filter((task) => {
+            const viewerAssignment = task.assignment_states.find((assignment) => assignment.user_id === session?.user.id)
+            return viewerAssignment?.work_status !== 'completed'
+          }),
+    [categoryFocus, filteredTasks, isGovernor, session?.user.id],
   )
   const visibleListCount = visibleTasks.length
   const canControlManagerVisibility = Boolean(profile && (profile.role === 'admin' || profile.display_role === 'Управител'))
@@ -996,7 +1011,7 @@ function App() {
           ) : (
             <div className="task-list">
               {visibleTasks.map((task) => (
-                <TaskCard key={task.id} task={task} viewerId={session?.user.id || null} onOpen={() => setSelectedTaskId(task.id)} />
+                <TaskCard key={task.id} task={task} viewerId={session?.user.id || null} sharedGovernorView={isGovernor} onOpen={() => setSelectedTaskId(task.id)} />
               ))}
             </div>
           )}
@@ -1922,13 +1937,15 @@ function CalendarView({
 function TaskCard({
   task,
   viewerId,
+  sharedGovernorView,
   onOpen,
 }: {
   task: TaskView
   viewerId: string | null
+  sharedGovernorView: boolean
   onOpen: () => void
 }) {
-  const effectiveStatus = getViewerTaskStatus(task, viewerId)
+  const effectiveStatus = getViewerTaskStatus(task, viewerId, sharedGovernorView)
   const overdue = isOverdue(task.due_at, effectiveStatus)
   const assignmentByUser = new Map(task.assignment_states.map((assignment) => [assignment.user_id, assignment]))
   const viewerAssignment = viewerId ? assignmentByUser.get(viewerId) : undefined
@@ -1959,20 +1976,22 @@ function TaskCard({
           <span>Възложил: {task.creator?.display_name || '—'}</span>
         </div>
       </div>
-      <div className="assignee-stack" aria-label={`Изпълнители: ${task.assignees.map((person) => person.display_name).join(', ')}`}>
-        {task.assignees.map((person) => {
-          const state = assignmentByUser.get(person.id)?.work_status || 'new'
-          return (
-            <span
-              key={person.id}
-              className={`assignee-avatar-state ${state}`}
-              title={`${person.display_name} · ${assigneeWorkStatusLabels[state]}`}
-            >
-              {initials(person.display_name)}
-            </span>
-          )
-        })}
-      </div>
+      {sharedGovernorView && (
+        <div className="assignee-stack" aria-label={`Изпълнители: ${task.assignees.map((person) => person.display_name).join(', ')}`}>
+          {task.assignees.map((person) => {
+            const state = assignmentByUser.get(person.id)?.work_status || 'new'
+            return (
+              <span
+                key={person.id}
+                className={`assignee-avatar-state ${state}`}
+                title={`${person.display_name} · ${assigneeWorkStatusLabels[state]}`}
+              >
+                {initials(person.display_name)}
+              </span>
+            )
+          })}
+        </div>
+      )}
       <span className="chevron">›</span>
     </button>
   )
@@ -2742,6 +2761,7 @@ function TaskDetail({
     [task],
   )
   const isCreator = Boolean(task && currentUser && task.created_by === currentUser.id)
+  const isGovernor = currentUser?.display_role === 'Управител'
   const currentAssignment = currentUser ? assignmentByUser.get(currentUser.id) : undefined
   const isAssignee = Boolean(currentAssignment)
   const canParticipate = Boolean(task && currentUser && (currentUser.role === 'manager' || isAssignee))
@@ -3331,32 +3351,34 @@ function TaskDetail({
             {task.starts_at && task.ends_at ? (
               <>
                 <div><small>Начало</small><strong>{formatDateTime(task.starts_at)}</strong></div>
-                <div><small>Край</small><strong className={isOverdue(task.due_at, getViewerTaskStatus(task, currentUser.id)) ? 'overdue-text' : ''}>{formatDateTime(task.ends_at)}</strong></div>
+                <div><small>Край</small><strong className={isOverdue(task.due_at, getViewerTaskStatus(task, currentUser.id, isGovernor)) ? 'overdue-text' : ''}>{formatDateTime(task.ends_at)}</strong></div>
               </>
             ) : (
-              <div><small>Краен срок</small><strong className={isOverdue(task.due_at, getViewerTaskStatus(task, currentUser.id)) ? 'overdue-text' : ''}>{formatDateTime(task.due_at)}</strong></div>
+              <div><small>Краен срок</small><strong className={isOverdue(task.due_at, getViewerTaskStatus(task, currentUser.id, isGovernor)) ? 'overdue-text' : ''}>{formatDateTime(task.due_at)}</strong></div>
             )}
             <div><small>Напомняне</small><strong>{reminder ? (reminder.sent_at ? `Изпратено · ${formatDateTime(reminder.sent_at)}` : formatDateTime(reminder.remind_at)) : 'Няма'}</strong></div>
             <div><small>Възложил</small><strong>{task.creator?.display_name || '—'}</strong></div>
 
-            <div className="assignee-status-section">
-              <small>Изпълнители · индивидуален статус</small>
-              <div className="assignee-status-list">
-                {task.assignees.map((person) => {
-                  const assignment = assignmentByUser.get(person.id)
-                  const workStatus = assignment?.work_status || 'new'
-                  return (
-                    <span key={person.id} className={`assignee-status-person ${workStatus}`}>
-                      <span className="avatar small">{initials(person.display_name)}</span>
-                      <span>
-                        <strong>{person.display_name}</strong>
-                        <small>{assigneeWorkStatusLabels[workStatus]}</small>
+            {isGovernor && (
+              <div className="assignee-status-section">
+                <small>Изпълнители · индивидуален статус</small>
+                <div className="assignee-status-list">
+                  {task.assignees.map((person) => {
+                    const assignment = assignmentByUser.get(person.id)
+                    const workStatus = assignment?.work_status || 'new'
+                    return (
+                      <span key={person.id} className={`assignee-status-person ${workStatus}`}>
+                        <span className="avatar small">{initials(person.display_name)}</span>
+                        <span>
+                          <strong>{person.display_name}</strong>
+                          <small>{assigneeWorkStatusLabels[workStatus]}</small>
+                        </span>
                       </span>
-                    </span>
-                  )
-                })}
+                    )
+                  })}
+                </div>
               </div>
-            </div>
+            )}
           </div>
 
           {task.status !== 'completed' && canWork && (
