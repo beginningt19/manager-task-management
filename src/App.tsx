@@ -36,7 +36,6 @@ type Toast = { tone: 'success' | 'error'; message: string }
 type DetailTab = 'progress' | 'files' | 'approvals' | 'activity'
 type CreateMode = 'team' | 'personal'
 
-type ManagerVisibilityMode = 'all' | 'own'
 type DashboardView = 'list' | 'calendar'
 type TaskCategory = 'open' | 'active' | 'approval' | 'overdue' | 'completed'
 type RecurrenceFrequency = 'daily' | 'weekly' | 'monthly'
@@ -357,8 +356,6 @@ function App() {
   const [assigneeFilter, setAssigneeFilter] = useState('all')
   const [overdueOnly, setOverdueOnly] = useState(false)
   const [categoryFocus, setCategoryFocus] = useState<TaskCategory | null>(null)
-  const [managerVisibilityMode, setManagerVisibilityMode] = useState<ManagerVisibilityMode>('all')
-  const [visibilityBusy, setVisibilityBusy] = useState(false)
   const [connectionEpoch, setConnectionEpoch] = useState(0)
   const resumeSyncRef = useRef<Promise<void> | null>(null)
   const lastResumeAtRef = useRef(0)
@@ -443,15 +440,14 @@ function App() {
     if (!session?.user.id) return
     setLoading(true)
 
-    const [profilesResult, tasksResult, assigneesResult, visibilityResult, notebookCalendarResult] = await Promise.all([
+    const [profilesResult, tasksResult, assigneesResult, notebookCalendarResult] = await Promise.all([
       supabase.from('profiles').select('*').order('display_name'),
       supabase.from('tasks').select('*').order('due_at'),
       supabase.from('task_assignees').select('*'),
-      supabase.from('task_visibility_settings').select('manager_mode').eq('id', 'global').maybeSingle(),
       supabase.from('notebook_calendar_settings').select('enabled').eq('user_id', session.user.id).maybeSingle(),
     ])
 
-    const firstError = profilesResult.error || tasksResult.error || assigneesResult.error || visibilityResult.error || notebookCalendarResult.error
+    const firstError = profilesResult.error || tasksResult.error || assigneesResult.error || notebookCalendarResult.error
     if (firstError) {
       showToast({
         tone: 'error',
@@ -468,12 +464,22 @@ function App() {
     const nextAssignees = (assigneesResult.data || []) as TaskAssignee[]
     const byId = new Map(nextProfiles.map((person) => [person.id, person]))
 
+    const visibleTaskIds = new Set(
+      nextAssignees
+        .filter((assignment) => assignment.user_id === session.user.id)
+        .map((assignment) => assignment.task_id),
+    )
+    rawTasks
+      .filter((task) => task.created_by === session.user.id)
+      .forEach((task) => visibleTaskIds.add(task.id))
+
+    const scopedTasks = rawTasks.filter((task) => visibleTaskIds.has(task.id))
+
     setProfiles(nextProfiles)
     setProfile(byId.get(session.user.id) || null)
-    setManagerVisibilityMode((visibilityResult.data?.manager_mode as ManagerVisibilityMode) || 'all')
     setNotebookCalendarEnabled(Boolean(notebookCalendarResult.data?.enabled))
     setTasks(
-      rawTasks.map((task) => ({
+      scopedTasks.map((task) => ({
         ...task,
         creator: byId.get(task.created_by),
         assignees: nextAssignees
@@ -563,7 +569,6 @@ function App() {
       setProfile(null)
       setProfiles([])
       setTasks([])
-      setManagerVisibilityMode('all')
       setNotebookCalendarEnabled(false)
       setNotebookCalendarEntries([])
       setNotebookTarget(null)
@@ -579,7 +584,6 @@ function App() {
       .channel(`core-dashboard-${session.user.id}-${connectionEpoch}`)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'tasks' }, loadCore)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'task_assignees' }, loadCore)
-      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'task_visibility_settings' }, loadCore)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'notebook_calendar_settings', filter: `user_id=eq.${session.user.id}` }, loadCore)
       .subscribe()
     return () => {
@@ -772,7 +776,6 @@ function App() {
     [categoryFocus, filteredTasks, isGovernor, session?.user.id],
   )
   const visibleListCount = visibleTasks.length
-  const canControlManagerVisibility = Boolean(profile && (profile.role === 'admin' || profile.display_role === 'Управител'))
   const canCreateTeamTasks = profile?.display_role === 'Управител'
   const canAdminSetTemporaryPassword = profile?.display_role === 'Управител' || profile?.display_role === 'Модератор'
 
@@ -787,28 +790,6 @@ function App() {
     const nextQuery = params.toString()
     window.history.replaceState({}, '', `${window.location.pathname}${nextQuery ? `?${nextQuery}` : ''}${window.location.hash}`)
   }, [loading, session?.user.id, tasks])
-
-  const toggleManagerVisibility = async () => {
-    if (!canControlManagerVisibility || visibilityBusy) return
-    const nextMode: ManagerVisibilityMode = managerVisibilityMode === 'all' ? 'own' : 'all'
-    setVisibilityBusy(true)
-    const { error } = await supabase.rpc('set_manager_task_visibility', { p_mode: nextMode })
-    setVisibilityBusy(false)
-
-    if (error) {
-      showToast({ tone: 'error', message: error.message })
-      return
-    }
-
-    setManagerVisibilityMode(nextMode)
-    await loadCore()
-    showToast({
-      tone: 'success',
-      message: nextMode === 'all'
-        ? 'Режим 1 е активен: мениджърите виждат всички задачи.'
-        : 'Режим 2 е активен: всеки мениджър вижда само задачите, възложени на него.',
-    })
-  }
 
   const toggleNotebookCalendar = async () => {
     if (!profile || notebookCalendarBusy) return
@@ -885,20 +866,6 @@ function App() {
             <span aria-hidden="true">⚡</span>
             <span>{lowSpec ? 'Low Spec: Вкл.' : 'Low Spec'}</span>
           </button>
-          {canControlManagerVisibility && (
-            <button
-              className={`notification-button manager-visibility-toggle ${managerVisibilityMode === 'own' ? 'own-mode' : 'all-mode'}`}
-              onClick={() => void toggleManagerVisibility()}
-              disabled={visibilityBusy}
-              title={managerVisibilityMode === 'all'
-                ? 'Режим 1: мениджърите виждат всички задачи. Натиснете за режим 2.'
-                : 'Режим 2: мениджърите виждат само своите задачи. Натиснете за режим 1.'}
-              aria-label="Превключи видимостта на задачите за мениджърите"
-            >
-              <i className="visibility-mode-indicator" aria-hidden="true" />
-              <span>{visibilityBusy ? 'Промяна…' : managerVisibilityMode === 'all' ? 'Мениджъри: всички' : 'Мениджъри: само свои'}</span>
-            </button>
-          )}
           <button className={`notification-button checklist-launch${dashboardView === 'calendar' ? ' active' : ''}`} onClick={() => setDashboardView('calendar')} title="Отвори календара">◷<span>Календар</span></button>
           <button className="notification-button checklist-launch notebook-launch" onClick={() => { setNotebookTarget(null); setNotebookOpen(true) }} title="Отвори личния тефтер">✎<span>Тефтер</span></button>
           <PushButton userId={session.user.id} onResult={showToast} />
