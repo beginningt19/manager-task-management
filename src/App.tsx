@@ -1751,6 +1751,7 @@ function CalendarView({
 }) {
   const todayDayRef = useRef<HTMLDivElement | null>(null)
   const mobileTodayFocusPendingRef = useRef(true)
+  const [expandedDayKey, setExpandedDayKey] = useState<string | null>(null)
   const year = cursor.getFullYear()
   const month = cursor.getMonth()
   const firstDayOffset = (new Date(year, month, 1).getDay() + 6) % 7
@@ -1776,9 +1777,71 @@ function CalendarView({
     })
   }
 
-  const moveMonth = (step: number) => onCursorChange(new Date(year, month + step, 1))
+  const getDayItems = (key: string) => [
+    ...(tasksByDay.get(key) || []).map((task) => ({
+      kind: 'task' as const,
+      sortTime: formatBulgarianTime(task.starts_at && task.ends_at ? task.starts_at : task.due_at),
+      task,
+    })),
+    ...(notebookByDay.get(key) || []).map((entry) => ({
+      kind: 'notebook' as const,
+      sortTime: entry.scheduled_time ? entry.scheduled_time.slice(0, 5) : '99:99',
+      entry,
+    })),
+  ].sort((left, right) => left.sortTime.localeCompare(right.sortTime))
+
+  const renderDayItems = (dayItems: ReturnType<typeof getDayItems>) => dayItems.map((item) => item.kind === 'task' ? (
+    <button
+      type="button"
+      key={item.task.id}
+      className={`calendar-task calendar-normal-task ${item.task.priority}${isOverdue(item.task.due_at, item.task.status) ? ' overdue' : ''}`}
+      onClick={() => onOpen(item.task.id)}
+      onDoubleClick={(event) => event.stopPropagation()}
+    >
+      <time>
+        {item.task.starts_at && item.task.ends_at
+          ? `${formatBulgarianTime(item.task.starts_at)}–${formatBulgarianTime(item.task.ends_at)}`
+          : formatBulgarianTime(item.task.due_at)}
+      </time>
+      <span>{item.task.description}</span>
+    </button>
+  ) : (
+    <button
+      type="button"
+      key={`notebook-${item.entry.id}`}
+      className={`calendar-notebook-entry${item.entry.completed ? ' completed' : ''}`}
+      onClick={() => onOpenNotebook(item.entry)}
+      onDoubleClick={(event) => event.stopPropagation()}
+      aria-label={`Тефтер, страница ${item.entry.page_number}: ${item.entry.body}`}
+    >
+      <span className="calendar-notebook-entry-head">
+        <b>✎ Тефтер</b>
+        <small>стр. {item.entry.page_number}</small>
+      </span>
+      <span className="calendar-notebook-entry-content">
+        {item.entry.scheduled_time && (
+          <time className="calendar-notebook-entry-time">
+            {item.entry.scheduled_time.slice(0, 5)}
+          </time>
+        )}
+        <span className="calendar-notebook-entry-text">{item.entry.body}</span>
+      </span>
+      {item.entry.completed && <span className="calendar-notebook-entry-done">✓ изпълнена</span>}
+    </button>
+  ))
+
+  const expandedDay = expandedDayKey
+    ? days.find((date) => localDateKey(date) === expandedDayKey) || null
+    : null
+  const expandedDayItems = expandedDayKey ? getDayItems(expandedDayKey) : []
+
+  const moveMonth = (step: number) => {
+    setExpandedDayKey(null)
+    onCursorChange(new Date(year, month + step, 1))
+  }
   const showToday = () => {
     const today = new Date()
+    setExpandedDayKey(null)
     onCursorChange(new Date(today.getFullYear(), today.getMonth(), 1))
   }
 
@@ -1844,18 +1907,7 @@ function CalendarView({
             const key = localDateKey(date)
             const dayTasks = tasksByDay.get(key) || []
             const dayNotebookEntries = notebookByDay.get(key) || []
-            const dayItems = [
-              ...dayTasks.map((task) => ({
-                kind: 'task' as const,
-                sortTime: formatBulgarianTime(task.starts_at && task.ends_at ? task.starts_at : task.due_at),
-                task,
-              })),
-              ...dayNotebookEntries.map((entry) => ({
-                kind: 'notebook' as const,
-                sortTime: entry.scheduled_time ? entry.scheduled_time.slice(0, 5) : '99:99',
-                entry,
-              })),
-            ].sort((left, right) => left.sortTime.localeCompare(right.sortTime))
+            const dayItems = getDayItems(key)
             const visibleItemCount = dayItems.length
             const isOutside = date.getMonth() !== month
             const isToday = key === todayKey
@@ -1865,12 +1917,18 @@ function CalendarView({
                 key={key}
                 ref={isToday ? todayDayRef : undefined}
                 className={`calendar-day${isOutside ? ' outside-month' : ''}${isToday ? ' today' : ''}${dayNotebookEntries.length ? ' has-notebook-items' : ''}`}
+                onDoubleClick={(event) => {
+                  if ((event.target as HTMLElement).closest('button')) return
+                  setExpandedDayKey((current) => current === key ? null : key)
+                }}
+                title="Двоен клик върху деня за разгъване"
               >
                 <div className="calendar-date">
                   <button
                     type="button"
                     className="calendar-date-button"
                     onClick={() => onCreate(date)}
+                    onDoubleClick={(event) => event.stopPropagation()}
                     aria-label={`Създай задача за ${formatBulgarianDateLong(date)}`}
                     title={`${String(date.getDate()).padStart(2, '0')}.${String(date.getMonth() + 1).padStart(2, '0')}.${date.getFullYear()}`}
                   >
@@ -1881,54 +1939,48 @@ function CalendarView({
                     type="button"
                     className="calendar-add-button"
                     onClick={() => onCreate(date)}
+                    onDoubleClick={(event) => event.stopPropagation()}
                     aria-label={`Добави задача за ${formatBulgarianDateLong(date)}`}
                     title="Добави задача"
                   >＋</button>
                 </div>
                 <div className="calendar-day-tasks">
-                  {dayItems.map((item) => item.kind === 'task' ? (
-                    <button
-                      type="button"
-                      key={item.task.id}
-                      className={`calendar-task calendar-normal-task ${item.task.priority}${isOverdue(item.task.due_at, item.task.status) ? ' overdue' : ''}`}
-                      onClick={() => onOpen(item.task.id)}
-                    >
-                      <time>
-                        {item.task.starts_at && item.task.ends_at
-                          ? `${formatBulgarianTime(item.task.starts_at)}–${formatBulgarianTime(item.task.ends_at)}`
-                          : formatBulgarianTime(item.task.due_at)}
-                      </time>
-                      <span>{item.task.description}</span>
-                    </button>
-                  ) : (
-                    <button
-                      type="button"
-                      key={`notebook-${item.entry.id}`}
-                      className={`calendar-notebook-entry${item.entry.completed ? ' completed' : ''}`}
-                      onClick={() => onOpenNotebook(item.entry)}
-                      aria-label={`Тефтер, страница ${item.entry.page_number}: ${item.entry.body}`}
-                    >
-                      <span className="calendar-notebook-entry-head">
-                        <b>✎ Тефтер</b>
-                        <small>стр. {item.entry.page_number}</small>
-                      </span>
-                      <span className="calendar-notebook-entry-content">
-                        {item.entry.scheduled_time && (
-                          <time className="calendar-notebook-entry-time">
-                            {item.entry.scheduled_time.slice(0, 5)}
-                          </time>
-                        )}
-                        <span className="calendar-notebook-entry-text">{item.entry.body}</span>
-                      </span>
-                      {item.entry.completed && <span className="calendar-notebook-entry-done">✓ изпълнена</span>}
-                    </button>
-                  ))}
+                  {renderDayItems(dayItems)}
                 </div>
               </div>
             )
           })}
         </div>
       </div>
+      {expandedDay && expandedDayKey && (
+        <div
+          className="calendar-day-overlay"
+          onDoubleClick={(event) => {
+            if ((event.target as HTMLElement).closest('button')) return
+            setExpandedDayKey(null)
+          }}
+          role="dialog"
+          aria-label={`Разгънат ден: ${formatBulgarianDateLong(expandedDay)}`}
+          title="Двоен клик върху празно място за свиване"
+        >
+          <div className="calendar-day-overlay-head">
+            <div>
+              <strong>{formatBulgarianDateLong(expandedDay)}</strong>
+              <small>{expandedDayItems.length} {expandedDayItems.length === 1 ? 'запис' : 'записа'}</small>
+            </div>
+            <button
+              type="button"
+              onClick={() => setExpandedDayKey(null)}
+              onDoubleClick={(event) => event.stopPropagation()}
+              aria-label="Свий деня"
+              title="Свий деня"
+            >×</button>
+          </div>
+          <div className="calendar-day-overlay-tasks">
+            {renderDayItems(expandedDayItems)}
+          </div>
+        </div>
+      )}
     </div>
   )
 }
