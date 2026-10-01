@@ -834,7 +834,6 @@ function App() {
 
   const focusTaskCategory = (category: TaskCategory) => {
     setDashboardView('list')
-    setCalendarFullView(false)
     setStatusFilter('all')
     setOverdueOnly(false)
     setCategoryFocus(category)
