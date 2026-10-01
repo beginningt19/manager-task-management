@@ -3108,21 +3108,54 @@ body,
 
 
 
-/* Restore the classic dashboard calendar slider.
-   Keep the calendar as its own vertical scroll area, but do not hijack
-   the mouse wheel and do not bring back the removed full-view mode. */
+/* Admin-style dashboard scrolling.
+   The whole dashboard stays in normal document flow, so wheel/touch scrolling
+   over the calendar moves the page instead of an inner calendar container. */
 @media (min-width: 981px) and (min-height: 680px) {
-  .task-panel > .calendar-shell {
-    flex: 1 1 auto;
-    min-height: 0;
+  html,
+  body,
+  #root {
+    height: auto !important;
+    min-height: 100%;
+  }
+
+  body {
+    overflow-x: hidden !important;
     overflow-y: auto !important;
-    overflow-x: visible;
-    scrollbar-gutter: stable;
+  }
+
+  .app-shell {
+    height: auto !important;
+    min-height: 100vh !important;
+    overflow: visible !important;
+  }
+
+  .app-shell > main:not(.login-page):not(.fatal) {
+    height: auto !important;
+    min-height: calc(100vh - 74px) !important;
+    grid-template-rows: auto auto auto !important;
+    overflow: visible !important;
+    padding-bottom: 24px !important;
+  }
+
+  .app-shell > main:not(.login-page):not(.fatal) > .task-panel {
+    height: auto !important;
+    min-height: 0 !important;
+    overflow: visible !important;
+  }
+
+  .task-panel > .calendar-shell {
+    flex: none !important;
+    min-height: 0 !important;
+    height: auto !important;
+    overflow: visible !important;
+    scrollbar-gutter: auto !important;
+    padding: 0 12px 12px;
   }
 
   .task-panel > .calendar-shell .calendar-scroll {
     overflow-x: auto;
-    overflow-y: visible;
+    overflow-y: visible !important;
   }
 }
 
