@@ -3108,6 +3108,24 @@ body,
 
 
 
+/* Restore the classic dashboard calendar slider.
+   Keep the calendar as its own vertical scroll area, but do not hijack
+   the mouse wheel and do not bring back the removed full-view mode. */
+@media (min-width: 981px) and (min-height: 680px) {
+  .task-panel > .calendar-shell {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-y: auto !important;
+    overflow-x: visible;
+    scrollbar-gutter: stable;
+  }
+
+  .task-panel > .calendar-shell .calendar-scroll {
+    overflow-x: auto;
+    overflow-y: visible;
+  }
+}
+
 /* ======================================================================
    CINEMATIC OFFICE LOGIN INTRO — 2.5D WALK-IN
    The still photo is split into depth bands and driven by separate motion
