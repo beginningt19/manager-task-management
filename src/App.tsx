@@ -1905,7 +1905,6 @@ function CalendarView({
           {bulgarianWeekdays.map((weekday) => <div key={weekday} className="calendar-weekday">{weekday}</div>)}
           {days.map((date) => {
             const key = localDateKey(date)
-            const dayTasks = tasksByDay.get(key) || []
             const dayNotebookEntries = notebookByDay.get(key) || []
             const dayItems = getDayItems(key)
             const visibleItemCount = dayItems.length
