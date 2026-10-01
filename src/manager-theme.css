@@ -2107,18 +2107,19 @@ body,
   html,
   body,
   #root {
-    height: 100%;
+    height: auto;
     min-height: 100%;
   }
 
   body {
-    overflow: hidden;
+    overflow-x: hidden;
+    overflow-y: auto;
   }
 
   .app-shell {
-    height: 100dvh;
-    min-height: 100dvh;
-    overflow: hidden !important;
+    height: auto;
+    min-height: 100vh;
+    overflow: visible !important;
   }
 
   .app-shell > .topbar {
@@ -2128,14 +2129,14 @@ body,
 
   .app-shell > main:not(.login-page):not(.fatal) {
     width: min(1340px, calc(100% - 48px));
-    height: calc(100dvh - 74px);
-    min-height: 0;
+    height: auto;
+    min-height: calc(100vh - 74px);
     margin: 0 auto;
-    padding: 16px 0 16px !important;
+    padding: 16px 0 24px !important;
     display: grid;
-    grid-template-rows: 150px 82px minmax(0, 1fr);
+    grid-template-rows: auto auto auto;
     gap: 12px;
-    overflow: hidden;
+    overflow: visible;
   }
 
   .app-shell > main:not(.login-page):not(.fatal) > .dashboard-hero {
@@ -2205,10 +2206,10 @@ body,
 
   .app-shell > main:not(.login-page):not(.fatal) > .task-panel {
     min-height: 0;
-    height: 100%;
+    height: auto;
     display: flex;
     flex-direction: column;
-    overflow: hidden;
+    overflow: visible;
     border-radius: 18px;
   }
 
@@ -2235,9 +2236,10 @@ body,
   }
 
   .task-panel > .calendar-shell {
-    flex: 1 1 auto;
+    flex: none;
     min-height: 0;
-    overflow-y: auto;
+    height: auto;
+    overflow: visible;
     padding: 0 12px 12px;
   }
 
@@ -3107,57 +3109,6 @@ body,
 }
 
 
-
-/* Admin-style dashboard scrolling.
-   The whole dashboard stays in normal document flow, so wheel/touch scrolling
-   over the calendar moves the page instead of an inner calendar container. */
-@media (min-width: 981px) and (min-height: 680px) {
-  html,
-  body,
-  #root {
-    height: auto !important;
-    min-height: 100%;
-  }
-
-  body {
-    overflow-x: hidden !important;
-    overflow-y: auto !important;
-  }
-
-  .app-shell {
-    height: auto !important;
-    min-height: 100vh !important;
-    overflow: visible !important;
-  }
-
-  .app-shell > main:not(.login-page):not(.fatal) {
-    height: auto !important;
-    min-height: calc(100vh - 74px) !important;
-    grid-template-rows: auto auto auto !important;
-    overflow: visible !important;
-    padding-bottom: 24px !important;
-  }
-
-  .app-shell > main:not(.login-page):not(.fatal) > .task-panel {
-    height: auto !important;
-    min-height: 0 !important;
-    overflow: visible !important;
-  }
-
-  .task-panel > .calendar-shell {
-    flex: none !important;
-    min-height: 0 !important;
-    height: auto !important;
-    overflow: visible !important;
-    scrollbar-gutter: auto !important;
-    padding: 0 12px 12px;
-  }
-
-  .task-panel > .calendar-shell .calendar-scroll {
-    overflow-x: auto;
-    overflow-y: visible !important;
-  }
-}
 
 /* ======================================================================
    CINEMATIC OFFICE LOGIN INTRO — 2.5D WALK-IN
