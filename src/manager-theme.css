@@ -2732,10 +2732,14 @@ body,
 }
 
 .low-spec .task-board-shell,
-.low-spec .calendar-scroll,
 .low-spec .notebook-pages,
 .low-spec .checklist-content {
   overscroll-behavior: contain;
+}
+
+.low-spec .calendar-scroll {
+  overscroll-behavior: auto;
+  overscroll-behavior-y: auto;
 }
 
 .low-spec .task-category-column,
