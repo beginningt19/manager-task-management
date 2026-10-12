@@ -463,6 +463,8 @@ function App() {
     const rawTasks = (tasksResult.data || []) as TaskRow[]
     const nextAssignees = (assigneesResult.data || []) as TaskAssignee[]
     const byId = new Map(nextProfiles.map((person) => [person.id, person]))
+    const currentProfile = byId.get(session.user.id) || null
+    const hasFullTaskAccess = Boolean(currentProfile?.display_role === 'Управител' || currentProfile?.can_manage_all_tasks)
 
     const visibleTaskIds = new Set(
       nextAssignees
@@ -473,10 +475,12 @@ function App() {
       .filter((task) => task.created_by === session.user.id)
       .forEach((task) => visibleTaskIds.add(task.id))
 
-    const scopedTasks = rawTasks.filter((task) => visibleTaskIds.has(task.id))
+    const scopedTasks = hasFullTaskAccess
+      ? rawTasks
+      : rawTasks.filter((task) => visibleTaskIds.has(task.id))
 
     setProfiles(nextProfiles)
-    setProfile(byId.get(session.user.id) || null)
+    setProfile(currentProfile)
     setNotebookCalendarEnabled(Boolean(notebookCalendarResult.data?.enabled))
     setTasks(
       scopedTasks.map((task) => ({
@@ -743,40 +747,40 @@ function App() {
     }
   }, [dashboardView, loadNotebookCalendarEntries, notebookCalendarEnabled, session?.user.id])
 
-  const isGovernor = profile?.display_role === 'Управител'
+  const hasFullTaskAccess = profile?.display_role === 'Управител' || Boolean(profile?.can_manage_all_tasks)
 
   const filteredTasks = useMemo(() => {
     const needle = query.trim().toLocaleLowerCase('bg-BG')
     return tasks.filter((task) => {
       if (needle && !task.description.toLocaleLowerCase('bg-BG').includes(needle)) return false
-      if (statusFilter !== 'all' && getViewerTaskStatus(task, session?.user.id, isGovernor) !== statusFilter) return false
+      if (statusFilter !== 'all' && getViewerTaskStatus(task, session?.user.id, hasFullTaskAccess) !== statusFilter) return false
       if (assigneeFilter !== 'all' && !task.assignees.some((person) => person.id === assigneeFilter)) return false
-      if (overdueOnly && !isOverdue(task.due_at, getViewerTaskStatus(task, session?.user.id, isGovernor))) return false
+      if (overdueOnly && !isOverdue(task.due_at, getViewerTaskStatus(task, session?.user.id, hasFullTaskAccess))) return false
       return true
     })
-  }, [tasks, query, statusFilter, assigneeFilter, overdueOnly, session?.user.id, isGovernor])
+  }, [tasks, query, statusFilter, assigneeFilter, overdueOnly, session?.user.id, hasFullTaskAccess])
 
   const counts = useMemo(() => {
     const next: Record<TaskCategory, number> = { open: 0, active: 0, approval: 0, overdue: 0, completed: 0 }
     tasks.forEach((task) => {
-      next[getTaskCategory(task, session?.user.id, isGovernor)] += 1
+      next[getTaskCategory(task, session?.user.id, hasFullTaskAccess)] += 1
     })
     return next
-  }, [tasks, session?.user.id, isGovernor])
+  }, [tasks, session?.user.id, hasFullTaskAccess])
 
   const visibleTasks = useMemo(
     () => categoryFocus
-      ? filteredTasks.filter((task) => getTaskCategory(task, session?.user.id, isGovernor) === categoryFocus)
-      : isGovernor
+      ? filteredTasks.filter((task) => getTaskCategory(task, session?.user.id, hasFullTaskAccess) === categoryFocus)
+      : hasFullTaskAccess
         ? filteredTasks
         : filteredTasks.filter((task) => {
             const viewerAssignment = task.assignment_states.find((assignment) => assignment.user_id === session?.user.id)
             return viewerAssignment?.work_status !== 'completed'
           }),
-    [categoryFocus, filteredTasks, isGovernor, session?.user.id],
+    [categoryFocus, filteredTasks, hasFullTaskAccess, session?.user.id],
   )
   const visibleListCount = visibleTasks.length
-  const canCreateTeamTasks = profile?.display_role === 'Управител'
+  const canCreateTeamTasks = hasFullTaskAccess
   const canAdminSetTemporaryPassword = profile?.display_role === 'Управител' || profile?.display_role === 'Модератор'
 
   useEffect(() => {
@@ -977,7 +981,7 @@ function App() {
           ) : (
             <div className="task-list">
               {visibleTasks.map((task) => (
-                <TaskCard key={task.id} task={task} viewerId={session?.user.id || null} sharedGovernorView={isGovernor} onOpen={() => setSelectedTaskId(task.id)} />
+                <TaskCard key={task.id} task={task} viewerId={session?.user.id || null} sharedGovernorView={hasFullTaskAccess} onOpen={() => setSelectedTaskId(task.id)} />
               ))}
             </div>
           )}
@@ -2778,7 +2782,7 @@ function TaskDetail({
     [task],
   )
   const isCreator = Boolean(task && currentUser && task.created_by === currentUser.id)
-  const isGovernor = currentUser?.display_role === 'Управител'
+  const hasFullTaskAccess = currentUser?.display_role === 'Управител' || Boolean(currentUser?.can_manage_all_tasks)
   const currentAssignment = currentUser ? assignmentByUser.get(currentUser.id) : undefined
   const isAssignee = Boolean(currentAssignment)
   const canParticipate = Boolean(task && currentUser && (currentUser.role === 'manager' || isAssignee))
@@ -3368,15 +3372,15 @@ function TaskDetail({
             {task.starts_at && task.ends_at ? (
               <>
                 <div><small>Начало</small><strong>{formatDateTime(task.starts_at)}</strong></div>
-                <div><small>Край</small><strong className={isOverdue(task.due_at, getViewerTaskStatus(task, currentUser.id, isGovernor)) ? 'overdue-text' : ''}>{formatDateTime(task.ends_at)}</strong></div>
+                <div><small>Край</small><strong className={isOverdue(task.due_at, getViewerTaskStatus(task, currentUser.id, hasFullTaskAccess)) ? 'overdue-text' : ''}>{formatDateTime(task.ends_at)}</strong></div>
               </>
             ) : (
-              <div><small>Краен срок</small><strong className={isOverdue(task.due_at, getViewerTaskStatus(task, currentUser.id, isGovernor)) ? 'overdue-text' : ''}>{formatDateTime(task.due_at)}</strong></div>
+              <div><small>Краен срок</small><strong className={isOverdue(task.due_at, getViewerTaskStatus(task, currentUser.id, hasFullTaskAccess)) ? 'overdue-text' : ''}>{formatDateTime(task.due_at)}</strong></div>
             )}
             <div><small>Напомняне</small><strong>{reminder ? (reminder.sent_at ? `Изпратено · ${formatDateTime(reminder.sent_at)}` : formatDateTime(reminder.remind_at)) : 'Няма'}</strong></div>
             <div><small>Възложил</small><strong>{task.creator?.display_name || '—'}</strong></div>
 
-            {isGovernor && (
+            {hasFullTaskAccess && (
               <div className="assignee-status-section">
                 <small>Изпълнители · индивидуален статус</small>
                 <div className="assignee-status-list">
