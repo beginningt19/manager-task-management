@@ -65,7 +65,7 @@ jobs:
               ),
               (
                   "  const isGovernor = currentUser?.display_role === 'Управител'",
-                  "  const hasFullTaskAccess = currentUser?.display_role === 'Управител' || Boolean(currentUser?.can_manage_all_tasks)\n  const isGovernor = currentUser?.display_role === 'Управител'"
+                  "  const hasFullTaskAccess = currentUser?.display_role === 'Управител' || Boolean(currentUser?.can_manage_all_tasks)"
               ),
               (
                   "getViewerTaskStatus(task, currentUser.id, isGovernor)",
