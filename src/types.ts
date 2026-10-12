@@ -18,6 +18,7 @@ export interface Profile {
   role: Role
   display_role: string | null
   is_active: boolean
+  can_manage_all_tasks: boolean
   created_at: string
   updated_at: string
 }
