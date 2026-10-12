@@ -83,10 +83,8 @@ jobs:
                   raise SystemExit(f'Missing expected App.tsx fragment: {old[:120]!r}')
               s = s.replace(old, new)
 
-          # Dependency arrays use the renamed task-access flag.
           s = s.replace("session?.user.id, isGovernor])", "session?.user.id, hasFullTaskAccess])")
 
-          # Approval decisions remain restricted to the actual Управител.
           if "approval.status === 'pending' && currentUser.display_role === 'Управител'" not in s:
               raise SystemExit('Governor-only approval guard changed unexpectedly')
 
@@ -95,7 +93,7 @@ jobs:
 
       - name: Verify build
         run: |
-          npm ci
+          npm install --no-audit --no-fund
           npm run build
 
       - name: Commit frontend capability support
