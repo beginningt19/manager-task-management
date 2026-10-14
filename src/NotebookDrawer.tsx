@@ -498,9 +498,9 @@ export default function NotebookDrawer({
 
     const today = localDateKey()
 
-    // Rollover is only allowed for a selected day that is already in the past.
-    // Never call the RPC for today or for any future date.
-    if (selectedDate >= today) {
+    // Rollover may target today so yesterday's unfinished entries can move forward.
+    // Never call the RPC for a future date.
+    if (selectedDate > today) {
       rolloverDateRef.current = selectedDate
       return
     }
