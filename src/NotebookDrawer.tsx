@@ -40,7 +40,18 @@ type NotebookEntry = {
   end_time: string | null
   deadline_time: string | null
   source_task_id: string | null
+  person_label: string | null
 }
+
+const GALINA_NOTEBOOK_USER_ID = 'fbdd7dfe-82b6-48c0-9c4c-1a6edb974ca5'
+const GALINA_NOTEBOOK_PEOPLE = [
+  'Людмил Таков',
+  'Никол Петрова',
+  'Гергана Христова',
+  'Георги Николов',
+  'Анна Яръмова',
+  'Станислава Цветкова',
+] as const
 
 type SpeechRecognitionLike = {
   lang: string
@@ -391,6 +402,7 @@ export default function NotebookDrawer({
     return new Date(initial.getFullYear(), initial.getMonth(), 1)
   })
   const [selectedPageId, setSelectedPageId] = useState<string | null>(initialPageId || null)
+  const [selectedPerson, setSelectedPerson] = useState<string | null>(null)
   const [draft, setDraft] = useState('')
   const [scheduledTime, setScheduledTime] = useState('')
   const [endTime, setEndTime] = useState('')
@@ -424,6 +436,7 @@ export default function NotebookDrawer({
   const voiceRestartTimerRef = useRef<number | null>(null)
   const rolloverDateRef = useRef<string | null>(null)
   const systemTaskSyncBusyRef = useRef(false)
+  const isGalinaNotebook = currentUser.id === GALINA_NOTEBOOK_USER_ID
 
   const loadData = useCallback(async (quiet = false) => {
     if (!quiet) setLoading(true)
@@ -557,6 +570,10 @@ export default function NotebookDrawer({
     () => selectedPage
       ? entries
         .filter((entry) => entry.page_id === selectedPage.id)
+        .filter((entry) => {
+          if (!isGalinaNotebook) return true
+          return selectedPerson ? entry.person_label === selectedPerson : !entry.person_label
+        })
         .sort((a, b) => {
           const left = normalizeTime(a.scheduled_time)
           const right = normalizeTime(b.scheduled_time)
@@ -570,7 +587,7 @@ export default function NotebookDrawer({
           return a.position - b.position || a.created_at.localeCompare(b.created_at)
         })
       : [],
-    [entries, selectedPage],
+    [entries, selectedPage, isGalinaNotebook, selectedPerson],
   )
 
   const visibleDates = useMemo(() => {
@@ -730,6 +747,7 @@ export default function NotebookDrawer({
       completed: false,
       scheduled_time: scheduledTime || null,
       end_time: endTime || null,
+      person_label: isGalinaNotebook ? selectedPerson : null,
     }).select('id').single()
 
     if (!error && reminderEnabled && createdEntry?.id) {
@@ -1372,8 +1390,40 @@ export default function NotebookDrawer({
               </div>
             )}
 
+            {isGalinaNotebook && (
+              <nav className="notebook-person-tabs" aria-label="Хора в тефтера">
+                <button
+                  type="button"
+                  className={selectedPerson === null ? 'general active' : 'general'}
+                  onClick={() => {
+                    setSelectedPerson(null)
+                    setEditingId(null)
+                    setGapRange(null)
+                  }}
+                  title="Общи записки"
+                >
+                  <span>Общи</span>
+                </button>
+                {GALINA_NOTEBOOK_PEOPLE.map((person) => (
+                  <button
+                    key={person}
+                    type="button"
+                    className={selectedPerson === person ? 'active' : ''}
+                    onClick={() => {
+                      setSelectedPerson(person)
+                      setEditingId(null)
+                      setGapRange(null)
+                    }}
+                    title={`Бележки за ${person}`}
+                  >
+                    <span>{person}</span>
+                  </button>
+                ))}
+              </nav>
+            )}
+
             <article
-              key={`${selectedDate}:${selectedPage?.id || 'virtual'}:${pageTurnNonce}`}
+              key={`${selectedDate}:${selectedPage?.id || 'virtual'}:${selectedPerson || 'general'}:${pageTurnNonce}`}
               className={`notebook-paper notebook-turn-${pageTurn}`}
             >
               <div className="notebook-toolbar">
@@ -1453,8 +1503,11 @@ export default function NotebookDrawer({
 
               <div className="notebook-paper-header">
                 <div>
-                  <span className="notebook-kicker">ДНЕВНИ ЗАПИСКИ</span>
+                  <span className="notebook-kicker">{selectedPerson ? `БЕЛЕЖКИ ЗА ${selectedPerson.toLocaleUpperCase('bg-BG')}` : 'ДНЕВНИ ЗАПИСКИ'}</span>
                   <h2>{formatLongDate(selectedDate)}</h2>
+                  {isGalinaNotebook && selectedPerson && (
+                    <span className="notebook-person-context">За: <strong>{selectedPerson}</strong></span>
+                  )}
                 </div>
                 <div className="notebook-page-meta">
                   <span>Страница</span>
@@ -1486,8 +1539,8 @@ export default function NotebookDrawer({
               <div className="notebook-composer" ref={composerRef}>
                 <div className="notebook-composer-heading">
                   <div>
-                    <strong>Нов запис</strong>
-                    <small>Напиши задачата или я кажи на глас.</small>
+                    <strong>{selectedPerson ? `Нов запис за ${selectedPerson}` : 'Нов запис'}</strong>
+                    <small>{selectedPerson ? 'Записът ще остане в секцията на този човек.' : 'Напиши задачата или я кажи на глас.'}</small>
                   </div>
                   <button
                     type="button"
@@ -1503,7 +1556,7 @@ export default function NotebookDrawer({
                   rows={1}
                   value={draft}
                   onChange={(event) => setDraft(event.target.value)}
-                  placeholder="Запиши какво трябва да свършиш…"
+                  placeholder={selectedPerson ? `Запиши нещо, свързано с ${selectedPerson}…` : 'Запиши какво трябва да свършиш…'}
                 />
                 {listening && (
                   <div className="notebook-listening">
@@ -1561,8 +1614,8 @@ export default function NotebookDrawer({
                   <div className="notebook-empty">Отварям тефтера…</div>
                 ) : pageEntries.length === 0 ? (
                   <div className="notebook-empty">
-                    <strong>Празна страница</strong>
-                    <p>Първият запис за този ден ще се появи тук.</p>
+                    <strong>{selectedPerson ? `Няма записи за ${selectedPerson}` : 'Празна страница'}</strong>
+                    <p>{selectedPerson ? 'Добави първата бележка за този човек за избраната дата.' : 'Първият запис за този ден ще се появи тук.'}</p>
                   </div>
                 ) : pageEntries.map((entry, index) => {
                   const currentTime = normalizeTime(entry.scheduled_time)
